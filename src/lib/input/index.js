@@ -1,18 +1,22 @@
 /*
  * Fuentes de input → acciones normalizadas.
  *
- * Todas las fuentes emiten las MISMAS acciones, que el App interpreta según el
- * contexto (ver App.svelte -> dispatch):
- *   up | down | left | right | accept | back | menu | quick | tabLeft | tabRight
+ * Las fuentes de MANDO emiten eventos "crudos" con la forma:
+ *     { type: "dir" | "button", name, pressed }
+ *   - "dir"    -> name: up|down|left|right  (navegación FIJA, no remapeable)
+ *   - "button" -> name: south|east|north|west|l1|r1|start|select|guide (remapeable)
  *
- * Fuentes:
- *  1. Teclado físico (siempre) — comodidad/accesibilidad, nunca única vía.
- *  2. Eventos de mando desde Rust/gilrs (evento Tauri 'gm://input') — en la app real.
- *  3. Gamepad API del navegador (fallback) — solo fuera de Tauri (p. ej. `npm run dev`).
+ * El mapeo botón→acción vive en `stores/bindings.js` (configurable/persistente).
+ * El teclado físico mapea directo a acciones (ayuda de dev + red de seguridad).
+ * `App.svelte -> dispatch` interpreta la acción según el contexto.
  */
 
+import { get } from "svelte/store";
 import { isTauri } from "../ipc/index.js";
+import { resolve } from "../stores/bindings.js";
+import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 
+// Teclado físico → acción directa (no pasa por bindings; red de seguridad).
 const KEY_MAP = {
   ArrowUp: "up",
   ArrowDown: "down",
@@ -22,28 +26,41 @@ const KEY_MAP = {
   " ": "accept",
   Escape: "back",
   Backspace: "back",
-  Tab: "menu", // abrir menú global/biblioteca
-  q: "quick", // abrir QAM de sistema
+  Tab: "menu", // menú Configuración
+  q: "quick", // QAM de sistema
   Q: "quick",
   e: "tabLeft",
   r: "tabRight",
+  i: "north", // detalle / espacio-en-teclado (para probar sin mando)
+  x: "west", // borrar-en-teclado (para probar sin mando)
 };
 
-// Botones estándar de la Gamepad API (mapeo estándar de navegador).
-const PAD_BUTTON_MAP = {
-  0: "accept", // A / Cross
-  1: "back", // B / Circle
-  4: "tabLeft", // LB
-  5: "tabRight", // RB
-  8: "quick", // Select/View  -> QAM
-  9: "menu", // Start/Menu   -> menú global
-  12: "up",
-  13: "down",
-  14: "left",
-  15: "right",
+// Botón crudo por índice de la Gamepad API estándar del navegador.
+const PAD_BUTTON_RAW = {
+  0: "south",
+  1: "east",
+  2: "west",
+  3: "north",
+  4: "l1",
+  5: "r1",
+  6: "lt", // gatillo L2
+  7: "rt", // gatillo R2
+  8: "select",
+  9: "start",
+  10: "l3", // clic stick izq.
+  11: "r3", // clic stick der.
+  16: "guide",
 };
 
 let dispatchFn = () => {};
+let captureFn = null; // modo "pulsa un botón" para remapear
+
+export function setCapture(fn) {
+  captureFn = fn;
+}
+export function clearCapture() {
+  captureFn = null;
+}
 
 export async function initInput(dispatch) {
   dispatchFn = dispatch;
@@ -55,12 +72,31 @@ export async function initInput(dispatch) {
   }
 }
 
+// Procesa un evento crudo de mando (de gilrs o del navegador). Solo actúa en press.
+function handleRaw(ev) {
+  if (!ev || !ev.pressed) return;
+  if (ev.type === "dir") {
+    dispatchFn(ev.name);
+  } else if (ev.type === "button") {
+    if (captureFn) {
+      captureFn(ev.name); // remapeo: capturar el botón crudo
+      return;
+    }
+    const action = resolve(ev.name);
+    if (action) dispatchFn(action);
+  }
+}
+
 // -------- 1. Teclado --------
 function initKeyboard() {
   window.addEventListener("keydown", (e) => {
-    // No interceptar cuando se escribe en un input real (no lo usamos, pero por si acaso).
     const tag = e.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
+    // Con el teclado virtual abierto, permitir escribir con el teclado físico.
+    if (get(vk).open && handlePhysicalTyping(e)) {
+      e.preventDefault();
+      return;
+    }
     const action = KEY_MAP[e.key];
     if (action) {
       e.preventDefault();
@@ -69,14 +105,22 @@ function initKeyboard() {
   });
 }
 
+// Escritura directa en el teclado virtual con teclado físico.
+// (Las flechas caen a KEY_MAP para seguir navegando las teclas en pantalla.)
+function handlePhysicalTyping(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return false;
+  if (e.key === "Enter") return vkDone(false), true;
+  if (e.key === "Escape") return vkDone(true), true;
+  if (e.key === "Backspace") return vkBackspace(), true;
+  if (e.key.length === 1) return vkType(e.key), true;
+  return false;
+}
+
 // -------- 2. Mando vía Rust (gilrs) --------
 async function initTauriGamepad() {
   try {
     const { listen } = await import("@tauri-apps/api/event");
-    await listen("gm://input", (event) => {
-      const p = event.payload;
-      if (p && p.pressed && p.action) dispatchFn(p.action);
-    });
+    await listen("gm://input", (event) => handleRaw(event.payload));
   } catch (err) {
     console.warn("No se pudo suscribir a eventos de mando de Tauri:", err);
   }
@@ -85,9 +129,10 @@ async function initTauriGamepad() {
 // -------- 3. Gamepad API del navegador (fallback) --------
 function initBrowserGamepad() {
   const pressed = {}; // "padIndex:button" -> bool
-  const repeat = {}; // acción direccional -> {next}
+  const repeat = {}; // dir -> próximo instante
   const INITIAL = 350;
   const RATE = 130;
+  const DPAD = { 12: "up", 13: "down", 14: "left", 15: "right" };
 
   function poll(now) {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -96,25 +141,23 @@ function initBrowserGamepad() {
     for (const pad of pads) {
       if (!pad) continue;
 
-      // Botones (varios mandos controlan el mismo foco: cualquiera dispara).
       pad.buttons.forEach((b, i) => {
-        const action = PAD_BUTTON_MAP[i];
-        if (!action) return;
-        const key = `${pad.index}:${i}`;
         const down = b.pressed || b.value > 0.5;
+        // D-pad → direcciones.
+        if (DPAD[i]) {
+          if (down) activeDirs.add(DPAD[i]);
+          return;
+        }
+        // Botones de acción → eventos crudos con detección de flanco.
+        const raw = PAD_BUTTON_RAW[i];
+        if (!raw) return;
+        const key = `${pad.index}:${i}`;
         if (down && !pressed[key]) {
           pressed[key] = true;
-          if (["up", "down", "left", "right"].includes(action)) {
-            activeDirs.add(action);
-            repeat[action] = now + INITIAL;
-          } else {
-            dispatchFn(action);
-          }
+          handleRaw({ type: "button", name: raw, pressed: true });
         } else if (!down && pressed[key]) {
           pressed[key] = false;
         }
-        if (down && ["up", "down", "left", "right"].includes(action))
-          activeDirs.add(action);
       });
 
       // Stick izquierdo → direcciones.
@@ -126,14 +169,14 @@ function initBrowserGamepad() {
       if (ay > TH) activeDirs.add("down");
     }
 
-    // Auto-repetición para direcciones sostenidas.
+    // Auto-repetición de direcciones sostenidas.
     for (const dir of ["up", "down", "left", "right"]) {
       if (activeDirs.has(dir)) {
         if (repeat[dir] == null) {
-          dispatchFn(dir);
+          handleRaw({ type: "dir", name: dir, pressed: true });
           repeat[dir] = now + INITIAL;
         } else if (now >= repeat[dir]) {
-          dispatchFn(dir);
+          handleRaw({ type: "dir", name: dir, pressed: true });
           repeat[dir] = now + RATE;
         }
       } else {

@@ -1,5 +1,5 @@
 <script>
-  import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
+  import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
 
   const ROWS = [
     "1234567890".split(""),
@@ -8,9 +8,8 @@
     "zxcvbnm".split(""),
   ];
 
-  let shift = false;
   function press(ch) {
-    vkType(shift ? ch.toUpperCase() : ch);
+    vkType($vk.shift ? ch.toUpperCase() : ch);
   }
 </script>
 
@@ -25,21 +24,30 @@
       <div class="krow">
         {#each row as ch}
           <button class="key" data-focusable tabindex="-1" on:click={() => press(ch)}>
-            {shift ? ch.toUpperCase() : ch}
+            {$vk.shift ? ch.toUpperCase() : ch}
           </button>
         {/each}
       </div>
     {/each}
 
     <div class="krow">
-      <button class="key wide" class:on={shift} data-focusable tabindex="-1" on:click={() => (shift = !shift)}>⇧ Mayús</button>
+      <button class="key wide" class:on={$vk.shift} data-focusable tabindex="-1" on:click={vkToggleShift}>⇧ Mayús</button>
       <button class="key space" data-focusable data-focus-default tabindex="-1" on:click={() => vkType(" ")}>Espacio</button>
       <button class="key wide" data-focusable tabindex="-1" on:click={vkBackspace}>⌫ Borrar</button>
     </div>
 
     <div class="krow">
       <button class="key done" data-focusable tabindex="-1" on:click={() => vkDone(false)}>✓ Aceptar</button>
-      <button class="key cancel" data-focusable tabindex="-1" on:click={() => vkDone(true)}>✕ Cancelar (B)</button>
+      <button class="key cancel" data-focusable tabindex="-1" on:click={() => vkDone(true)}>✕ Cancelar</button>
+    </div>
+
+    <!-- Pistas de atajos de mando -->
+    <div class="kb-hints">
+      <span><b>A</b> Escribir</span>
+      <span><b>Y/△</b> Espacio</span>
+      <span><b>X/□</b> Borrar</span>
+      <span><b>LB/RB</b> Mayús</span>
+      <span><b>B</b> Cancelar</span>
     </div>
   </div>
 </div>
@@ -122,5 +130,17 @@
   .cancel {
     background: var(--gm-surface);
     flex: 1;
+  }
+  .kb-hints {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 14px;
+    color: var(--gm-text-dim);
+    font-size: 0.82rem;
+  }
+  .kb-hints b {
+    color: var(--gm-accent-2);
   }
 </style>

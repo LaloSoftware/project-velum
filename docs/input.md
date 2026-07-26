@@ -5,30 +5,47 @@ físico (hay teclado virtual en pantalla para escribir).
 
 ## Fuentes de input
 
-Todas emiten las **mismas acciones**, que `App.svelte` interpreta según el contexto:
-`up | down | left | right | accept | back | menu | quick | tabLeft | tabRight`.
+Las fuentes de **mando** emiten eventos **crudos** `{ type: "dir"|"button", name, pressed }`;
+el mapeo `botón→acción` se hace en el frontend (bindings configurables). Las acciones que
+interpreta `App.svelte` son: `up | down | left | right | accept | back | north | west |
+menu | quick | tabLeft | tabRight`.
 
 1. **Mando vía Rust/`gilrs`** (app real) — `src-tauri/src/input.rs`. Un hilo lee los
-   mandos y emite el evento Tauri `gm://input` `{ action, pressed }`. Cubre
-   **Xbox/XInput, DualSense y genéricos** con mapeos SDL, en Windows y macOS.
-   **Varios mandos** controlan el mismo foco (cualquiera dispara).
-2. **Teclado físico** (siempre) — comodidad/accesibilidad. Nunca única vía.
-3. **Gamepad API del navegador** (fallback) — solo fuera de Tauri (`npm run dev`), para
-   probar con mando en modo web. `src/lib/input/index.js`.
+   mandos y emite el evento Tauri `gm://input`. Direcciones (d-pad/stick) → `type:"dir"`;
+   botones de acción → `type:"button"` con id crudo. Cubre **Xbox/XInput, DualSense y
+   genéricos** con mapeos SDL, en Windows y macOS. **Varios mandos** controlan el mismo
+   foco (cualquiera dispara).
+2. **Teclado físico** (siempre) — mapea directo a acciones (`KEY_MAP`), sin pasar por los
+   bindings. Es la **red de seguridad** si el usuario se bloquea remapeando.
+3. **Gamepad API del navegador** (fallback) — solo fuera de Tauri (`npm run dev`), misma
+   forma de evento crudo. `src/lib/input/index.js`.
 
-## Mapa de botones
+## Atajos configurables (bindings)
 
-| Mando | Teclado | Acción |
-|-------|---------|--------|
-| A / Cross | Enter | aceptar |
-| B / Circle | Esc / Backspace | volver / cerrar capa |
-| D-pad / stick izq. | Flechas | navegar el foco |
-| LB / RB | E / R | pestañas (Inicio/Apps/Ajustes) |
-| Start | Tab | abrir biblioteca (overlay) |
-| Select / Guide | Q | abrir menú de sistema (QAM) |
+`src/lib/stores/bindings.js` guarda el mapa `botón crudo → acción` (persistido en la
+config). Las **direcciones son fijas** (navegación); solo se remapean los botones de
+acción. La sección **Configuración de atajos** (`ShortcutsSection.svelte`) reasigna con
+captura: "Pulsa un botón…" → el siguiente botón crudo se asigna a la acción (con *swap*
+si ya estaba usado). "Restaurar por defecto" vuelve al mapa base.
 
-Definido en un solo sitio: `input.rs` (`button_action`) y `input/index.js` (`KEY_MAP`,
-`PAD_BUTTON_MAP`).
+Defaults e ids crudos de botón:
+
+| Botón (id crudo) | Acción por defecto | Teclado |
+|------------------|--------------------|---------|
+| `south` (A / Cross) | accept (aceptar / **jugar** en tarjeta) | Enter |
+| `north` (Y / Triángulo) | north (**detalle** en tarjeta; espacio en teclado) | i |
+| `east` (B / Circle) | back (volver / cancelar) | Esc / Backspace |
+| `west` (X / Cuadrado) | west (borrar en teclado) | x |
+| `l1` (LB) / `r1` (RB) | tabLeft / tabRight (pestañas; Mayús en teclado) | e / r |
+| `lt` (LT/L2) / `rt` (RT/R2) | filterPrev / filterNext (filtro de tienda en **Juegos**) | — |
+| `l3` (clic stick izq.) | search (abrir **búsqueda** en Juegos) | — |
+| `start` | menu (menú **Configuración**) | Tab |
+| `select` / `guide` | quick (menú Sistema / QAM) | q |
+| d-pad / stick izq. | up/down/left/right (**fijo**) | Flechas |
+
+`App.svelte -> dispatch` interpreta cada acción según el contexto (p. ej. `north` =
+detalle en una tarjeta, espacio con el teclado abierto). El **modo captura** para el
+remapeo lo exponen `setCapture()/clearCapture()` en `input/index.js`.
 
 ## Navegación por foco (spatial navigation)
 
@@ -47,8 +64,17 @@ Usa el foco nativo del DOM, así que el estilo del foco vive en CSS
 `await openKeyboard(valorInicial, "Título")`, que resuelve con el texto final (o `null`
 si se cancela con B). Sus teclas son `data-focusable`, así que se escriben con el mando.
 
+Atajos de mando para escribir rápido (se muestran en una barra de pistas dentro del
+teclado): **A** escribir la tecla enfocada · **Y/△** espacio · **X/□** borrar ·
+**LB/RB** alternar Mayús · **B** cancelar.
+
+Si hay un **teclado físico**, con el teclado virtual abierto también se puede escribir
+directamente: caracteres → texto, Backspace → borrar, Enter → aceptar, Esc → cancelar
+(las flechas siguen navegando las teclas en pantalla). Ver `input/index.js`
+(`handlePhysicalTyping`).
+
 ## Notas / futuro
 
 - **Steam Controller sin Steam Input**: en su "lizard mode" emula teclado/ratón, así que
   navega con la capa de teclado desde ya. Soporte nativo HID = fase posterior (`hidapi`).
-- Pendiente (fases): rumble/haptics y remapeo de botones configurable.
+- Pendiente (fases): rumble/haptics.

@@ -1,11 +1,11 @@
 import { writable } from "svelte/store";
 
 // Vista principal (pestañas superiores).
-export const view = writable("home"); // home | apps | settings
-export const VIEWS = ["home", "apps", "settings"];
+export const view = writable("home"); // home | games | apps
+export const VIEWS = ["home", "games", "apps"];
 
 // Overlay activo por encima de la vista (menús tipo consola).
-export const overlay = writable(null); // null | 'global' (biblioteca) | 'qam'
+export const overlay = writable(null); // null | 'config' | 'qam'
 
 // Detalle de juego (capa por encima de vista/overlay).
 export const detailGame = writable(null);

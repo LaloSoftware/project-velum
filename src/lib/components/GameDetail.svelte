@@ -1,10 +1,22 @@
 <script>
-  import { detailGame, closeDetail, showToast } from "../stores/ui.js";
+  import { closeDetail, showToast } from "../stores/ui.js";
   import { launchGame } from "../ipc/index.js";
+  import { openKeyboard } from "../stores/keyboard.js";
+  import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
 
   export let game;
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
+
+  const inGroup = (g) => g.gameIds.includes(game.id);
+
+  async function newGroup() {
+    const name = await openKeyboard("", "Nombre del grupo");
+    if (name) {
+      await createGroup(name, game.id);
+      showToast(`Añadido a «${name}»`);
+    }
+  }
 
   function hue(str) {
     let h = 0;
@@ -43,6 +55,25 @@
       </button>
       <button class="back" data-focusable tabindex="-1" on:click={closeDetail}>
         Volver
+      </button>
+    </div>
+
+    <!-- Grupos personalizados (no incluye las librerías por defecto) -->
+    <div class="groups">
+      <span class="glabel">Grupos:</span>
+      {#each $groups as g (g.id)}
+        <button
+          class="chip"
+          class:on={inGroup(g)}
+          data-focusable
+          tabindex="-1"
+          on:click={() => toggleGameInGroup(g.id, game.id)}
+        >
+          {inGroup(g) ? "✓ " : "+ "}{g.name}
+        </button>
+      {/each}
+      <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
+        + Nuevo grupo
       </button>
     </div>
   </div>
@@ -102,6 +133,33 @@
     margin-top: 26px;
     display: flex;
     gap: 14px;
+  }
+  .groups {
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .glabel {
+    color: var(--gm-text-dim);
+    font-size: 0.9rem;
+  }
+  .groups .chip {
+    cursor: pointer;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--gm-bg-overlay);
+    color: var(--gm-text);
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+  }
+  .groups .chip.on {
+    background: var(--gm-accent);
+    color: #06101f;
+  }
+  .groups .chip:focus {
+    box-shadow: var(--gm-focus-ring);
   }
   .play,
   .back {

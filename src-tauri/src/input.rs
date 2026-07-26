@@ -2,8 +2,11 @@
 //!
 //! Cubre Xbox/XInput, DualSense y mandos genéricos (mapeos SDL de gilrs) de forma
 //! consistente, y en Windows y macOS (así se prueba con mando real desde el Mac).
-//! Normaliza a acciones y las emite al frontend por el evento Tauri `gm://input`.
-//! Varios mandos controlan el mismo foco: cualquiera dispara. Ver docs/input.md.
+//! Emite eventos CRUDOS al frontend por el evento Tauri `gm://input`:
+//!   { type: "dir"|"button", name, pressed }
+//! Las direcciones son navegación fija; el mapeo botón→acción (remapeable) vive
+//! en el frontend (stores/bindings.js). Varios mandos controlan el mismo foco.
+//! Ver docs/input.md.
 
 use gilrs::{Axis, Button, Event, EventType, Gilrs};
 use serde::Serialize;
@@ -13,30 +16,50 @@ use tauri::{AppHandle, Emitter};
 
 #[derive(Clone, Serialize)]
 struct InputEvent {
-    action: String,
+    #[serde(rename = "type")]
+    kind: &'static str, // "dir" | "button"
+    name: String,
     pressed: bool,
 }
 
-fn emit(app: &AppHandle, action: &str, pressed: bool) {
+fn emit_button(app: &AppHandle, name: &str, pressed: bool) {
     let _ = app.emit(
         "gm://input",
         InputEvent {
-            action: action.to_string(),
+            kind: "button",
+            name: name.to_string(),
             pressed,
         },
     );
 }
 
-/// Botones de acción (no direccionales).
-fn button_action(b: Button) -> Option<&'static str> {
+fn emit_dir(app: &AppHandle, name: &str) {
+    let _ = app.emit(
+        "gm://input",
+        InputEvent {
+            kind: "dir",
+            name: name.to_string(),
+            pressed: true,
+        },
+    );
+}
+
+/// Nombre crudo del botón de acción (el frontend lo mapea a una acción).
+fn button_name(b: Button) -> Option<&'static str> {
     Some(match b {
-        Button::South => "accept",     // A / Cross
-        Button::East => "back",        // B / Circle
-        Button::Start => "menu",       // Start/Menu -> biblioteca
-        Button::Select => "quick",     // Select/View -> QAM
-        Button::Mode => "quick",       // Guide -> QAM (alternativa)
-        Button::LeftTrigger => "tabLeft",   // LB
-        Button::RightTrigger => "tabRight", // RB
+        Button::South => "south", // A / Cross
+        Button::East => "east",   // B / Circle
+        Button::North => "north", // Y / Triángulo
+        Button::West => "west",   // X / Cuadrado
+        Button::LeftTrigger => "l1",   // LB / L1 (bumper)
+        Button::RightTrigger => "r1",  // RB / R1 (bumper)
+        Button::LeftTrigger2 => "lt",  // LT / L2 (gatillo)
+        Button::RightTrigger2 => "rt", // RT / R2 (gatillo)
+        Button::LeftThumb => "l3",     // clic stick izq.
+        Button::RightThumb => "r3",    // clic stick der.
+        Button::Start => "start",
+        Button::Select => "select",
+        Button::Mode => "guide", // Guide / PS
         _ => return None,
     })
 }
@@ -93,16 +116,16 @@ pub fn start_gamepad_thread(app: AppHandle) {
             while let Some(Event { event, .. }) = gilrs.next_event() {
                 match event {
                     EventType::ButtonPressed(b, _) => {
-                        if let Some(a) = button_action(b) {
-                            emit(&app, a, true);
+                        if let Some(name) = button_name(b) {
+                            emit_button(&app, name, true);
                         }
                         if let Some(d) = dpad_dir(b) {
                             dpad_down.insert(d);
                         }
                     }
                     EventType::ButtonReleased(b, _) => {
-                        if let Some(a) = button_action(b) {
-                            emit(&app, a, false);
+                        if let Some(name) = button_name(b) {
+                            emit_button(&app, name, false);
                         }
                         if let Some(d) = dpad_dir(b) {
                             dpad_down.remove(d);
@@ -125,11 +148,11 @@ pub fn start_gamepad_thread(app: AppHandle) {
                 if active {
                     match next_repeat.get(dir) {
                         None => {
-                            emit(&app, dir, true);
+                            emit_dir(&app, dir);
                             next_repeat.insert(dir, now + initial);
                         }
                         Some(&t) if now >= t => {
-                            emit(&app, dir, true);
+                            emit_dir(&app, dir);
                             next_repeat.insert(dir, now + rate);
                         }
                         _ => {}

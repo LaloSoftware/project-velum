@@ -1,5 +1,6 @@
 <script>
-  import { openDetail } from "../stores/ui.js";
+  import { openDetail, showToast } from "../stores/ui.js";
+  import { launchGame } from "../ipc/index.js";
 
   export let game;
   export let focusDefault = false;
@@ -17,7 +18,12 @@
     ? `center / cover no-repeat url("${game.coverPath}")`
     : `linear-gradient(150deg, hsl(${h} 55% 42%), hsl(${(h + 40) % 360} 60% 22%))`;
 
-  function open() {
+  // Aceptar (A/Cross) → lanzar directamente. North (Y/Triángulo) → abrir detalle.
+  async function play() {
+    showToast(`Lanzando ${game.title}…`);
+    await launchGame(game.id, game.launchTarget);
+  }
+  function detail() {
     openDetail(game);
   }
 </script>
@@ -29,8 +35,9 @@
   tabindex="-1"
   role="button"
   aria-label={game.title}
-  on:click={open}
-  on:keydown={(e) => (e.key === "Enter" || e.key === " ") && open()}
+  on:click={play}
+  on:gmdetail={detail}
+  on:keydown={(e) => (e.key === "Enter" || e.key === " ") && play()}
 >
   <div class="cover" style="background: {cover}">
     {#if !game.coverPath}

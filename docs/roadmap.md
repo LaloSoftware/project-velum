@@ -36,5 +36,13 @@ launcher y, en lo posible, el juego.
 
 ## Otras mejoras pendientes (menores)
 - **Steam Controller nativo** vía HID (`hidapi`); hoy navega por su modo teclado/ratón.
-- **Rumble/haptics** y **remapeo de botones** configurable.
-- **Teclado de búsqueda con atajos** para escribir más rápido (idea en curso).
+- **Rumble/haptics**.
+
+## Hecho recientemente
+- **Atajos del teclado virtual** (Y/△ espacio, X/□ borrar, LB/RB Mayús).
+- **Remapeo de botones configurable** (sección "Configuración de atajos", ver
+  `docs/input.md`).
+- **Navegación reorganizada**: pestañas Inicio/Juegos/Aplicaciones + menú Configuración.
+- **Filtros de biblioteca**: activar/desactivar tiendas (Steam/GOG/Epic) y **grupos
+  personalizados** (colecciones manuales, se asignan desde el detalle del juego). Atajos
+  L3=buscar, LT/RT=cambiar filtro.
