@@ -91,4 +91,5 @@ El MVP vive en `dev`. Detalle en `docs/development.md`.
 ## Más documentación
 
 `docs/architecture.md`, `docs/theming.md`, `docs/input.md`, `docs/stores.md`,
-`docs/system-controls.md`, `docs/development.md`, `docs/decisions.md`.
+`docs/system-controls.md`, `docs/development.md`, `docs/decisions.md`,
+`docs/roadmap.md` (fases futuras: tiendas reales, multi-monitor, etc.).
