@@ -36,15 +36,26 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
 ## Estado del frontend (stores de Svelte)
 
 - `stores/games.js` — lista de juegos y derivados (`recentGames`, `onlyGames`, `onlyApps`).
-- `stores/ui.js` — vista actual, overlay (biblioteca/QAM), detalle de juego, toasts.
-- `stores/profiles.js` — perfiles de theming + persistencia (`load/saveConfig`).
+- `stores/ui.js` — vista actual (home/games/apps), overlay (config/QAM), detalle, toasts.
+- `stores/appConfig.js` — carga/guardado unificado del JSON de config (perfiles + bindings
+  + startup), para que los stores no se pisen al persistir.
+- `stores/profiles.js` — perfiles de theming (usa `appConfig`).
+- `stores/bindings.js` — mapa botón→acción configurable (atajos). Ver `docs/input.md`.
+- `stores/startup.js` — vista inicial + arrancar en pantalla completa.
+- `stores/library.js` — filtros de tienda habilitados + filtro/búsqueda activos de Juegos.
+- `stores/groups.js` — grupos personalizados (colecciones manuales de juegos).
 - `stores/keyboard.js` — teclado virtual en pantalla (`openKeyboard()` devuelve Promise).
 
-## Capas de UI (z-index)
+## Vistas y capas de UI (z-index)
 
-De abajo a arriba: **vista** (Home/Apps/Ajustes) → **overlay** (biblioteca o QAM) →
-**detalle de juego** → **teclado virtual**. `App.svelte` calcula cuál es la capa activa
-y fija ahí el "scope" de navegación por foco (`input/navigation.js`).
+- **Pestañas** (vista base): **Inicio** (recientes) · **Juegos** (todos, filtro/buscar/
+  abrir launchers) · **Aplicaciones**.
+- **Overlays** (botones dedicados): **Configuración** (Apariencia / Inicio / Atajos /
+  Filtros, con una fila fija de controles de ventana: minimizar / salir de pantalla
+  completa / cerrar, vía `lib/util/window.js`) y **Sistema/QAM**.
+- De abajo a arriba: **vista** → **overlay** (config o QAM) → **detalle de juego** →
+  **teclado virtual**. `App.svelte` calcula la capa activa y fija ahí el "scope" de
+  navegación por foco (`input/navigation.js`).
 
 ## Estrategia de recursos durante el juego (fase F3, diseñada desde ya)
 

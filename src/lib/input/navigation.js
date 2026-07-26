@@ -90,3 +90,10 @@ export function activate() {
   const cur = current();
   if (cur) cur.click();
 }
+
+// Acción secundaria (North / Y·Triángulo): dispara un evento custom `gmdetail`
+// en el elemento enfocado. P. ej. una tarjeta de juego lo escucha para abrir el detalle.
+export function secondary() {
+  const cur = current();
+  if (cur) cur.dispatchEvent(new CustomEvent("gmdetail", { bubbles: true }));
+}

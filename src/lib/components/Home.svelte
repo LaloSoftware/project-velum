@@ -1,6 +1,6 @@
 <script>
   import { recentGames, onlyGames } from "../stores/games.js";
-  import { openOverlay } from "../stores/ui.js";
+  import { goto } from "../stores/ui.js";
   import GameCard from "./GameCard.svelte";
 </script>
 
@@ -25,7 +25,7 @@
       class="cta"
       data-focusable
       tabindex="-1"
-      on:click={() => openOverlay("global")}
+      on:click={() => goto("games")}
     >
       Ver biblioteca completa ({$onlyGames.length}) →
     </button>

@@ -1,5 +1,5 @@
 import { writable, get } from "svelte/store";
-import { loadConfig, saveConfig } from "../ipc/index.js";
+import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { applyProfile } from "../theming/index.js";
 
 /*
@@ -25,7 +25,7 @@ let _loaded = false;
 
 export async function initProfiles() {
   if (_loaded) return;
-  const cfg = await loadConfig();
+  const cfg = await loadAppConfig();
   if (cfg && Array.isArray(cfg.profiles) && cfg.profiles.length) {
     profiles.set(cfg.profiles);
     activeProfileId.set(cfg.activeProfileId || cfg.profiles[0].id);
@@ -48,7 +48,7 @@ export function applyActive() {
 }
 
 export async function persist() {
-  await saveConfig({
+  await patchAppConfig({
     profiles: get(profiles),
     activeProfileId: get(activeProfileId),
   });

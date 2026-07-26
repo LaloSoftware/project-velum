@@ -3,6 +3,10 @@
 
   import { loadGames } from "./lib/stores/games.js";
   import { initProfiles } from "./lib/stores/profiles.js";
+  import { initBindings } from "./lib/stores/bindings.js";
+  import { startup, initStartup } from "./lib/stores/startup.js";
+  import { initLibrary, runSearch, cycleFilter } from "./lib/stores/library.js";
+  import { initGroups } from "./lib/stores/groups.js";
   import {
     view,
     overlay,
@@ -18,9 +22,9 @@
   import * as nav from "./lib/input/navigation.js";
 
   import Home from "./lib/components/Home.svelte";
+  import GamesView from "./lib/components/GamesView.svelte";
   import AppsView from "./lib/components/AppsView.svelte";
-  import Settings from "./lib/components/Settings.svelte";
-  import GlobalMenu from "./lib/components/GlobalMenu.svelte";
+  import ConfigMenu from "./lib/components/ConfigMenu.svelte";
   import QuickAccessMenu from "./lib/components/QuickAccessMenu.svelte";
   import GameDetail from "./lib/components/GameDetail.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
@@ -28,8 +32,8 @@
 
   const TABS = [
     { id: "home", label: "Inicio" },
+    { id: "games", label: "Juegos" },
     { id: "apps", label: "Aplicaciones" },
-    { id: "settings", label: "Ajustes" },
   ];
 
   let mainEl, overlayEl, detailEl, vkEl;
@@ -49,13 +53,13 @@
         return handleBack();
       case "north": // Y / Triángulo
         if ($vk.open) return vkType(" ");
-        return;
+        return nav.secondary(); // abrir detalle en la tarjeta enfocada
       case "west": // X / Cuadrado
         if ($vk.open) return vkBackspace();
         return;
       case "menu":
         if ($vk.open) return;
-        return $overlay === "global" ? closeOverlay() : openOverlay("global");
+        return $overlay === "config" ? closeOverlay() : openOverlay("config");
       case "quick":
         if ($vk.open) return;
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
@@ -65,7 +69,21 @@
       case "tabRight":
         if ($vk.open) return vkToggleShift();
         return cycleTab(1);
+      case "search":
+        if (inGames()) return runSearch();
+        return;
+      case "filterPrev":
+        if (inGames()) return cycleFilter(-1);
+        return;
+      case "filterNext":
+        if (inGames()) return cycleFilter(1);
+        return;
     }
+  }
+
+  // ¿Estamos en la vista Juegos, sin overlays/detalle/teclado por encima?
+  function inGames() {
+    return $view === "games" && !$overlay && !$detailGame && !$vk.open;
   }
 
   function handleBack() {
@@ -101,8 +119,29 @@
     else nav.setScope(mainEl);
   }
 
+  async function applyStartup() {
+    const s = $startup;
+    if (s.initialView && s.initialView !== "home") view.set(s.initialView);
+    if (s.fullscreen) {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        await getCurrentWindow().setFullscreen(true);
+      } catch {
+        /* modo web: no-op */
+      }
+    }
+  }
+
   onMount(async () => {
-    await Promise.all([loadGames(), initProfiles()]);
+    await Promise.all([
+      loadGames(),
+      initProfiles(),
+      initBindings(),
+      initStartup(),
+      initLibrary(),
+      initGroups(),
+    ]);
+    await applyStartup();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
@@ -133,23 +172,24 @@
     <main class="content">
       {#if $view === "home"}
         <Home />
+      {:else if $view === "games"}
+        <GamesView />
       {:else if $view === "apps"}
         <AppsView />
-      {:else if $view === "settings"}
-        <Settings />
       {/if}
     </main>
 
     <footer class="hints">
-      <span><b>A</b> Aceptar</span>
+      <span><b>A</b> Jugar</span>
+      <span><b>Y</b> Detalle</span>
       <span><b>B</b> Volver</span>
       <span><b>LB/RB</b> Pestañas</span>
-      <span><b>Menú</b> Biblioteca</span>
+      <span><b>Menú</b> Configuración</span>
       <span><b>Ver</b> Sistema</span>
     </footer>
   </div>
 
-  <!-- Overlay: biblioteca / QAM -->
+  <!-- Overlay: Configuración / QAM -->
   {#if $overlay}
     <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div class="overlay-scrim" on:click={closeOverlay} role="presentation">
@@ -163,8 +203,8 @@
         role="dialog"
         aria-modal="true"
       >
-        {#if $overlay === "global"}
-          <GlobalMenu />
+        {#if $overlay === "config"}
+          <ConfigMenu />
         {:else if $overlay === "qam"}
           <QuickAccessMenu />
         {/if}

@@ -1,29 +1,29 @@
 <script>
   import { onlyGames } from "../stores/games.js";
-  import { goto, closeOverlay } from "../stores/ui.js";
-  import { openKeyboard } from "../stores/keyboard.js";
-  import { openLauncher } from "../ipc/index.js";
   import { showToast } from "../stores/ui.js";
+  import { openLauncher } from "../ipc/index.js";
+  import {
+    enabledStores,
+    filterList,
+    activeFilter,
+    query,
+    setFilter,
+    runSearch,
+  } from "../stores/library.js";
+  import { groups } from "../stores/groups.js";
   import GameGrid from "./GameGrid.svelte";
 
-  const STORES = [
-    { id: "all", label: "Todos" },
-    { id: "steam", label: "Steam" },
-    { id: "gog", label: "GOG" },
-    { id: "epic", label: "Epic" },
-  ];
-
-  let filter = "all";
-  let query = "";
-
+  // Si el filtro activo es un grupo personalizado, mostrar sus juegos;
+  // si no, aplicar tiendas habilitadas + filtro de tienda.
+  $: activeGroup = $groups.find((g) => g.id === $activeFilter);
   $: filtered = $onlyGames
-    .filter((g) => filter === "all" || g.store === filter)
-    .filter((g) => g.title.toLowerCase().includes(query.toLowerCase()));
-
-  async function search() {
-    const q = await openKeyboard(query, "Buscar juego");
-    if (q !== null) query = q;
-  }
+    .filter((g) =>
+      activeGroup
+        ? activeGroup.gameIds.includes(g.id)
+        : $enabledStores[g.store] !== false &&
+          ($activeFilter === "all" || g.store === $activeFilter)
+    )
+    .filter((g) => g.title.toLowerCase().includes($query.toLowerCase()));
 
   async function launcher(store) {
     await openLauncher(store);
@@ -31,26 +31,27 @@
   }
 </script>
 
-<div class="menu">
+<section class="games">
   <div class="head">
-    <h2>Biblioteca</h2>
-    <button class="search" data-focusable data-focus-default tabindex="-1" on:click={search}>
-      🔎 {query ? `"${query}"` : "Buscar"}
+    <h1>Juegos</h1>
+    <button class="search" data-focusable data-focus-default tabindex="-1" on:click={runSearch}>
+      🔎 {$query ? `"${$query}"` : "Buscar"} <span class="hint">(L3)</span>
     </button>
   </div>
 
   <div class="tabs">
-    {#each STORES as s}
+    {#each $filterList as s}
       <button
         class="tab"
-        class:active={filter === s.id}
+        class:active={$activeFilter === s.id}
         data-focusable
         tabindex="-1"
-        on:click={() => (filter = s.id)}
+        on:click={() => setFilter(s.id)}
       >
         {s.label}
       </button>
     {/each}
+    <span class="hint tabs-hint">LT/RT</span>
   </div>
 
   <div class="grid-wrap">
@@ -62,23 +63,11 @@
     <button class="link" data-focusable tabindex="-1" on:click={() => launcher("steam")}>Steam</button>
     <button class="link" data-focusable tabindex="-1" on:click={() => launcher("gog")}>GOG Galaxy</button>
     <button class="link" data-focusable tabindex="-1" on:click={() => launcher("epic")}>Epic</button>
-    <span class="spacer"></span>
-    <button
-      class="link"
-      data-focusable
-      tabindex="-1"
-      on:click={() => {
-        closeOverlay();
-        goto("settings");
-      }}
-    >
-      ⚙ Ajustes
-    </button>
   </div>
-</div>
+</section>
 
 <style>
-  .menu {
+  .games {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -90,9 +79,9 @@
     align-items: center;
     justify-content: space-between;
   }
-  .head h2 {
+  .head h1 {
     margin: 0;
-    font-size: 1.8rem;
+    font-size: 2.2rem;
     font-weight: var(--gm-title-weight);
   }
   .search {
@@ -108,7 +97,17 @@
   }
   .tabs {
     display: flex;
+    align-items: center;
     gap: 10px;
+  }
+  .hint {
+    color: var(--gm-text-dim);
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0.7;
+  }
+  .tabs-hint {
+    margin-left: 6px;
   }
   .tab {
     cursor: pointer;
@@ -156,8 +155,5 @@
   .link:focus {
     background: var(--gm-surface-2);
     box-shadow: var(--gm-focus-ring);
-  }
-  .spacer {
-    flex: 1;
   }
 </style>
