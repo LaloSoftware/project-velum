@@ -32,6 +32,8 @@ fn button_action(b: Button) -> Option<&'static str> {
     Some(match b {
         Button::South => "accept",     // A / Cross
         Button::East => "back",        // B / Circle
+        Button::North => "north",      // Y / Triángulo (teclado: espacio)
+        Button::West => "west",        // X / Cuadrado  (teclado: borrar)
         Button::Start => "menu",       // Start/Menu -> biblioteca
         Button::Select => "quick",     // Select/View -> QAM
         Button::Mode => "quick",       // Guide -> QAM (alternativa)

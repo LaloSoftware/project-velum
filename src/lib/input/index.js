@@ -33,6 +33,8 @@ const KEY_MAP = {
 const PAD_BUTTON_MAP = {
   0: "accept", // A / Cross
   1: "back", // B / Circle
+  2: "west", // X / Square   (teclado: borrar)
+  3: "north", // Y / Triangle (teclado: espacio)
   4: "tabLeft", // LB
   5: "tabRight", // RB
   8: "quick", // Select/View  -> QAM

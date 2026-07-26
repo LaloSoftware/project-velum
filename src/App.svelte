@@ -12,7 +12,7 @@
     closeOverlay,
     closeDetail,
   } from "./lib/stores/ui.js";
-  import { vk, vkDone } from "./lib/stores/keyboard.js";
+  import { vk, vkDone, vkType, vkBackspace, vkToggleShift } from "./lib/stores/keyboard.js";
 
   import { initInput } from "./lib/input/index.js";
   import * as nav from "./lib/input/navigation.js";
@@ -47,6 +47,12 @@
         return nav.activate();
       case "back":
         return handleBack();
+      case "north": // Y / Triángulo
+        if ($vk.open) return vkType(" ");
+        return;
+      case "west": // X / Cuadrado
+        if ($vk.open) return vkBackspace();
+        return;
       case "menu":
         if ($vk.open) return;
         return $overlay === "global" ? closeOverlay() : openOverlay("global");
@@ -54,8 +60,10 @@
         if ($vk.open) return;
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
       case "tabLeft":
+        if ($vk.open) return vkToggleShift();
         return cycleTab(-1);
       case "tabRight":
+        if ($vk.open) return vkToggleShift();
         return cycleTab(1);
     }
   }

@@ -22,13 +22,17 @@ Todas emiten las **mismas acciones**, que `App.svelte` interpreta según el cont
 |-------|---------|--------|
 | A / Cross | Enter | aceptar |
 | B / Circle | Esc / Backspace | volver / cerrar capa |
+| Y / Triángulo | — | *(contextual)* teclado abierto: **espacio** |
+| X / Cuadrado | — | *(contextual)* teclado abierto: **borrar** |
 | D-pad / stick izq. | Flechas | navegar el foco |
-| LB / RB | E / R | pestañas (Inicio/Apps/Ajustes) |
+| LB / RB | E / R | pestañas; teclado abierto: **Mayús** |
 | Start | Tab | abrir biblioteca (overlay) |
 | Select / Guide | Q | abrir menú de sistema (QAM) |
 
-Definido en un solo sitio: `input.rs` (`button_action`) y `input/index.js` (`KEY_MAP`,
-`PAD_BUTTON_MAP`).
+Los botones se emiten como acciones neutras (`north`, `west`, `tabLeft`…) y `App.svelte`
+(`dispatch`) las interpreta según el contexto (p. ej. Y=espacio solo con el teclado
+abierto). Definido en un solo sitio: `input.rs` (`button_action`) y `input/index.js`
+(`KEY_MAP`, `PAD_BUTTON_MAP`).
 
 ## Navegación por foco (spatial navigation)
 
@@ -46,6 +50,10 @@ Usa el foco nativo del DOM, así que el estilo del foco vive en CSS
 `src/lib/components/VirtualKeyboard.svelte` + `stores/keyboard.js`. Se abre con
 `await openKeyboard(valorInicial, "Título")`, que resuelve con el texto final (o `null`
 si se cancela con B). Sus teclas son `data-focusable`, así que se escriben con el mando.
+
+Atajos de mando para escribir rápido (se muestran en una barra de pistas dentro del
+teclado): **A** escribir la tecla enfocada · **Y/△** espacio · **X/□** borrar ·
+**LB/RB** alternar Mayús · **B** cancelar.
 
 ## Notas / futuro
 
