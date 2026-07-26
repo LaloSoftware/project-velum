@@ -28,10 +28,21 @@ npm run go
 Otros atajos:
 
 ```bash
+npm run setup     # deja la máquina lista: verifica Node/Rust + descarga TODAS las deps
 npm run web       # solo la UI en el navegador (datos mock JS) y la abre
 npm run dist      # compila el ejecutable/instalador (src-tauri/target/release/)
 npm run bundle    # empaqueta el repo en gm.bundle para llevarlo a Windows
 ```
+
+`npm run setup` no instala herramientas del sistema; si falta Node o Rust te dice de
+dónde bajarlos. Instala/descarga las dependencias del proyecto (npm + crates de Rust).
+
+## Dev vs. consola (importante)
+
+Rust y Node solo hacen falta para **compilar**. El PC de la sala **no** necesita
+herramientas de desarrollo: se compila un instalador con `npm run dist` y ese PC solo
+requiere el runtime **WebView2** (ya incluido en Windows 10/11). Ejecutar desde código
+(`npm run go`) es solo para desarrollar/probar.
 
 ## Compilar
 

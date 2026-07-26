@@ -4,6 +4,7 @@
   "description": "GM - launcher de sala tipo consola para PC (Tauri + Svelte)",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "go": "node scripts/dev.mjs",
     "web": "vite --open",
     "dist": "tauri build",
