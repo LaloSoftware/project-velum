@@ -1,0 +1,89 @@
+/*
+ * Base global + TEMA POR DEFECTO.
+ *
+ * Todo el aspecto de la app se expresa con "design tokens" (variables --gm-*).
+ * Los componentes NUNCA usan colores/medidas hardcodeadas: solo var(--gm-*).
+ * Un tema/perfil = un set de overrides de estos tokens (+ CSS extra opcional).
+ * Ver docs/theming.md.
+ */
+
+:root {
+  /* Paleta */
+  --gm-bg: #0e1116;
+  --gm-bg-elev: #171b22;
+  --gm-bg-overlay: rgba(8, 10, 14, 0.72);
+  --gm-surface: #1d232c;
+  --gm-surface-2: #262d38;
+  --gm-text: #e8edf3;
+  --gm-text-dim: #9aa6b4;
+  --gm-accent: #4c8dff;
+  --gm-accent-2: #7aa7ff;
+  --gm-danger: #ff5d5d;
+  --gm-success: #52d69a;
+
+  /* Foco (navegación por mando/teclado) — tematizable */
+  --gm-focus-ring: 0 0 0 3px var(--gm-accent), 0 0 22px 2px color-mix(in srgb, var(--gm-accent) 55%, transparent);
+  --gm-focus-scale: 1.06;
+
+  /* Tipografía */
+  --gm-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gm-font-size: 16px;
+  --gm-title-weight: 800;
+
+  /* Formas y espaciado */
+  --gm-radius: 14px;
+  --gm-radius-lg: 22px;
+  --gm-gap: 18px;
+  --gm-pad: 28px;
+
+  /* Tarjetas de juego */
+  --gm-card-w: 190px;
+  --gm-card-ratio: 3 / 4;
+
+  /* Fondo de sala (wallpaper). Un tema puede reemplazarlo. */
+  --gm-wallpaper: radial-gradient(1200px 800px at 15% -10%, #1b2740 0%, transparent 55%),
+    radial-gradient(1000px 700px at 110% 10%, #241b3a 0%, transparent 50%),
+    var(--gm-bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--gm-font);
+  font-size: var(--gm-font-size);
+  color: var(--gm-text);
+  background: var(--gm-bg);
+  /* Sin scroll/selección tipo web: es una consola. */
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+/* Foco visible en cualquier elemento navegable */
+[data-focusable]:focus {
+  outline: none;
+  box-shadow: var(--gm-focus-ring);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+/* Punto de anclaje para el CSS externo del tema activo (perfil) */
+#gm-theme-vars,
+#gm-theme-extra {
+  display: none;
+}

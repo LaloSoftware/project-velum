@@ -1,0 +1,22 @@
+{
+  "name": "gm",
+  "version": "0.1.0",
+  "description": "GM - launcher de sala tipo consola para PC (Tauri + Svelte)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-shell": "^2"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5",
+    "@tauri-apps/cli": "^2",
+    "svelte": "^5",
+    "vite": "^6"
+  }
+}

@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+
+# Build del frontend
+dist/
+.vite/
+
+# Build de Rust / Tauri
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Datos locales de la app (perfiles generados en runtime, etc.)
+*.local
+
+# Sistema / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
