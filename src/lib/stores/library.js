@@ -18,11 +18,20 @@ export const STORE_DEFS = [
 // Filtros de tienda habilitados (persistente).
 export const enabledStores = writable({ steam: true, gog: true, epic: true });
 
+// Alineación de la barra de filtros: left | center | right (persistente).
+export const filterAlign = writable("left");
+
 export async function initLibrary() {
   const cfg = await loadAppConfig();
   if (cfg && cfg.enabledStores) {
     enabledStores.set({ steam: true, gog: true, epic: true, ...cfg.enabledStores });
   }
+  if (cfg && cfg.filterAlign) filterAlign.set(cfg.filterAlign);
+}
+
+export async function setFilterAlign(v) {
+  filterAlign.set(v);
+  await patchAppConfig({ filterAlign: get(filterAlign) });
 }
 
 export async function setStoreEnabled(store, on) {
@@ -45,6 +54,11 @@ export const query = writable("");
 
 export function setFilter(id) {
   activeFilter.set(id);
+}
+
+// Al entrar a la vista Juegos: siempre arranca en "Todos".
+export function enterGames() {
+  activeFilter.set("all");
 }
 
 export function cycleFilter(dir) {

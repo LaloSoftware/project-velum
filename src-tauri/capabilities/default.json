@@ -6,6 +6,8 @@
   "permissions": [
     "core:default",
     "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-toggle-maximize",
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-minimize",

@@ -47,12 +47,13 @@ export function focusFirst() {
   focusEl(def);
 }
 
-export function move(dir) {
-  const list = focusables();
-  if (!list.length) return;
-  const cur = current();
-  if (!cur) return focusFirst();
+// Grupo de foco (región) al que pertenece un elemento, o null.
+function groupOf(el) {
+  return el.closest?.("[data-focus-group]") || null;
+}
 
+// Mejor candidato en la dirección `dir` dentro de una lista (por geometría).
+function bestCandidate(cur, list, dir) {
   const cr = cur.getBoundingClientRect();
   const cx = cr.left + cr.width / 2;
   const cy = cr.top + cr.height / 2;
@@ -62,10 +63,8 @@ export function move(dir) {
   for (const el of list) {
     if (el === cur) continue;
     const r = el.getBoundingClientRect();
-    const x = r.left + r.width / 2;
-    const y = r.top + r.height / 2;
-    const dx = x - cx;
-    const dy = y - cy;
+    const dx = r.left + r.width / 2 - cx;
+    const dy = r.top + r.height / 2 - cy;
 
     let valid = false;
     let primary = 0;
@@ -76,12 +75,31 @@ export function move(dir) {
     if (dir === "down") (valid = dy > 1), (primary = dy), (secondary = Math.abs(dx));
     if (!valid) continue;
 
-    // Penaliza la desalineación en el eje perpendicular.
-    const score = primary + secondary * 2.2;
+    const score = primary + secondary * 2.2; // penaliza desalineación perpendicular
     if (score < bestScore) {
       bestScore = score;
       best = el;
     }
+  }
+  return best;
+}
+
+export function move(dir) {
+  const list = focusables();
+  if (!list.length) return;
+  const cur = current();
+  if (!cur) return focusFirst();
+
+  // Si hay regiones (focus groups): primero dentro del mismo grupo; si no hay
+  // candidato en esa dirección, se cruza al mejor candidato de otra región.
+  const group = groupOf(cur);
+  let best;
+  if (group) {
+    const inGroup = list.filter((el) => groupOf(el) === group);
+    const outGroup = list.filter((el) => groupOf(el) !== group);
+    best = bestCandidate(cur, inGroup, dir) || bestCandidate(cur, outGroup, dir);
+  } else {
+    best = bestCandidate(cur, list, dir);
   }
   if (best) focusEl(best);
 }
@@ -96,4 +114,17 @@ export function activate() {
 export function secondary() {
   const cur = current();
   if (cur) cur.dispatchEvent(new CustomEvent("gmdetail", { bubbles: true }));
+}
+
+// Menú contextual (acción `context`): dispara `gmcontext` en el elemento enfocado.
+export function context() {
+  const cur = current();
+  if (cur) cur.dispatchEvent(new CustomEvent("gmcontext", { bubbles: true }));
+}
+
+// Enfoca el primer focusable dentro de un contenedor (para "entrar" a una región).
+export function focusFirstIn(container) {
+  if (!container) return;
+  const el = [...container.querySelectorAll("[data-focusable]")].find(isVisible);
+  if (el) focusEl(el);
 }

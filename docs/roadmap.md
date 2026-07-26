@@ -44,5 +44,10 @@ launcher y, en lo posible, el juego.
   `docs/input.md`).
 - **Navegación reorganizada**: pestañas Inicio/Juegos/Aplicaciones + menú Configuración.
 - **Filtros de biblioteca**: activar/desactivar tiendas (Steam/GOG/Epic) y **grupos
-  personalizados** (colecciones manuales, se asignan desde el detalle del juego). Atajos
-  L3=buscar, LT/RT=cambiar filtro.
+  personalizados** (colecciones manuales, se asignan desde el detalle o el menú de tarjeta).
+  Atajos L3=buscar, LT/RT=cambiar filtro; barra a ancho completo con alineación configurable.
+- **Menú contextual de tarjeta** (atajo R3): jugar/ejecutar, detalles, grupos, ocultar,
+  eliminar (con confirmación).
+- **Ocultar** juegos/apps (blacklist gestionada en Configuración > Ocultos).
+- **Navegación por regiones** (Configuración por columnas) y **QAM en acordeón**.
+- Infra de **iconos de botones** (`ButtonPrompt`, hoy texto; sets de iconos pendientes).

@@ -97,6 +97,14 @@ export async function openLauncher(store) {
   }
 }
 
+export async function uninstallGame(id, target) {
+  try {
+    return await invoke("uninstall_game", { id, target });
+  } catch {
+    console.info(`[mock] uninstall_game: ${id} (${target})`);
+  }
+}
+
 export async function systemGetState() {
   try {
     return await invoke("system_get_state");
@@ -118,6 +126,14 @@ export async function systemSetOutputDevice(id) {
     return await invoke("system_set_output_device", { id });
   } catch {
     _mockSystem.currentOutput = id;
+  }
+}
+
+export async function systemSetMuted(muted) {
+  try {
+    return await invoke("system_set_muted", { muted });
+  } catch {
+    _mockSystem.muted = muted;
   }
 }
 

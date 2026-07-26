@@ -11,6 +11,7 @@
   import { EXAMPLE_EXTERNAL_CSS } from "../theming/themes.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { showToast } from "../stores/ui.js";
+  import Select from "./Select.svelte";
 
   const themes = themeOptions();
   const ACCENTS = ["#4c8dff", "#37e6b4", "#ff7a59", "#ffd166", "#c77dff", "#ff5d8f"];
@@ -71,19 +72,11 @@
 
   {#if active}
     <h2>Tema base del perfil «{active.name}»</h2>
-    <div class="chips">
-      {#each themes as t}
-        <button
-          class="chip"
-          class:sel={active.baseTheme === t.id}
-          data-focusable
-          tabindex="-1"
-          on:click={() => pickTheme(t.id)}
-        >
-          {t.name}
-        </button>
-      {/each}
-    </div>
+    <Select
+      value={active.baseTheme}
+      options={themes.map((t) => ({ value: t.id, label: t.name }))}
+      onChange={pickTheme}
+    />
 
     <h2>Color de acento</h2>
     <div class="swatches">
@@ -124,6 +117,7 @@
     padding: var(--gm-pad);
     overflow-y: auto;
     height: 100%;
+    max-width: 640px;
   }
   h1 {
     font-size: 2rem;

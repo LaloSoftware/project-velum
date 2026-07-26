@@ -3,12 +3,16 @@
   import {
     systemGetState,
     systemSetVolume,
+    systemSetMuted,
     systemSetOutputDevice,
     systemSetWifi,
     systemSetBluetooth,
   } from "../ipc/index.js";
+  import Select from "./Select.svelte";
 
   let s = null;
+  // Categoría activa (la que tiene el foco): solo esa despliega sus opciones.
+  let active = "wifi";
 
   onMount(async () => {
     s = await systemGetState();
@@ -21,6 +25,10 @@
   async function toggleBt() {
     await systemSetBluetooth(!s.bluetoothEnabled);
     s = { ...s, bluetoothEnabled: !s.bluetoothEnabled };
+  }
+  async function toggleMute() {
+    await systemSetMuted(!s.muted);
+    s = { ...s, muted: !s.muted };
   }
   async function setVol(delta) {
     const v = Math.max(0, Math.min(100, s.volume + delta));
@@ -39,8 +47,8 @@
     <p class="dim">Cargando…</p>
   {:else}
     <!-- Wi-Fi -->
-    <div class="block">
-      <div class="row">
+    <div class="cat" data-focus-group="wifi" on:focusin={() => (active = "wifi")}>
+      <div class="head">
         <span class="ico">📶</span>
         <div class="grow">
           <div class="label">Wi-Fi</div>
@@ -48,30 +56,32 @@
             {s.wifiEnabled ? s.currentNetwork || "Sin conexión" : "Desactivado"}
           </div>
         </div>
-        <button class="toggle" class:on={s.wifiEnabled} data-focusable data-focus-default tabindex="-1" on:click={toggleWifi}>
+        <button
+          class="toggle"
+          class:on={s.wifiEnabled}
+          data-focusable
+          data-focus-default
+          tabindex="-1"
+          on:click={toggleWifi}
+        >
           {s.wifiEnabled ? "ON" : "OFF"}
         </button>
       </div>
-      {#if s.wifiEnabled}
-        <div class="chips">
-          {#each s.networks as n}
-            <button
-              class="chip"
-              class:sel={s.currentNetwork === n}
-              data-focusable
-              tabindex="-1"
-              on:click={() => (s = { ...s, currentNetwork: n })}
-            >
-              {n}
-            </button>
-          {/each}
+      {#if active === "wifi" && s.wifiEnabled}
+        <div class="expand">
+          <Select
+            label="Red"
+            value={s.currentNetwork}
+            options={s.networks.map((n) => ({ value: n, label: n }))}
+            onChange={(n) => (s = { ...s, currentNetwork: n })}
+          />
         </div>
       {/if}
     </div>
 
     <!-- Bluetooth -->
-    <div class="block">
-      <div class="row">
+    <div class="cat" data-focus-group="bt" on:focusin={() => (active = "bt")}>
+      <div class="head">
         <span class="ico">🔵</span>
         <div class="grow">
           <div class="label">Bluetooth</div>
@@ -83,41 +93,44 @@
           {s.bluetoothEnabled ? "ON" : "OFF"}
         </button>
       </div>
+      {#if active === "bt" && s.bluetoothEnabled}
+        <div class="chips">
+          {#each s.btDevices as d}
+            <button class="chip" data-focusable tabindex="-1">{d}</button>
+          {/each}
+        </div>
+      {/if}
     </div>
 
-    <!-- Volumen -->
-    <div class="block">
-      <div class="row">
-        <span class="ico">🔊</span>
+    <!-- Volumen / Audio -->
+    <div class="cat" data-focus-group="audio" on:focusin={() => (active = "audio")}>
+      <div class="head">
+        <span class="ico">{s.muted ? "🔇" : "🔊"}</span>
         <div class="grow">
           <div class="label">Volumen</div>
-          <div class="bar"><div class="fill" style="width: {s.volume}%"></div></div>
+          <div class="sub dim">{s.muted ? "Silenciado" : `${s.volume}%`}</div>
         </div>
-        <button class="step" data-focusable tabindex="-1" on:click={() => setVol(-5)}>–</button>
-        <span class="pct">{s.volume}</span>
-        <button class="step" data-focusable tabindex="-1" on:click={() => setVol(5)}>+</button>
+        <button class="toggle mute" class:on={!s.muted} data-focusable tabindex="-1" on:click={toggleMute}>
+          {s.muted ? "🔇" : "🔊"}
+        </button>
       </div>
-    </div>
-
-    <!-- Salida de audio -->
-    <div class="block">
-      <div class="row">
-        <span class="ico">🎧</span>
-        <div class="grow"><div class="label">Salida de audio</div></div>
-      </div>
-      <div class="chips">
-        {#each s.outputDevices as d}
-          <button
-            class="chip"
-            class:sel={s.currentOutput === d.id}
-            data-focusable
-            tabindex="-1"
-            on:click={() => pickOutput(d.id)}
-          >
-            {d.name}
-          </button>
-        {/each}
-      </div>
+      {#if active === "audio"}
+        <div class="volrow">
+          <button class="step" data-focusable tabindex="-1" on:click={() => setVol(-5)}>–</button>
+          <div class="bar"><div class="fill" style="width: {s.volume}%"></div></div>
+          <span class="pct">{s.volume}</span>
+          <button class="step" data-focusable tabindex="-1" on:click={() => setVol(5)}>+</button>
+        </div>
+        <div class="sublabel dim">Salida de audio</div>
+        <div class="expand">
+          <Select
+            label="Salida"
+            value={s.currentOutput}
+            options={s.outputDevices.map((d) => ({ value: d.id, label: d.name }))}
+            onChange={pickOutput}
+          />
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -129,7 +142,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
   }
   h2 {
     margin: 0 0 6px;
@@ -139,12 +152,12 @@
   .dim {
     color: var(--gm-text-dim);
   }
-  .block {
+  .cat {
     background: var(--gm-surface);
     border-radius: var(--gm-radius);
-    padding: 16px;
+    padding: 14px 16px;
   }
-  .row {
+  .head {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -174,10 +187,20 @@
     background: var(--gm-success);
     color: #04140d;
   }
+  .toggle.mute {
+    min-width: 52px;
+    font-size: 1.1rem;
+  }
   .toggle:focus,
   .step:focus,
   .chip:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  .volrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
   }
   .step {
     cursor: pointer;
@@ -195,7 +218,7 @@
     font-weight: 700;
   }
   .bar {
-    margin-top: 8px;
+    flex: 1;
     height: 8px;
     border-radius: 999px;
     background: var(--gm-surface-2);
@@ -204,6 +227,13 @@
   .fill {
     height: 100%;
     background: var(--gm-accent);
+  }
+  .sublabel {
+    margin-top: 14px;
+    font-size: 0.85rem;
+  }
+  .expand {
+    margin-top: 12px;
   }
   .chips {
     display: flex;
@@ -218,9 +248,5 @@
     background: var(--gm-surface-2);
     color: var(--gm-text-dim);
     font-weight: 600;
-  }
-  .chip.sel {
-    background: var(--gm-accent);
-    color: #06101f;
   }
 </style>

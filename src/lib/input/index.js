@@ -33,6 +33,7 @@ const KEY_MAP = {
   r: "tabRight",
   i: "north", // detalle / espacio-en-teclado (para probar sin mando)
   x: "west", // borrar-en-teclado (para probar sin mando)
+  c: "context", // menú contextual de tarjeta (para probar sin mando)
 };
 
 // Botón crudo por índice de la Gamepad API estándar del navegador.

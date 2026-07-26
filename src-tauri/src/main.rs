@@ -25,11 +25,13 @@ fn main() {
             library::list_games,
             system::system_get_state,
             system::system_set_volume,
+            system::system_set_muted,
             system::system_set_output_device,
             system::system_set_wifi,
             system::system_set_bluetooth,
             launch::launch_game,
             launch::open_launcher,
+            launch::uninstall_game,
             config::load_config,
             config::save_config,
         ])

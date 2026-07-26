@@ -83,6 +83,7 @@
     padding: var(--gm-pad);
     height: 100%;
     overflow-y: auto;
+    max-width: 640px;
   }
   h1 {
     font-size: 2rem;

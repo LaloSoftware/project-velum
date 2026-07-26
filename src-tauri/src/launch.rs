@@ -18,3 +18,11 @@ pub async fn open_launcher(store: String) -> Result<(), String> {
     println!("[launch] abrir cliente nativo: {store} (mock)");
     Ok(())
 }
+
+/// Desinstalar un juego/app. MVP: solo registra. En Windows (futuro) ejecutará
+/// el desinstalador real del juego.
+#[tauri::command]
+pub async fn uninstall_game(id: String, target: String) -> Result<(), String> {
+    println!("[launch] desinstalar '{id}' -> {target} (mock: no ejecuta nada en dev)");
+    Ok(())
+}

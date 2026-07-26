@@ -24,6 +24,8 @@
   /* Foco (navegación por mando/teclado) — tematizable */
   --gm-focus-ring: 0 0 0 3px var(--gm-accent), 0 0 22px 2px color-mix(in srgb, var(--gm-accent) 55%, transparent);
   --gm-focus-scale: 1.06;
+  /* Aire alrededor de las tarjetas para que el grow + el anillo no se recorten */
+  --gm-focus-space: 26px;
 
   /* Tipografía */
   --gm-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;

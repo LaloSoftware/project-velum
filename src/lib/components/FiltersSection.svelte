@@ -1,9 +1,21 @@
 <script>
-  import { STORE_DEFS, enabledStores, setStoreEnabled } from "../stores/library.js";
+  import {
+    STORE_DEFS,
+    enabledStores,
+    setStoreEnabled,
+    filterAlign,
+    setFilterAlign,
+  } from "../stores/library.js";
   import { groups, deleteGroup } from "../stores/groups.js";
   import { showToast } from "../stores/ui.js";
+  import Select from "./Select.svelte";
 
   const isOn = (id) => $enabledStores[id] !== false;
+  const ALIGNS = [
+    { id: "left", label: "Izquierda" },
+    { id: "center", label: "Centro" },
+    { id: "right", label: "Derecha" },
+  ];
 
   async function remove(g) {
     await deleteGroup(g.id);
@@ -36,6 +48,10 @@
     {/each}
   </div>
 
+  <h2>Alineación de la barra de filtros</h2>
+  <Select value={$filterAlign} options={ALIGNS.map((a) => ({ value: a.id, label: a.label }))} onChange={setFilterAlign} />
+
+
   <h2>Grupos personalizados</h2>
   {#if $groups.length === 0}
     <p class="dim">
@@ -62,6 +78,7 @@
     padding: var(--gm-pad);
     height: 100%;
     overflow-y: auto;
+    max-width: 640px;
   }
   h1 {
     font-size: 2rem;
@@ -70,14 +87,12 @@
   }
   .dim {
     color: var(--gm-text-dim);
-    max-width: 560px;
   }
   .rows {
     margin: 22px 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-width: 420px;
   }
   .row {
     display: flex;

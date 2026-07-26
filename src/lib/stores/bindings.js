@@ -20,6 +20,7 @@ export const ACTIONS = [
   { id: "search", label: "Buscar (en Juegos)" },
   { id: "filterPrev", label: "Filtro tienda ◀ (Juegos)" },
   { id: "filterNext", label: "Filtro tienda ▶ (Juegos)" },
+  { id: "context", label: "Menú de tarjeta" },
 ];
 
 // Etiqueta legible de cada botón físico.
@@ -49,6 +50,7 @@ const DEFAULTS = {
   lt: "filterPrev",
   rt: "filterNext",
   l3: "search",
+  r3: "context",
   start: "menu",
   select: "quick",
   guide: "quick",
