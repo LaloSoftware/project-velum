@@ -12,6 +12,9 @@ src-tauri/gen/schemas/
 # Datos locales de la app (perfiles generados en runtime, etc.)
 *.local
 
+# Artefacto de transferencia (se regenera con `npm run bundle`)
+gm.bundle
+
 # Sistema / editor
 .DS_Store
 .idea/

@@ -18,17 +18,19 @@ juegas — ver fases).
 
 ## Cómo ejecutar (dev)
 
-Requisitos: **Node.js** y **Rust** (rustup). Luego:
+Requisitos: **Node.js** y **Rust** (rustup). Un solo comando (instala deps si faltan y
+levanta la app nativa; sirve en Mac y Windows):
 
 ```bash
-npm install
-npm run tauri dev      # levanta Vite + la app nativa
+npm run go
 ```
 
-Solo la UI en el navegador (sin backend nativo, con datos mock JS):
+Otros atajos:
 
 ```bash
-npm run dev            # http://localhost:1420
+npm run web       # solo la UI en el navegador (datos mock JS) y la abre
+npm run dist      # compila el ejecutable/instalador (src-tauri/target/release/)
+npm run bundle    # empaqueta el repo en gm.bundle para llevarlo a Windows
 ```
 
 ## Compilar
