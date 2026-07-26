@@ -23,6 +23,22 @@ export async function exitFullscreen() {
   }
 }
 
+export async function toggleMaximize() {
+  try {
+    await (await win()).toggleMaximize();
+  } catch {
+    /* modo web */
+  }
+}
+
+export async function isFullscreen() {
+  try {
+    return await (await win()).isFullscreen();
+  } catch {
+    return false; // modo web
+  }
+}
+
 export async function closeApp() {
   try {
     await (await win()).close();

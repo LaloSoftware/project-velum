@@ -1,22 +1,55 @@
 <script>
+  import { tick, onMount } from "svelte";
   import Settings from "./Settings.svelte";
   import StartupSection from "./StartupSection.svelte";
   import ShortcutsSection from "./ShortcutsSection.svelte";
   import FiltersSection from "./FiltersSection.svelte";
-  import { minimizeWindow, exitFullscreen, closeApp } from "../util/window.js";
+  import HiddenSection from "./HiddenSection.svelte";
+  import ButtonIconsSection from "./ButtonIconsSection.svelte";
+  import {
+    minimizeWindow,
+    exitFullscreen,
+    toggleMaximize,
+    isFullscreen,
+    closeApp,
+  } from "../util/window.js";
+  import { focusFirstIn } from "../input/navigation.js";
+
+  let fullscreen = false;
+  onMount(async () => {
+    fullscreen = await isFullscreen();
+  });
+  async function maximizar() {
+    await toggleMaximize();
+  }
+  async function salirFullscreen() {
+    await exitFullscreen();
+    fullscreen = false;
+  }
 
   const SECTIONS = [
     { id: "appearance", label: "Apariencia" },
     { id: "startup", label: "Configuración de inicio" },
     { id: "shortcuts", label: "Configuración de atajos" },
     { id: "filters", label: "Filtros de biblioteca" },
+    { id: "hidden", label: "Ocultos" },
+    { id: "buttonicons", label: "Iconos de botones" },
   ];
   let section = "appearance";
+  let contentEl;
+
+  // Enfocar una sección (arriba/abajo) la previsualiza; "entrar" al panel es
+  // explícito con Aceptar (A/X) o Derecha (esto último lo maneja navigation por regiones).
+  async function enterSection(id) {
+    section = id;
+    await tick();
+    focusFirstIn(contentEl);
+  }
 </script>
 
 <div class="config">
   <div class="main">
-    <aside class="side">
+    <aside class="side" data-focus-group="side">
       <h2>Configuración</h2>
       {#each SECTIONS as s, i}
         <button
@@ -25,14 +58,15 @@
           data-focusable
           data-focus-default={i === 0 ? "" : undefined}
           tabindex="-1"
-          on:click={() => (section = s.id)}
+          on:focus={() => (section = s.id)}
+          on:click={() => enterSection(s.id)}
         >
           {s.label}
         </button>
       {/each}
     </aside>
 
-    <div class="content">
+    <div class="content" data-focus-group="panel" bind:this={contentEl}>
       {#if section === "appearance"}
         <Settings />
       {:else if section === "startup"}
@@ -41,18 +75,28 @@
         <ShortcutsSection />
       {:else if section === "filters"}
         <FiltersSection />
+      {:else if section === "hidden"}
+        <HiddenSection />
+      {:else if section === "buttonicons"}
+        <ButtonIconsSection />
       {/if}
     </div>
   </div>
 
   <!-- Controles de ventana / energía (fijos) -->
-  <div class="power">
+  <div class="power" data-focus-group="power">
     <button class="pbtn" data-focusable tabindex="-1" on:click={minimizeWindow}>
       <span class="ico">🗕</span> Minimizar
     </button>
-    <button class="pbtn" data-focusable tabindex="-1" on:click={exitFullscreen}>
-      <span class="ico">🗗</span> Salir de pantalla completa
-    </button>
+    {#if fullscreen}
+      <button class="pbtn" data-focusable tabindex="-1" on:click={salirFullscreen}>
+        <span class="ico">🗗</span> Salir de pantalla completa
+      </button>
+    {:else}
+      <button class="pbtn" data-focusable tabindex="-1" on:click={maximizar}>
+        <span class="ico">🗖</span> Maximizar
+      </button>
+    {/if}
     <button class="pbtn danger" data-focusable tabindex="-1" on:click={closeApp}>
       <span class="ico">⏻</span> Cerrar
     </button>

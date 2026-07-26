@@ -39,6 +39,7 @@ Defaults e ids crudos de botón:
 | `l1` (LB) / `r1` (RB) | tabLeft / tabRight (pestañas; Mayús en teclado) | e / r |
 | `lt` (LT/L2) / `rt` (RT/R2) | filterPrev / filterNext (filtro de tienda en **Juegos**) | — |
 | `l3` (clic stick izq.) | search (abrir **búsqueda** en Juegos) | — |
+| `r3` (clic stick der.) | context (**menú contextual** de tarjeta) | c |
 | `start` | menu (menú **Configuración**) | Tab |
 | `select` / `guide` | quick (menú Sistema / QAM) | q |
 | d-pad / stick izq. | up/down/left/right (**fijo**) | Flechas |
@@ -56,7 +57,16 @@ Usa el foco nativo del DOM, así que el estilo del foco vive en CSS
 
 - `data-focus-default` marca el elemento a enfocar al entrar en una capa.
 - `App.svelte` recalcula el scope cuando cambia la capa activa
-  (vista → overlay → detalle → teclado virtual).
+  (vista → overlay → detalle → menú contextual → confirmación → teclado virtual).
+
+### Regiones (focus groups)
+
+`move(dir)` es **consciente de regiones**: si el elemento enfocado está dentro de un
+contenedor con `data-focus-group`, primero busca candidato en la **misma región**; si no
+hay en esa dirección, **cruza** a otra región. Se usa en el menú de **Configuración**
+(barra lateral `side` → panel `panel` → controles `power`: bajar recorre secciones y sigue
+a los botones de ventana; derecha/aceptar entra al panel; izquierda vuelve) y en el
+**QAM** (acordeón: cada categoría es una región que se despliega al enfocarla).
 
 ## Teclado virtual
 

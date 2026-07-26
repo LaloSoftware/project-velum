@@ -1,3 +1,17 @@
+## Idioma
+
+Responde siempre en español.
+
+## Reglas de comportamiento
+
+- No saludar al inicio de cada respuesta.
+- No releer archivos que ya fueron leídos en la conversación.
+- Usar `Edit` para cambios puntuales; solo reescribir un archivo completo si el cambio lo justifica.
+- Evitar sobre-explicaciones. Ser directo y conciso.
+- Leer el archivo antes de modificarlo.
+- Si falta contexto, hacer suposiciones razonables y continuar desarrollando.
+- Actualizar este archivo al terminar cada proceso relevante.
+
 # GM — launcher de sala tipo consola
 
 Convierte un PC (objetivo: Windows) en una experiencia tipo consola para la sala:

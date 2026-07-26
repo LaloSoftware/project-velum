@@ -1,5 +1,6 @@
 <script>
   import { startup, updateStartup } from "../stores/startup.js";
+  import Select from "./Select.svelte";
 
   const VIEWS = [
     { id: "home", label: "Inicio" },
@@ -12,20 +13,11 @@
   <h1>Configuración de inicio</h1>
 
   <h2>Vista al arrancar</h2>
-  <div class="chips">
-    {#each VIEWS as v, i}
-      <button
-        class="chip"
-        class:sel={$startup.initialView === v.id}
-        data-focusable
-        data-focus-default={i === 0 ? "" : undefined}
-        tabindex="-1"
-        on:click={() => updateStartup({ initialView: v.id })}
-      >
-        {v.label}
-      </button>
-    {/each}
-  </div>
+  <Select
+    value={$startup.initialView}
+    options={VIEWS.map((v) => ({ value: v.id, label: v.label }))}
+    onChange={(v) => updateStartup({ initialView: v })}
+  />
 
   <h2>Pantalla completa al arrancar</h2>
   <button
@@ -46,6 +38,7 @@
     padding: var(--gm-pad);
     height: 100%;
     overflow-y: auto;
+    max-width: 640px;
   }
   h1 {
     font-size: 2rem;
@@ -59,26 +52,6 @@
   .dim {
     color: var(--gm-text-dim);
     margin-top: 28px;
-  }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .chip {
-    cursor: pointer;
-    padding: 10px 18px;
-    border-radius: 999px;
-    background: var(--gm-surface);
-    color: var(--gm-text-dim);
-    font-weight: 700;
-  }
-  .chip.sel {
-    background: var(--gm-accent);
-    color: #06101f;
-  }
-  .chip:focus {
-    box-shadow: var(--gm-focus-ring);
   }
   .toggle {
     cursor: pointer;

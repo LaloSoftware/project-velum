@@ -35,6 +35,7 @@ pub struct SystemState {
 pub trait SystemControls: Send + Sync {
     fn state(&self) -> SystemState;
     fn set_volume(&mut self, v: u8);
+    fn set_muted(&mut self, muted: bool);
     fn set_output(&mut self, id: String);
     fn set_wifi(&mut self, enabled: bool);
     fn set_bluetooth(&mut self, enabled: bool);
@@ -51,6 +52,11 @@ pub fn system_get_state(state: State<SystemHandle>) -> SystemState {
 #[tauri::command]
 pub fn system_set_volume(volume: u8, state: State<SystemHandle>) {
     state.0.lock().unwrap().set_volume(volume);
+}
+
+#[tauri::command]
+pub fn system_set_muted(muted: bool, state: State<SystemHandle>) {
+    state.0.lock().unwrap().set_muted(muted);
 }
 
 #[tauri::command]

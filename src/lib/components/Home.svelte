@@ -6,7 +6,7 @@
 
 <section class="home">
   <header class="hero">
-    <h1>Jugar</h1>
+    <h1>Bienvenido</h1>
     <p>Reanuda donde lo dejaste o abre la biblioteca completa.</p>
   </header>
 
@@ -53,7 +53,12 @@
     display: flex;
     gap: var(--gm-gap);
     overflow-x: auto;
-    padding: 8px 4px 18px;
+    /* Aire para que el grow + anillo no se recorten. El padding da espacio al
+       anillo; un margen negativo pequeño deja un hueco visible con el borde
+       sin indentar demasiado las tarjetas respecto al título. */
+    padding: 10px var(--gm-focus-space) var(--gm-focus-space);
+    margin: 0 -12px;
+    scroll-padding-inline: var(--gm-focus-space);
     scrollbar-width: none;
   }
   .strip::-webkit-scrollbar {

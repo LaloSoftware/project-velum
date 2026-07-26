@@ -1,4 +1,5 @@
 <script>
+  import { tick } from "svelte";
   import { onlyGames } from "../stores/games.js";
   import { showToast } from "../stores/ui.js";
   import { openLauncher } from "../ipc/index.js";
@@ -6,12 +7,26 @@
     enabledStores,
     filterList,
     activeFilter,
+    filterAlign,
     query,
     setFilter,
     runSearch,
   } from "../stores/library.js";
   import { groups } from "../stores/groups.js";
   import GameGrid from "./GameGrid.svelte";
+  import ButtonPrompt from "./ButtonPrompt.svelte";
+
+  let chipsEl;
+  const ALIGN = { left: "flex-start", center: "center", right: "flex-end" };
+
+  // Al cambiar de filtro (incl. LT/RT), llevar el chip activo a la vista.
+  $: scrollToActive($activeFilter, chipsEl);
+  async function scrollToActive(id, el) {
+    if (!el) return;
+    await tick();
+    const chip = el.querySelector(`[data-filter="${id}"]`);
+    if (chip) chip.scrollIntoView({ inline: "nearest", block: "nearest" });
+  }
 
   // Si el filtro activo es un grupo personalizado, mostrar sus juegos;
   // si no, aplicar tiendas habilitadas + filtro de tienda.
@@ -39,19 +54,23 @@
     </button>
   </div>
 
-  <div class="tabs">
-    {#each $filterList as s}
-      <button
-        class="tab"
-        class:active={$activeFilter === s.id}
-        data-focusable
-        tabindex="-1"
-        on:click={() => setFilter(s.id)}
-      >
-        {s.label}
-      </button>
-    {/each}
-    <span class="hint tabs-hint">LT/RT</span>
+  <div class="filterbar">
+    <ButtonPrompt token="LT" />
+    <div class="chips" bind:this={chipsEl} style="justify-content: {ALIGN[$filterAlign] || 'flex-start'}">
+      {#each $filterList as s}
+        <button
+          class="tab"
+          class:active={$activeFilter === s.id}
+          data-focusable
+          data-filter={s.id}
+          tabindex="-1"
+          on:click={() => setFilter(s.id)}
+        >
+          {s.label}
+        </button>
+      {/each}
+    </div>
+    <ButtonPrompt token="RT" />
   </div>
 
   <div class="grid-wrap">
@@ -95,10 +114,25 @@
   .search:focus {
     box-shadow: var(--gm-focus-ring);
   }
-  .tabs {
+  .filterbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .chips {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-padding: 0 40px;
+    padding: 4px 0;
+  }
+  .chips::-webkit-scrollbar {
+    display: none;
   }
   .hint {
     color: var(--gm-text-dim);
@@ -106,10 +140,8 @@
     font-weight: 700;
     opacity: 0.7;
   }
-  .tabs-hint {
-    margin-left: 6px;
-  }
   .tab {
+    flex: 0 0 auto;
     cursor: pointer;
     padding: 8px 18px;
     border-radius: 999px;
@@ -132,6 +164,11 @@
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
+    /* Aire para que el grow + anillo no se recorten, dejando un hueco visible
+       con el borde (margen negativo pequeño en vez de cancelar el padding). */
+    padding: 10px var(--gm-focus-space) var(--gm-focus-space);
+    margin: 0 -12px;
+    scroll-padding: var(--gm-focus-space);
   }
   .footer {
     display: flex;

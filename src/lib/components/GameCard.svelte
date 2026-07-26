@@ -1,9 +1,11 @@
 <script>
-  import { openDetail, showToast } from "../stores/ui.js";
+  import { openDetail, openContext, showToast } from "../stores/ui.js";
   import { launchGame } from "../ipc/index.js";
 
   export let game;
   export let focusDefault = false;
+
+  let el; // ref del div (para posicionar el menú contextual junto a la tarjeta)
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
 
@@ -26,9 +28,13 @@
   function detail() {
     openDetail(game);
   }
+  function ctx() {
+    openContext(game, el.getBoundingClientRect());
+  }
 </script>
 
 <div
+  bind:this={el}
   class="gm-card"
   data-focusable
   data-focus-default={focusDefault ? "" : undefined}
@@ -37,6 +43,7 @@
   aria-label={game.title}
   on:click={play}
   on:gmdetail={detail}
+  on:gmcontext={ctx}
   on:keydown={(e) => (e.key === "Enter" || e.key === " ") && play()}
 >
   <div class="cover" style="background: {cover}">

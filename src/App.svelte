@@ -5,16 +5,25 @@
   import { initProfiles } from "./lib/stores/profiles.js";
   import { initBindings } from "./lib/stores/bindings.js";
   import { startup, initStartup } from "./lib/stores/startup.js";
-  import { initLibrary, runSearch, cycleFilter } from "./lib/stores/library.js";
+  import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { initHidden } from "./lib/stores/hidden.js";
+  import { initPrompts } from "./lib/stores/prompts.js";
   import {
     view,
     overlay,
     detailGame,
+    contextMenu,
+    confirmDelete,
+    popover,
     goto,
     openOverlay,
     closeOverlay,
     closeDetail,
+    closeContext,
+    setContextSub,
+    closeConfirm,
+    closePopover,
   } from "./lib/stores/ui.js";
   import { vk, vkDone, vkType, vkBackspace, vkToggleShift } from "./lib/stores/keyboard.js";
 
@@ -27,6 +36,9 @@
   import ConfigMenu from "./lib/components/ConfigMenu.svelte";
   import QuickAccessMenu from "./lib/components/QuickAccessMenu.svelte";
   import GameDetail from "./lib/components/GameDetail.svelte";
+  import CardContextMenu from "./lib/components/CardContextMenu.svelte";
+  import ConfirmDelete from "./lib/components/ConfirmDelete.svelte";
+  import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import Toast from "./lib/components/Toast.svelte";
 
@@ -36,7 +48,7 @@
     { id: "apps", label: "Aplicaciones" },
   ];
 
-  let mainEl, overlayEl, detailEl, vkEl;
+  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl;
   let now = new Date();
 
   // ------- Interpretación de acciones de input según el contexto -------
@@ -57,11 +69,14 @@
       case "west": // X / Cuadrado
         if ($vk.open) return vkBackspace();
         return;
+      case "context": // menú contextual de tarjeta
+        if ($vk.open || $overlay || $detailGame || $popover) return;
+        return nav.context();
       case "menu":
-        if ($vk.open) return;
+        if ($vk.open || $contextMenu || $confirmDelete || $popover) return;
         return $overlay === "config" ? closeOverlay() : openOverlay("config");
       case "quick":
-        if ($vk.open) return;
+        if ($vk.open || $contextMenu || $confirmDelete || $popover) return;
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
@@ -81,20 +96,35 @@
     }
   }
 
-  // ¿Estamos en la vista Juegos, sin overlays/detalle/teclado por encima?
+  // ¿Estamos en la vista Juegos, sin capas por encima?
   function inGames() {
-    return $view === "games" && !$overlay && !$detailGame && !$vk.open;
+    return (
+      $view === "games" &&
+      !$overlay &&
+      !$detailGame &&
+      !$vk.open &&
+      !$contextMenu &&
+      !$confirmDelete
+    );
   }
 
   function handleBack() {
     if ($vk.open) return vkDone(true);
+    if ($confirmDelete) return closeConfirm();
+    if ($popover) {
+      const a = $popover.anchor;
+      closePopover();
+      return a?.focus({ preventScroll: true });
+    }
+    if ($contextMenu) return $contextMenu.sub ? setContextSub(null) : closeContext();
     if ($detailGame) return closeDetail();
     if ($overlay) return closeOverlay();
     if ($view !== "home") return goto("home");
   }
 
   function cycleTab(dir) {
-    if ($vk.open || $detailGame || $overlay) return;
+    if ($vk.open || $detailGame || $overlay || $contextMenu || $confirmDelete || $popover)
+      return;
     const idx = TABS.findIndex((t) => t.id === $view);
     const next = (idx + dir + TABS.length) % TABS.length;
     goto(TABS[next].id);
@@ -103,20 +133,36 @@
   // ------- Gestión del "scope" de navegación (capa activa) -------
   $: layerKey = $vk.open
     ? "vk"
-    : $detailGame
-      ? "detail"
-      : $overlay
-        ? "ov:" + $overlay
-        : "view:" + $view;
+    : $confirmDelete
+      ? "confirm"
+      : $popover
+        ? "popover"
+        : $contextMenu
+          ? "ctx:" + ($contextMenu.sub || "main")
+          : $detailGame
+            ? "detail"
+            : $overlay
+              ? "ov:" + $overlay
+              : "view:" + $view;
 
   $: layerKey, scheduleScope();
 
   async function scheduleScope() {
     await tick();
     if ($vk.open) nav.setScope(vkEl);
+    else if ($confirmDelete) nav.setScope(confirmEl);
+    else if ($popover) nav.setScope(popoverEl);
+    else if ($contextMenu) nav.setScope(contextEl);
     else if ($detailGame) nav.setScope(detailEl);
     else if ($overlay) nav.setScope(overlayEl);
     else nav.setScope(mainEl);
+  }
+
+  // Al entrar a la vista Juegos, resetear el filtro a "Todos".
+  let _prevView = "home";
+  $: {
+    if ($view === "games" && _prevView !== "games") enterGames();
+    _prevView = $view;
   }
 
   async function applyStartup() {
@@ -140,6 +186,8 @@
       initStartup(),
       initLibrary(),
       initGroups(),
+      initHidden(),
+      initPrompts(),
     ]);
     await applyStartup();
     await initInput(dispatch);
@@ -216,6 +264,27 @@
   {#if $detailGame}
     <div class="detail-layer" bind:this={detailEl}>
       <GameDetail game={$detailGame} />
+    </div>
+  {/if}
+
+  <!-- Menú contextual de tarjeta (capa flotante) -->
+  {#if $contextMenu}
+    <div bind:this={contextEl}>
+      <CardContextMenu />
+    </div>
+  {/if}
+
+  <!-- Confirmación de eliminar -->
+  {#if $confirmDelete}
+    <div bind:this={confirmEl}>
+      <ConfirmDelete />
+    </div>
+  {/if}
+
+  <!-- Desplegable de <Select> (capa flotante) -->
+  {#if $popover}
+    <div bind:this={popoverEl}>
+      <SelectPopover />
     </div>
   {/if}
 

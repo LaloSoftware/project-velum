@@ -42,8 +42,10 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
 - `stores/profiles.js` — perfiles de theming (usa `appConfig`).
 - `stores/bindings.js` — mapa botón→acción configurable (atajos). Ver `docs/input.md`.
 - `stores/startup.js` — vista inicial + arrancar en pantalla completa.
-- `stores/library.js` — filtros de tienda habilitados + filtro/búsqueda activos de Juegos.
+- `stores/library.js` — filtros de tienda habilitados, alineación, filtro/búsqueda de Juegos.
 - `stores/groups.js` — grupos personalizados (colecciones manuales de juegos).
+- `stores/hidden.js` — blacklist de juegos/apps ocultos (se gestiona en Configuración > Ocultos).
+- `stores/prompts.js` — estilo de los indicadores de botón (`ButtonPrompt`; hoy texto).
 - `stores/keyboard.js` — teclado virtual en pantalla (`openKeyboard()` devuelve Promise).
 
 ## Vistas y capas de UI (z-index)
@@ -51,11 +53,17 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
 - **Pestañas** (vista base): **Inicio** (recientes) · **Juegos** (todos, filtro/buscar/
   abrir launchers) · **Aplicaciones**.
 - **Overlays** (botones dedicados): **Configuración** (Apariencia / Inicio / Atajos /
-  Filtros, con una fila fija de controles de ventana: minimizar / salir de pantalla
-  completa / cerrar, vía `lib/util/window.js`) y **Sistema/QAM**.
-- De abajo a arriba: **vista** → **overlay** (config o QAM) → **detalle de juego** →
-  **teclado virtual**. `App.svelte` calcula la capa activa y fija ahí el "scope" de
-  navegación por foco (`input/navigation.js`).
+  Filtros / Ocultos / Iconos de botones, con navegación por regiones y una fila fija de
+  controles de ventana vía `lib/util/window.js`) y **Sistema/QAM** (acordeón por foco).
+- **Tarjetas**: menú contextual (`CardContextMenu`, atajo `context`) con jugar/detalle,
+  grupos, ocultar y eliminar (`ConfirmDelete`, ejecuta el desinstalador — stub en mock).
+- **Selects**: las opciones de una sola elección (redes, salida de audio, tema, vista de
+  inicio, alineación, iconos…) usan `Select.svelte`, que abre un desplegable flotante
+  (`SelectPopover`, store `popover`) en vez de mostrar las opciones sueltas.
+- De abajo a arriba: **vista** → **overlay** (config o QAM) → **detalle** → **menú
+  contextual** → **desplegable de Select** → **confirmación** → **teclado virtual**.
+  `App.svelte` calcula la capa activa y fija ahí el "scope" de navegación por foco
+  (`input/navigation.js`).
 
 ## Estrategia de recursos durante el juego (fase F3, diseñada desde ya)
 
