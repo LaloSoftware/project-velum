@@ -9,6 +9,8 @@
     "web": "vite --open",
     "dist": "tauri build",
     "bundle": "node scripts/bundle.mjs",
+    "clean": "node scripts/clean.mjs",
+    "rebuild": "node scripts/clean.mjs && npm run go",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

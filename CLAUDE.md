@@ -32,6 +32,8 @@ npm run setup     # deja la máquina lista: verifica Node/Rust + descarga TODAS 
 npm run web       # solo la UI en el navegador (datos mock JS) y la abre
 npm run dist      # compila el ejecutable/instalador (src-tauri/target/release/)
 npm run bundle    # empaqueta el repo en gm.bundle para llevarlo a Windows
+npm run clean     # limpia el build (cargo clean + dist) si se corrompe
+npm run rebuild   # clean + go (recompila desde cero)
 ```
 
 `npm run setup` no instala herramientas del sistema; si falta Node o Rust te dice de
