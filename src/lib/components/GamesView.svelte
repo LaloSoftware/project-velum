@@ -62,7 +62,6 @@
 
 <section class="games">
   <div class="head">
-    <h1>Juegos</h1>
     <button class="search" data-focusable data-focus-default tabindex="-1" on:click={runSearch}>
       🔎 {$query ? `"${$query}"` : "Buscar"} <span class="hint">(L3)</span>
     </button>
@@ -103,12 +102,7 @@
   .head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-  }
-  .head h1 {
-    margin: 0;
-    font-size: 2.2rem;
-    font-weight: var(--gm-title-weight);
+    justify-content: flex-end;
   }
   .search {
     cursor: pointer;
@@ -176,5 +170,39 @@
     padding: 10px var(--gm-focus-space) var(--gm-focus-space);
     margin: 0 -12px;
     scroll-padding: var(--gm-focus-space);
+  }
+
+  .gh-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  }
+  :global([data-p-align="left"]) .gh-row {
+  justify-content: flex-start;
+  }
+  :global([data-p-align="center"]) .gh-row {
+  justify-content: center;
+  }
+  :global([data-p-align="right"]) .gh-row {
+  justify-content: flex-end;
+  }
+  .gh-search {
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  }
+  .gh-search:focus {
+  box-shadow: var(--gm-focus-ring);
+  }
+  .gh-hint {
+  color: var(--gm-text-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.7;
   }
 </style>

@@ -15,6 +15,9 @@ src-tauri/gen/schemas/
 # Artefacto de transferencia (se regenera con `npm run bundle`)
 gm.bundle
 
+# Estado local de impeccable live (sesiones, config de inyección)
+.impeccable/live/
+
 # Sistema / editor
 .DS_Store
 .idea/

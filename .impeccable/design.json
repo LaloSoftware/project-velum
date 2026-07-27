@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-27T00:00:00.000Z",
+  "title": "Design System: GM",
+  "extensions": {
+    "colorMeta": {
+      "console-blue": { "role": "primary", "displayName": "Console Blue", "canonical": "#4c8dff", "tonalRamp": ["#0b1a33", "#123059", "#1a4a8a", "#2668bf", "#4c8dff", "#7aa7ff", "#a8c6ff", "#d6e4ff"] },
+      "console-blue-light": { "role": "primary", "displayName": "Console Blue Light", "canonical": "#7aa7ff", "tonalRamp": ["#14243d", "#1e3a63", "#2b548f", "#3f74c2", "#5f92e6", "#7aa7ff", "#a6c4ff", "#d8e6ff"] },
+      "ready-green": { "role": "tertiary", "displayName": "Ready Green", "canonical": "#52d69a", "tonalRamp": ["#08281c", "#0d422e", "#136147", "#1c8663", "#2fae82", "#52d69a", "#8ee7c1", "#c8f5e2"] },
+      "alert-red": { "role": "tertiary", "displayName": "Alert Red", "canonical": "#ff5d5d", "tonalRamp": ["#3a0d0d", "#5c1616", "#851f1f", "#b52c2c", "#e04242", "#ff5d5d", "#ff9494", "#ffcccc"] },
+      "console-ink": { "role": "neutral", "displayName": "Deep Console Ink", "canonical": "#0e1116", "tonalRamp": ["#0e1116", "#171b22", "#1d232c", "#262d38", "#3a4453", "#5a6678", "#9aa6b4", "#e8edf3"] },
+      "surface-slate": { "role": "neutral", "displayName": "Surface Slate", "canonical": "#1d232c", "tonalRamp": ["#0e1116", "#171b22", "#1d232c", "#262d38", "#333c49", "#4a5566", "#7e8a99", "#e8edf3"] },
+      "muted-steel": { "role": "neutral", "displayName": "Muted Steel", "canonical": "#9aa6b4", "tonalRamp": ["#161a20", "#232a33", "#333c49", "#4a5566", "#69758a", "#9aa6b4", "#c3ccd6", "#e8edf3"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Títulos de overlay/sección (p. ej. «Sistema» en el QAM) y el valor en curso del teclado. Peso vía --gm-title-weight." },
+      "title": { "displayName": "Title", "purpose": "Pestañas de navegación y etiquetas de categoría del QAM." },
+      "body": { "displayName": "Body", "purpose": "Texto general y nombres en listas." },
+      "label": { "displayName": "Label", "purpose": "Sub-textos atenuados, metadatos, badges de tienda, pistas de botón." }
+    },
+    "shadows": [
+      { "name": "cover-lift", "value": "0 4px 12px rgba(0,0,0,0.3)", "purpose": "Eleva las portadas de juego sobre el fondo." },
+      { "name": "panel-drop", "value": "0 0 60px rgba(0,0,0,0.5)", "purpose": "Overlays laterales (Configuración/QAM)." },
+      { "name": "floating-panel", "value": "0 20px 60px rgba(0,0,0,0.5)", "purpose": "Teclado virtual y paneles que descansan alto." },
+      { "name": "focus-glow", "value": "0 0 0 3px var(--gm-accent), 0 0 22px 2px color-mix(in srgb, var(--gm-accent) 55%, transparent)", "purpose": "Anillo de foco de mando/teclado (--gm-focus-ring). La única «luz» del sistema; aparece solo por foco." }
+    ],
+    "motion": [
+      { "name": "card-focus", "value": "transform 0.12s ease", "purpose": "Crecimiento (scale) de la tarjeta al enfocar." },
+      { "name": "card-widen", "value": "width 0.28s ease, aspect-ratio 0.28s ease", "purpose": "Ensanchado de portada a 16:9 en la vista Inicio." },
+      { "name": "overlay-slide", "value": "0.16s ease", "purpose": "Deslizamiento de paneles de overlay (izq. Configuración / der. QAM)." },
+      { "name": "caret-blink", "value": "blink 1s steps(2) infinite", "purpose": "Cursor parpadeante del teclado virtual." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Game Card",
+      "kind": "card",
+      "refersTo": "game-card",
+      "description": "Portada de juego con foco táctil; sin arte, degradado determinista por hash del título.",
+      "html": "<div class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-cover\"><span class=\"ds-card-badge\">Steam</span></div><div class=\"ds-card-title\">Hollow Knight</div></div>",
+      "css": ".ds-card { width: 190px; cursor: pointer; transition: transform 0.12s ease; } .ds-card-cover { position: relative; aspect-ratio: 3/4; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); background: linear-gradient(150deg, hsl(210 55% 42%), hsl(250 60% 22%)); } .ds-card-badge { position: absolute; top: 8px; left: 8px; font-size: 0.66rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: rgba(8,10,14,0.85); color: #e8edf3; } .ds-card-title { margin-top: 8px; font-size: 0.9rem; color: #9aa6b4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-card:focus-visible { outline: none; transform: scale(1.06); } .ds-card:focus-visible .ds-card-cover { box-shadow: 0 0 0 3px #4c8dff, 0 0 22px 2px rgba(76,141,255,0.55); } .ds-card:focus-visible .ds-card-title { color: #e8edf3; }"
+    },
+    {
+      "name": "Nav Tab",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Pestaña píldora; activa con fondo de superficie, foco con glow de acento.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-tab ds-tab-active\">Inicio</button><button class=\"ds-tab\">Juegos</button><button class=\"ds-tab\">Aplicaciones</button></nav>",
+      "css": ".ds-tabs { display: flex; gap: 10px; } .ds-tab { cursor: pointer; padding: 8px 20px; border: none; border-radius: 999px; background: none; color: #9aa6b4; font: inherit; font-weight: 700; font-size: 1.05rem; } .ds-tab-active { color: #e8edf3; background: #1d232c; } .ds-tab:hover { color: #e8edf3; } .ds-tab:focus-visible { outline: none; color: #e8edf3; box-shadow: 0 0 0 3px #4c8dff, 0 0 22px 2px rgba(76,141,255,0.55); }"
+    },
+    {
+      "name": "System Toggle",
+      "kind": "custom",
+      "refersTo": "toggle",
+      "description": "Toggle ON/OFF del QAM; encendido en verde de estado.",
+      "html": "<div style=\"display:flex;gap:8px;\"><button class=\"ds-toggle ds-toggle-on\">ON</button><button class=\"ds-toggle\">OFF</button></div>",
+      "css": ".ds-toggle { cursor: pointer; min-width: 62px; padding: 10px 0; border: none; border-radius: 999px; background: #262d38; color: #9aa6b4; font: inherit; font-weight: 800; } .ds-toggle-on { background: #52d69a; color: #04140d; } .ds-toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px #4c8dff, 0 0 22px 2px rgba(76,141,255,0.55); }"
+    },
+    {
+      "name": "Select",
+      "kind": "input",
+      "refersTo": "select",
+      "description": "Botón-select a ancho completo; abre un popover flotante en vez de opciones en línea.",
+      "html": "<button class=\"ds-select\"><span class=\"ds-select-lbl\">Dispositivo</span><span class=\"ds-select-val\">Altavoces</span><span class=\"ds-select-caret\">▾</span></button>",
+      "css": ".ds-select { cursor: pointer; display: flex; width: 100%; box-sizing: border-box; align-items: center; gap: 10px; padding: 11px 14px; border: none; border-radius: 14px; background: #262d38; color: #e8edf3; font: inherit; font-weight: 700; } .ds-select-lbl { color: #9aa6b4; font-weight: 600; font-size: 0.9rem; } .ds-select-val { flex: 1; text-align: left; } .ds-select-caret { color: #9aa6b4; font-size: 0.8rem; } .ds-select:focus-visible { outline: none; box-shadow: 0 0 0 3px #4c8dff, 0 0 22px 2px rgba(76,141,255,0.55); }"
+    },
+    {
+      "name": "Network List Item",
+      "kind": "custom",
+      "refersTo": "list-item",
+      "description": "Fila de red Wi-Fi; la actual se pinta con el acento.",
+      "html": "<div style=\"display:flex;flex-direction:column;gap:6px;\"><button class=\"ds-item ds-item-active\"><span>MiRed_5G</span><span class=\"ds-item-meta\">🔒 92%</span></button><button class=\"ds-item\"><span>Vecino_2G</span><span class=\"ds-item-meta\">🔒 54%</span></button></div>",
+      "css": ".ds-item { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: none; border-radius: 14px; background: #262d38; color: #e8edf3; font: inherit; font-weight: 600; } .ds-item-meta { color: #9aa6b4; font-size: 0.82rem; } .ds-item-active { background: #4c8dff; color: #06101f; } .ds-item-active .ds-item-meta { color: #06101f; } .ds-item:focus-visible { outline: none; box-shadow: 0 0 0 3px #4c8dff, 0 0 22px 2px rgba(76,141,255,0.55); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Píldora de solo lectura (dispositivos Bluetooth emparejados).",
+      "html": "<span class=\"ds-chip\">DualSense</span>",
+      "css": ".ds-chip { display: inline-block; padding: 8px 14px; border-radius: 999px; background: #262d38; color: #9aa6b4; font-weight: 600; font-size: 0.85rem; }"
+    },
+    {
+      "name": "Keyboard Key",
+      "kind": "custom",
+      "refersTo": "button-confirm",
+      "description": "Tecla del teclado virtual; foco con glow + crecimiento. Aceptar en verde.",
+      "html": "<div style=\"display:flex;gap:8px;\"><button class=\"ds-key\">q</button><button class=\"ds-key ds-key-done\">✓ Aceptar</button></div>",
+      "css": ".ds-key { cursor: pointer; min-width: 52px; height: 52px; padding: 0 12px; border: none; border-radius: 12px; background: #1d232c; color: #e8edf3; font: inherit; font-size: 1.1rem; font-weight: 700; } .ds-key-done { background: #52d69a; color: #04140d; } .ds-key:focus-visible { outline: none; box-shadow: 0 0 0 3px #4c8dff, 0 0 22px 2px rgba(76,141,255,0.55); transform: scale(1.08); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Repaintable Console",
+    "overview": "GM es un shell de consola de salón, minimalista y plug & play: oscuro, sereno y legible desde el sofá, pensado para que el arte de los juegos —no la interfaz— sea lo que llena la pantalla. La UI es deliberadamente discreta: pestañas píldora, una rejilla de portadas y un anillo de foco que brilla.\n\nLa segunda mitad de la tesis es igual de vinculante: todo es repintable. Todo pasa por tokens --gm-*; un usuario puede cargar su propio CSS y transformar el aspecto sin tocar código, y los tres temas integrados (Midnight, Aurora, Sunset) lo demuestran. La base es neutra a propósito: es un lienzo, no una declaración.\n\nEl lenguaje se apoya en capas tonales, no en sombras: la profundidad nace de apilar superficies cada vez más claras, y la única «luz» protagonista es el glow del foco. Al enfocar, los elementos crecen y se rodean de un halo de acento — táctil y físico al mando.",
+    "keyCharacteristics": [
+      "Shell oscuro y sereno; el arte del juego es el protagonista, la UI se aparta.",
+      "100% tokenizado (--gm-*): repintable por CSS sin tocar componentes.",
+      "Legible «a 10 pies»: tamaños generosos, jerarquía clara, foco inequívoco.",
+      "Foco con glow + crecimiento: reactivo y táctil al mando.",
+      "Profundidad por capas tonales; sombra reservada a lo que flota.",
+      "Bordes suaves y píldoras: formas amables, sin esquinas duras."
+    ],
+    "rules": [
+      { "name": "The Rare Accent Rule", "body": "El azul de acento nunca rellena áreas grandes: es para foco, selección y realces puntuales. Su escasez es lo que hace que el foco «cante».", "section": "colors" },
+      { "name": "The No Hardcode Rule", "body": "Ningún componente escribe un color literal salvo las tintas de contraste sobre acento/verde (#06101f, #04140d), que existen porque no hay token para «texto-sobre-acento». Todo lo demás es var(--gm-*).", "section": "colors" },
+      { "name": "The Weight-Not-Face Rule", "body": "La jerarquía se expresa con peso (400/700/800) y tamaño sobre una sola familia del sistema; no se introducen fuentes decorativas en la base.", "section": "typography" },
+      { "name": "The Flat-At-Rest Rule", "body": "Las superficies son planas en reposo y se distinguen por tono. La única luz que aparece por interacción es el glow del foco.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do enrutar todo color/medida/forma por tokens --gm-*; un componente nuevo debe ser repintable sin editarlo.",
+      "Do señalar el foco con --gm-focus-ring + crecimiento (--gm-focus-scale), y dejar aire (--gm-focus-space) para que no se recorte.",
+      "Do construir profundidad apilando console-ink → surface-slate → surface-slate-raised; reservar la sombra para lo que flota.",
+      "Do usar la píldora (999px) para controles de acción y --gm-radius para superficies/ítems.",
+      "Do mantener el acento azul escaso (foco/selección/realce), y usar verde=activo, rojo=peligro.",
+      "Do diseñar «a 10 pies»: tamaños generosos, jerarquía por peso, cifras con tabular-nums."
+    ],
+    "donts": [
+      "Don't escribir colores o medidas literales en componentes (excepto las tintas de contraste sobre acento/verde, que hoy no tienen token).",
+      "Don't rellenar áreas grandes con el azul de acento.",
+      "Don't introducir fuentes decorativas en la base; la jerarquía es por peso/tamaño sobre el stack del sistema.",
+      "Don't apoyar la profundidad en sombras marcadas en reposo; el sistema es plano y tonal.",
+      "Don't dejar estados vacíos como cajas muertas: sin arte, degradar por hash del título; sin datos, texto atenuado corto.",
+      "Don't asumir ratón: cada control debe ser alcanzable por foco espacial con mando."
+    ]
+  }
+}
