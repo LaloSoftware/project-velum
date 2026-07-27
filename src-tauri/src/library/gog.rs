@@ -68,6 +68,7 @@ fn parse_info(path: &Path) -> Option<Game> {
         install_dir: Some(dir.to_string_lossy().into_owned()),
         launch_target,
         last_played: None,
+        size_bytes: None,
     })
 }
 

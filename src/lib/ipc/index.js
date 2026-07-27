@@ -24,6 +24,13 @@ async function invoke(cmd, args) {
 const NOW = Math.floor(Date.now() / 1000);
 const H = 3600;
 function mockGames() {
+  // Tamaño simulado determinista (solo juegos; las apps no reportan tamaño),
+  // para demostrar el orden por tamaño en dev.
+  const fakeSize = (id) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return (1 + (h % 80)) * 1024 * 1024 * 1024;
+  };
   const g = (id, title, store, kind, last) => ({
     id, title, store, kind,
     coverPath: null,
@@ -33,6 +40,7 @@ function mockGames() {
     installDir: `C:/Games/${id}`,
     launchTarget: `mock://launch/${id}`,
     lastPlayed: last,
+    sizeBytes: kind === "game" ? fakeSize(id) : null,
   });
   return [
     g("hades2", "Hades II", "steam", "game", NOW - 1 * H),

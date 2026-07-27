@@ -22,6 +22,14 @@ fn now() -> i64 {
 }
 
 fn game(id: &str, title: &str, store: &str, kind: &str, last: Option<i64>) -> Game {
+    // Tamaño simulado determinista (solo juegos; las apps no reportan tamaño),
+    // para poder demostrar el orden por tamaño en dev.
+    let size_bytes = if kind == "game" {
+        let h = id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        Some((1 + h % 80) * 1024 * 1024 * 1024)
+    } else {
+        None
+    };
     Game {
         id: id.to_string(),
         title: title.to_string(),
@@ -34,6 +42,7 @@ fn game(id: &str, title: &str, store: &str, kind: &str, last: Option<i64>) -> Ga
         install_dir: Some(format!("C:/Games/{}", id)),
         launch_target: format!("mock://launch/{}", id),
         last_played: last,
+        size_bytes,
     }
 }
 

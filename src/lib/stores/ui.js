@@ -20,6 +20,9 @@ export const popover = writable(null);
 // Modal de color (capa modal por encima de overlays): { value, title, onApply }.
 export const colorPicker = writable(null);
 
+// Modal de filtros/orden (Juegos/Apps): { scope: 'games' | 'apps' } | null.
+export const filtersModal = writable(null);
+
 // Mensajes efímeros (toasts).
 export const toast = writable(null);
 let toastTimer = null;
@@ -86,4 +89,10 @@ export function openColorPicker(cfg) {
 }
 export function closeColorPicker() {
   colorPicker.set(null);
+}
+export function openFilters(scope) {
+  filtersModal.set({ scope });
+}
+export function closeFilters() {
+  filtersModal.set(null);
 }

@@ -9,9 +9,9 @@
     filterAlign,
     query,
     setFilter,
-    runSearch,
   } from "../stores/library.js";
   import { groups } from "../stores/groups.js";
+  import { sortGames, sortList } from "../stores/sorting.js";
   import GameGrid from "./GameGrid.svelte";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
@@ -58,15 +58,12 @@
     [],
     "filtered"
   );
+
+  // Orden persistente (Juegos). No afecta a Inicio.
+  $: shown = sortList(filtered, $sortGames);
 </script>
 
 <section class="games">
-  <div class="head">
-    <button class="search" data-focusable data-focus-default tabindex="-1" on:click={runSearch}>
-      🔎 {$query ? `"${$query}"` : "Buscar"} <span class="hint">(L3)</span>
-    </button>
-  </div>
-
   <div class="filterbar">
     <ButtonPrompt token="LT" />
     <div class="chips" bind:this={chipsEl} style="justify-content: {ALIGN[$filterAlign] || 'flex-start'}">
@@ -87,7 +84,7 @@
   </div>
 
   <div class="grid-wrap">
-    <GameGrid items={filtered} />
+    <GameGrid items={shown} />
   </div>
 </section>
 
@@ -98,22 +95,6 @@
     height: 100%;
     padding: var(--gm-pad);
     gap: 16px;
-  }
-  .head {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-  }
-  .search {
-    cursor: pointer;
-    padding: 10px 18px;
-    border-radius: 999px;
-    background: var(--gm-surface);
-    color: var(--gm-text);
-    font-weight: 600;
-  }
-  .search:focus {
-    box-shadow: var(--gm-focus-ring);
   }
   .filterbar {
     display: flex;
@@ -134,12 +115,6 @@
   }
   .chips::-webkit-scrollbar {
     display: none;
-  }
-  .hint {
-    color: var(--gm-text-dim);
-    font-size: 0.72rem;
-    font-weight: 700;
-    opacity: 0.7;
   }
   .tab {
     flex: 0 0 auto;
@@ -170,39 +145,5 @@
     padding: 10px var(--gm-focus-space) var(--gm-focus-space);
     margin: 0 -12px;
     scroll-padding: var(--gm-focus-space);
-  }
-
-  .gh-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  }
-  :global([data-p-align="left"]) .gh-row {
-  justify-content: flex-start;
-  }
-  :global([data-p-align="center"]) .gh-row {
-  justify-content: center;
-  }
-  :global([data-p-align="right"]) .gh-row {
-  justify-content: flex-end;
-  }
-  .gh-search {
-  cursor: pointer;
-  padding: 10px 18px;
-  border-radius: 999px;
-  background: var(--gm-surface);
-  color: var(--gm-text);
-  border: none;
-  font: inherit;
-  font-weight: 600;
-  }
-  .gh-search:focus {
-  box-shadow: var(--gm-focus-ring);
-  }
-  .gh-hint {
-  color: var(--gm-text-dim);
-  font-size: 0.72rem;
-  font-weight: 700;
-  opacity: 0.7;
   }
 </style>
