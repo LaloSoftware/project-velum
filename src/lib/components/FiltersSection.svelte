@@ -5,6 +5,8 @@
     setStoreEnabled,
     filterAlign,
     setFilterAlign,
+    cardAlign,
+    setCardAlign,
   } from "../stores/library.js";
   import { groups, deleteGroup } from "../stores/groups.js";
   import { showToast } from "../stores/ui.js";
@@ -50,6 +52,13 @@
 
   <h2>Alineación de la barra de filtros</h2>
   <Select value={$filterAlign} options={ALIGNS.map((a) => ({ value: a.id, label: a.label }))} onChange={setFilterAlign} />
+
+  <h2>Alineación de las tarjetas</h2>
+  <p class="dim">
+    Hacia qué lado se agrupan las tarjetas en Juegos y Aplicaciones. El espaciado entre
+    ellas no cambia.
+  </p>
+  <Select value={$cardAlign} options={ALIGNS.map((a) => ({ value: a.id, label: a.label }))} onChange={setCardAlign} />
 
 
   <h2>Grupos personalizados</h2>

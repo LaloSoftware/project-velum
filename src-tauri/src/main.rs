@@ -1,6 +1,7 @@
 // Evita abrir una consola extra en Windows en modo release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod assets;
 mod config;
 mod input;
 mod launch;
@@ -12,10 +13,13 @@ use std::sync::Mutex;
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         // Controles de sistema (mock en dev; WindowsSystemControls en el futuro).
         .manage(system::SystemHandle(Mutex::new(Box::new(
             system::mock::MockSystemControls::new(),
         ))))
+        // Sesión de juego activa (ciclo lanzar/suspender/restaurar).
+        .manage(launch::PlayState::default())
         .setup(|app| {
             // Hilo de lectura de mando(s) que emite eventos al frontend.
             input::start_gamepad_thread(app.handle().clone());
@@ -30,8 +34,9 @@ fn main() {
             system::system_set_wifi,
             system::system_set_bluetooth,
             launch::launch_game,
-            launch::open_launcher,
+            launch::focus_game,
             launch::uninstall_game,
+            assets::read_image,
             config::load_config,
             config::save_config,
         ])

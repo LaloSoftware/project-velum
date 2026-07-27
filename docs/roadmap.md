@@ -3,14 +3,24 @@
 Lo que NO está en el MVP y queda planificado. El MVP actual funciona con datos mock en
 macOS; estas fases añaden la integración real y capacidades extra.
 
-## F2 — Integración real de tiendas (en Windows)
-`SteamSource`, luego `EpicSource`, luego `GogSource`, detrás del trait `LibrarySource`
-(ver `docs/stores.md`). Leen los ficheros de cada cliente y rellenan la biblioteca real.
+## F2 — Integración real de tiendas (local-first)
+- **Hecho**: `SteamSource`, `GogSource` y `AppsSource` (Windows) leyendo archivos locales
+  (instalados), con fixtures + tests. Lanzar real (URI/exe). Arte de Steam (oficial +
+  personalizado de `grid`) servido como data URI (`read_image`) y de GOG (URLs de la BD
+  Galaxy), usado en tarjeta/detalle/Inicio (card enfocada con hero + fondo hero de Inicio).
+  `lastPlayed` de GOG (BD) + registro local de "reciente" al lanzar. Ver `docs/stores.md`.
+- **Pendiente**: `EpicSource`, vincular-cuenta (biblioteca completa vía Steam Web API),
+  iconos de apps, arte de GOG **offline**.
 
 ## F3 — Ciclo lanzar / suspender
-Lanzar el juego (URI o ejecutable) y **suspender el launcher** mientras se juega
-(ocultar ventana / liberar recursos), con un watcher que lo **restaura** al cerrar el
-juego. Es la clave del objetivo de "consumo mínimo durante el juego".
+- **Hecho (MVP)**: al lanzar, `PlayingOverlay` **bloquea el input** (evita instancias
+  múltiples) y el launcher **se minimiza**. Un hilo vigía en Rust (`sysinfo`) detecta el
+  fin del proceso por `installDir` (Steam/GOG) y emite `gm://game-ended` → el launcher se
+  **restaura** (y vuelve a pantalla completa si lo estaba). Botón de "volver" configurable
+  (botón + pulsar/mantener) siempre disponible; `focus_game` trae al frente el juego en
+  marcha (Windows, best-effort). Ver `stores/playsession.js` + `launch.rs`.
+- **Pendiente**: liberar/limitar recursos del propio launcher durante el juego (más allá
+  de minimizar), detección de cierre para apps `.lnk` sin `installDir`.
 
 ## F4 — Controles de sistema reales + integración de sala
 `WindowsSystemControls` (Wi-Fi/BT/volumen/salida) para el QAM (ver

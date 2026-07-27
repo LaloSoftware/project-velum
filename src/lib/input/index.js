@@ -63,6 +63,14 @@ export function clearCapture() {
   captureFn = null;
 }
 
+// Listeners de eventos CRUDOS de botón (press y release), independientes del
+// dispatch. Los usa la sesión de juego para el botón de "volver" (pulsar/mantener).
+const rawListeners = new Set();
+export function onRawButton(cb) {
+  rawListeners.add(cb);
+  return () => rawListeners.delete(cb);
+}
+
 export async function initInput(dispatch) {
   dispatchFn = dispatch;
   initKeyboard();
@@ -73,9 +81,15 @@ export async function initInput(dispatch) {
   }
 }
 
-// Procesa un evento crudo de mando (de gilrs o del navegador). Solo actúa en press.
+// Procesa un evento crudo de mando (de gilrs o del navegador).
 function handleRaw(ev) {
-  if (!ev || !ev.pressed) return;
+  if (!ev) return;
+  // Los listeners crudos reciben press Y release (para detectar "mantener").
+  if (ev.type === "button") {
+    for (const cb of rawListeners) cb(ev.name, ev.pressed);
+  }
+  // El resto de la lógica actúa solo en press.
+  if (!ev.pressed) return;
   if (ev.type === "dir") {
     dispatchFn(ev.name);
   } else if (ev.type === "button") {

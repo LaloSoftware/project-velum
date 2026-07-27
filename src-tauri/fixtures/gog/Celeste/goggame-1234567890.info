@@ -1,0 +1,7 @@
+{
+  "gameId": "1234567890",
+  "name": "Celeste",
+  "playTasks": [
+    { "category": "game", "isPrimary": true, "path": "Celeste.exe" }
+  ]
+}

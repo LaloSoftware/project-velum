@@ -1,10 +1,14 @@
 <script>
   import GameCard from "./GameCard.svelte";
+  import { cardAlign } from "../stores/library.js";
   export let items = [];
   export let focusFirst = false;
+
+  const JUSTIFY = { left: "flex-start", center: "center", right: "flex-end" };
+  $: justify = JUSTIFY[$cardAlign] || "center";
 </script>
 
-<div class="grid">
+<div class="grid" style="justify-content: {justify}">
   {#each items as g, i (g.id)}
     <GameCard game={g} focusDefault={focusFirst && i === 0} />
   {/each}
@@ -15,10 +19,9 @@
 
 <style>
   .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, var(--gm-card-w));
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--gm-gap);
-    justify-content: start;
     padding: 4px;
   }
   .empty {

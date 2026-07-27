@@ -8,6 +8,7 @@
   import ButtonIconsSection from "./ButtonIconsSection.svelte";
   import {
     minimizeWindow,
+    enterFullscreen,
     exitFullscreen,
     toggleMaximize,
     isFullscreen,
@@ -21,6 +22,10 @@
   });
   async function maximizar() {
     await toggleMaximize();
+  }
+  async function pantallaCompleta() {
+    await enterFullscreen();
+    fullscreen = true;
   }
   async function salirFullscreen() {
     await exitFullscreen();
@@ -95,6 +100,9 @@
     {:else}
       <button class="pbtn" data-focusable tabindex="-1" on:click={maximizar}>
         <span class="ico">🗖</span> Maximizar
+      </button>
+      <button class="pbtn" data-focusable tabindex="-1" on:click={pantallaCompleta}>
+        <span class="ico">⛶</span> Pantalla completa
       </button>
     {/if}
     <button class="pbtn danger" data-focusable tabindex="-1" on:click={closeApp}>

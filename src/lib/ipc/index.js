@@ -27,6 +27,9 @@ function mockGames() {
   const g = (id, title, store, kind, last) => ({
     id, title, store, kind,
     coverPath: null,
+    widePath: null,
+    heroPath: null,
+    logoPath: null,
     installDir: `C:/Games/${id}`,
     launchTarget: `mock://launch/${id}`,
     lastPlayed: last,
@@ -81,19 +84,19 @@ export async function listGames() {
   }
 }
 
-export async function launchGame(id, target) {
+export async function launchGame(id, target, installDir) {
   try {
-    return await invoke("launch_game", { id, target });
+    return await invoke("launch_game", { id, target, installDir: installDir || null });
   } catch {
     console.info(`[mock] launch_game: ${id} (${target})`);
   }
 }
 
-export async function openLauncher(store) {
+export async function focusGame() {
   try {
-    return await invoke("open_launcher", { store });
+    return await invoke("focus_game");
   } catch {
-    console.info(`[mock] open_launcher: ${store}`);
+    console.info("[mock] focus_game");
   }
 }
 

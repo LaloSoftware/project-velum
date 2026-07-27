@@ -26,6 +26,19 @@ export function showToast(msg) {
   toastTimer = setTimeout(() => toast.set(null), 2200);
 }
 
+// Errores capturados (instrumentación de diagnóstico): se muestran en pantalla
+// para poder ver el fallo real en entornos donde no hay DevTools a mano.
+export const appError = writable(null); // { msg, ctx, stack } | null
+export function reportError(err, ctx = "") {
+  const msg = (err && err.message) || String(err);
+  const stack = err && err.stack ? String(err.stack) : null;
+  console.error(`[gm:error]${ctx ? ` (${ctx})` : ""}`, err);
+  appError.set({ msg, ctx, stack });
+}
+export function clearAppError() {
+  appError.set(null);
+}
+
 export function goto(v) {
   overlay.set(null);
   detailGame.set(null);
