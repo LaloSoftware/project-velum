@@ -15,9 +15,32 @@ export async function minimizeWindow() {
   }
 }
 
+export async function enterFullscreen() {
+  try {
+    await (await win()).setFullscreen(true);
+  } catch {
+    /* modo web */
+  }
+}
+
 export async function exitFullscreen() {
   try {
     await (await win()).setFullscreen(false);
+  } catch {
+    /* modo web */
+  }
+}
+
+export async function enterFullscreenIf(on) {
+  if (on) return enterFullscreen();
+}
+
+// Restaura la ventana tras suspenderla (fin del juego): la desminimiza y le da foco.
+export async function unminimizeAndFocus() {
+  try {
+    const w = await win();
+    await w.unminimize();
+    await w.setFocus();
   } catch {
     /* modo web */
   }

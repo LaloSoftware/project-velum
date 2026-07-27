@@ -1,8 +1,7 @@
 <script>
   import { tick } from "svelte";
   import { onlyGames } from "../stores/games.js";
-  import { showToast } from "../stores/ui.js";
-  import { openLauncher } from "../ipc/index.js";
+  import { reportError } from "../stores/ui.js";
   import {
     enabledStores,
     filterList,
@@ -19,31 +18,46 @@
   let chipsEl;
   const ALIGN = { left: "flex-start", center: "center", right: "flex-end" };
 
+  // Blindaje: cualquier fallo en estos cómputos no debe dejar la vista muda,
+  // sino caer en un valor seguro y reportar el error (ver ErrorBanner).
+  function safe(fn, fallback, ctx) {
+    try {
+      return fn();
+    } catch (e) {
+      reportError(e, `GamesView:${ctx}`);
+      return fallback;
+    }
+  }
+
   // Al cambiar de filtro (incl. LT/RT), llevar el chip activo a la vista.
   $: scrollToActive($activeFilter, chipsEl);
   async function scrollToActive(id, el) {
     if (!el) return;
-    await tick();
-    const chip = el.querySelector(`[data-filter="${id}"]`);
-    if (chip) chip.scrollIntoView({ inline: "nearest", block: "nearest" });
+    try {
+      await tick();
+      const chip = el.querySelector(`[data-filter="${id}"]`);
+      if (chip) chip.scrollIntoView({ inline: "nearest", block: "nearest" });
+    } catch (e) {
+      reportError(e, "GamesView:scrollToActive");
+    }
   }
 
   // Si el filtro activo es un grupo personalizado, mostrar sus juegos;
   // si no, aplicar tiendas habilitadas + filtro de tienda.
-  $: activeGroup = $groups.find((g) => g.id === $activeFilter);
-  $: filtered = $onlyGames
-    .filter((g) =>
-      activeGroup
-        ? activeGroup.gameIds.includes(g.id)
-        : $enabledStores[g.store] !== false &&
-          ($activeFilter === "all" || g.store === $activeFilter)
-    )
-    .filter((g) => g.title.toLowerCase().includes($query.toLowerCase()));
-
-  async function launcher(store) {
-    await openLauncher(store);
-    showToast(`Abriendo launcher de ${store}…`);
-  }
+  $: activeGroup = safe(() => $groups.find((g) => g.id === $activeFilter), null, "activeGroup");
+  $: filtered = safe(
+    () =>
+      $onlyGames
+        .filter((g) =>
+          activeGroup
+            ? (activeGroup.gameIds || []).includes(g.id)
+            : $enabledStores[g.store] !== false &&
+              ($activeFilter === "all" || g.store === $activeFilter)
+        )
+        .filter((g) => (g.title || "").toLowerCase().includes(($query || "").toLowerCase())),
+    [],
+    "filtered"
+  );
 </script>
 
 <section class="games">
@@ -75,13 +89,6 @@
 
   <div class="grid-wrap">
     <GameGrid items={filtered} />
-  </div>
-
-  <div class="footer">
-    <span class="footlabel">Abrir cliente:</span>
-    <button class="link" data-focusable tabindex="-1" on:click={() => launcher("steam")}>Steam</button>
-    <button class="link" data-focusable tabindex="-1" on:click={() => launcher("gog")}>GOG Galaxy</button>
-    <button class="link" data-focusable tabindex="-1" on:click={() => launcher("epic")}>Epic</button>
   </div>
 </section>
 
@@ -169,28 +176,5 @@
     padding: 10px var(--gm-focus-space) var(--gm-focus-space);
     margin: 0 -12px;
     scroll-padding: var(--gm-focus-space);
-  }
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-top: 1px solid var(--gm-surface-2);
-    padding-top: 14px;
-  }
-  .footlabel {
-    color: var(--gm-text-dim);
-    font-size: 0.9rem;
-  }
-  .link {
-    cursor: pointer;
-    padding: 8px 14px;
-    border-radius: var(--gm-radius);
-    background: var(--gm-surface);
-    color: var(--gm-text);
-    font-weight: 600;
-  }
-  .link:focus {
-    background: var(--gm-surface-2);
-    box-shadow: var(--gm-focus-ring);
   }
 </style>

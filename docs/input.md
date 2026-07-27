@@ -48,6 +48,17 @@ Defaults e ids crudos de botón:
 detalle en una tarjeta, espacio con el teclado abierto). El **modo captura** para el
 remapeo lo exponen `setCapture()/clearCapture()` en `input/index.js`.
 
+## Modo "en juego" (sesión)
+
+Al lanzar un juego/app, `stores/playsession.js` abre una **sesión**: se muestra
+`PlayingOverlay` y `App.svelte -> dispatch` **ignora todo el input** (el hilo `gilrs`
+sigue emitiendo aunque la ventana esté minimizada, por eso el bloqueo va en el dispatch,
+no en minimizar). Solo `accept` trae el juego al frente (`focus_game`). El botón de
+**volver al launcher** es **configurable** (botón + modo *pulsar*/*mantener* con duración,
+en Configuración de atajos) y se maneja aparte por eventos crudos vía `onRawButton`
+(`input/index.js`), para poder detectar el "mantener". Teclado dev: `g` = volver.
+El fin del juego lo detecta el backend (evento `gm://game-ended`) → se cierra la sesión.
+
 ## Navegación por foco (spatial navigation)
 
 `src/lib/input/navigation.js` mueve el foco entre elementos marcados con

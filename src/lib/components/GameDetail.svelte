@@ -1,14 +1,28 @@
 <script>
   import { closeDetail, showToast } from "../stores/ui.js";
-  import { launchGame } from "../ipc/index.js";
+  import { startPlay } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
+  import { imageUrl } from "../util/asset.js";
+  import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import ArtEditor from "./ArtEditor.svelte";
 
   export let game;
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
 
   const inGroup = (g) => g.gameIds.includes(game.id);
+  // Fondo = hero efectivo (override manual o el de la tienda).
+  let heroUrl = null;
+  let heroFor = null;
+  $: heroSrc = effectiveArt(game, $overrides).hero;
+  $: if (heroSrc !== heroFor) {
+    heroFor = heroSrc;
+    heroUrl = null;
+    imageUrl(heroSrc).then((u) => {
+      if (heroSrc === heroFor) heroUrl = u;
+    });
+  }
 
   async function newGroup() {
     const name = await openKeyboard("", "Nombre del grupo");
@@ -32,9 +46,7 @@
   }
 
   async function play() {
-    showToast(`Lanzando ${game.title}…`);
-    await launchGame(game.id, game.launchTarget);
-    // En la app real, aquí el launcher se suspende hasta que el juego cierra.
+    await startPlay(game);
   }
 </script>
 
@@ -42,7 +54,7 @@
   class="detail"
   style="--hue: {h}"
 >
-  <div class="art"></div>
+  <div class="art" class:photo={!!heroUrl} style={heroUrl ? `background-image: url("${heroUrl}")` : ""}></div>
   <div class="content">
     <span class="store">{STORE_LABEL[game.store] || game.store}</span>
     <h1>{game.title}</h1>
@@ -77,6 +89,11 @@
       </button>
     </div>
   </div>
+
+  <!-- Editor de imágenes (a la derecha, al nivel del botón Jugar) -->
+  <div class="art-panel">
+    <ArtEditor {game} />
+  </div>
 </div>
 
 <style>
@@ -98,6 +115,12 @@
       );
     z-index: 0;
   }
+  .art.photo {
+    background-color: hsl(var(--hue) 55% 12%);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
   .art::after {
     content: "";
     position: absolute;
@@ -108,6 +131,11 @@
     position: relative;
     z-index: 1;
     max-width: 720px;
+  }
+  .art-panel {
+    position: relative;
+    z-index: 1;
+    margin-left: auto;
   }
   .store {
     font-weight: 700;

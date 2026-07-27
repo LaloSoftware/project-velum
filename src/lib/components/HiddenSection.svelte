@@ -2,9 +2,18 @@
   import { games } from "../stores/games.js";
   import { hidden, unhide } from "../stores/hidden.js";
   import { showToast } from "../stores/ui.js";
+  import Select from "./Select.svelte";
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
-  $: items = $games.filter((g) => $hidden.includes(g.id));
+  const KIND_OPTIONS = [
+    { value: "all", label: "Todos" },
+    { value: "game", label: "Juegos" },
+    { value: "app", label: "Apps" },
+  ];
+  let kindFilter = "all";
+
+  $: hiddenItems = $games.filter((g) => $hidden.includes(g.id));
+  $: items = hiddenItems.filter((g) => kindFilter === "all" || g.kind === kindFilter);
 
   async function show(g) {
     await unhide(g.id);
@@ -18,26 +27,38 @@
     Juegos y apps ocultos de la interfaz. Este es el único sitio para volver a mostrarlos.
   </p>
 
-  {#if items.length === 0}
+  {#if hiddenItems.length === 0}
     <p class="dim empty">No hay elementos ocultos.</p>
   {:else}
-    <div class="rows">
-      {#each items as g, i (g.id)}
-        <div class="row">
-          <span class="label">{g.title}</span>
-          <span class="store">{STORE_LABEL[g.store] || g.store}</span>
-          <button
-            class="show"
-            data-focusable
-            data-focus-default={i === 0 ? "" : undefined}
-            tabindex="-1"
-            on:click={() => show(g)}
-          >
-            Mostrar
-          </button>
-        </div>
-      {/each}
+    <div class="filter">
+      <Select
+        label="Mostrar"
+        value={kindFilter}
+        options={KIND_OPTIONS}
+        onChange={(v) => (kindFilter = v)}
+      />
     </div>
+    {#if items.length === 0}
+      <p class="dim empty">No hay elementos ocultos en esta categoría.</p>
+    {:else}
+      <div class="rows">
+        {#each items as g, i (g.id)}
+          <div class="row">
+            <span class="label">{g.title}</span>
+            <span class="store">{STORE_LABEL[g.store] || g.store}</span>
+            <button
+              class="show"
+              data-focusable
+              data-focus-default={i === 0 ? "" : undefined}
+              tabindex="-1"
+              on:click={() => show(g)}
+            >
+              Mostrar
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
   {/if}
 </section>
 
@@ -56,6 +77,10 @@
   .dim {
     color: var(--gm-text-dim);
     max-width: 560px;
+  }
+  .filter {
+    margin-top: 18px;
+    max-width: 260px;
   }
   .empty {
     margin-top: 22px;

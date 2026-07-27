@@ -9,9 +9,33 @@
   } from "../stores/bindings.js";
   import { setCapture, clearCapture } from "../input/index.js";
   import { showToast } from "../stores/ui.js";
+  import { playConfig, updatePlayConfig } from "../stores/playsession.js";
+  import Select from "./Select.svelte";
 
   let listening = null; // acción que se está reasignando
   let timer = null;
+  let capturingReturn = false; // captura del botón de "volver al launcher"
+
+  const HOLD_OPTS = [
+    { value: 500, label: "0.5 s" },
+    { value: 800, label: "0.8 s" },
+    { value: 1200, label: "1.2 s" },
+    { value: 2000, label: "2 s" },
+  ];
+
+  function rebindReturn() {
+    capturingReturn = true;
+    setCapture((rawButton) => {
+      updatePlayConfig({ returnButton: rawButton });
+      capturingReturn = false;
+      clearCapture();
+    });
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      capturingReturn = false;
+      clearCapture();
+    }, 6000);
+  }
 
   // Botón (etiqueta) asignado a una acción, reactivo a $bindings.
   $: labelFor = (action) => {
@@ -21,6 +45,7 @@
 
   function stopListening() {
     listening = null;
+    capturingReturn = false;
     clearCapture();
     clearTimeout(timer);
   }
@@ -67,13 +92,57 @@
   <button class="reset" data-focusable tabindex="-1" on:click={reset}>
     Restaurar por defecto
   </button>
+
+  <h2 class="subhead">Volver al launcher (en juego)</h2>
+  <p class="dim">
+    Mientras un juego está en marcha, este botón restaura el launcher. Elige si actúa al
+    pulsarlo o al mantenerlo pulsado.
+  </p>
+  <div class="rows">
+    <div class="row">
+      <span class="label">Botón</span>
+      <span class="btn">{BUTTON_LABELS[$playConfig.returnButton] || "—"}</span>
+      <button class="rebind" data-focusable tabindex="-1" on:click={rebindReturn}>
+        Reasignar
+      </button>
+    </div>
+    <div class="row">
+      <span class="label">Modo</span>
+      <div class="ctrl">
+        <Select
+          value={$playConfig.returnMode}
+          options={[
+            { value: "press", label: "Pulsar" },
+            { value: "hold", label: "Mantener" },
+          ]}
+          onChange={(v) => updatePlayConfig({ returnMode: v })}
+        />
+      </div>
+    </div>
+    {#if $playConfig.returnMode === "hold"}
+      <div class="row">
+        <span class="label">Duración</span>
+        <div class="ctrl">
+          <Select
+            value={$playConfig.holdMs}
+            options={HOLD_OPTS}
+            onChange={(v) => updatePlayConfig({ holdMs: v })}
+          />
+        </div>
+      </div>
+    {/if}
+  </div>
 </section>
 
-{#if listening}
+{#if listening || capturingReturn}
   <div class="capture">
     <div class="box">
       <div class="big">Pulsa un botón del mando…</div>
-      <div class="dim">para «{ACTIONS.find((a) => a.id === listening)?.label}»</div>
+      <div class="dim">
+        para «{capturingReturn
+          ? "Volver al launcher"
+          : ACTIONS.find((a) => a.id === listening)?.label}»
+      </div>
     </div>
   </div>
 {/if}
@@ -93,6 +162,13 @@
   .dim {
     color: var(--gm-text-dim);
     max-width: 560px;
+  }
+  .subhead {
+    font-size: 1.1rem;
+    margin: 30px 0 10px;
+  }
+  .ctrl {
+    min-width: 180px;
   }
   .rows {
     margin: 22px 0;

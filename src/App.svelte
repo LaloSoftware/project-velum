@@ -16,6 +16,8 @@
     contextMenu,
     confirmDelete,
     popover,
+    appError,
+    clearAppError,
     goto,
     openOverlay,
     closeOverlay,
@@ -29,6 +31,10 @@
 
   import { initInput } from "./lib/input/index.js";
   import * as nav from "./lib/input/navigation.js";
+  import { initPlaytimes } from "./lib/stores/playtimes.js";
+  import { initArtOverrides } from "./lib/stores/artoverrides.js";
+  import { session, initPlaySession } from "./lib/stores/playsession.js";
+  import { focusGame } from "./lib/ipc/index.js";
 
   import Home from "./lib/components/Home.svelte";
   import GamesView from "./lib/components/GamesView.svelte";
@@ -41,6 +47,8 @@
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import Toast from "./lib/components/Toast.svelte";
+  import ErrorBanner from "./lib/components/ErrorBanner.svelte";
+  import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
 
   const TABS = [
     { id: "home", label: "Inicio" },
@@ -53,6 +61,13 @@
 
   // ------- Interpretación de acciones de input según el contexto -------
   function dispatch(action) {
+    // En sesión de juego el launcher está en reposo: se ignora todo el input
+    // (el botón de "volver" lo maneja playsession por eventos crudos). Solo
+    // Aceptar/Jugar trae la instancia en marcha al frente.
+    if ($session) {
+      if (action === "accept") focusGame();
+      return;
+    }
     switch (action) {
       case "up":
       case "down":
@@ -66,10 +81,11 @@
       case "north": // Y / Triángulo
         if ($vk.open) return vkType(" ");
         return nav.secondary(); // abrir detalle en la tarjeta enfocada
-      case "west": // X / Cuadrado
+      case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
         if ($vk.open) return vkBackspace();
-        return;
-      case "context": // menú contextual de tarjeta
+        if ($overlay || $detailGame || $contextMenu || $confirmDelete || $popover) return;
+        return nav.context();
+      case "context": // menú contextual de tarjeta (atajo dedicado, p. ej. R3)
         if ($vk.open || $overlay || $detailGame || $popover) return;
         return nav.context();
       case "menu":
@@ -109,6 +125,7 @@
   }
 
   function handleBack() {
+    if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
     if ($confirmDelete) return closeConfirm();
     if ($popover) {
@@ -188,6 +205,9 @@
       initGroups(),
       initHidden(),
       initPrompts(),
+      initPlaytimes(),
+      initArtOverrides(),
+      initPlaySession(),
     ]);
     await applyStartup();
     await initInput(dispatch);
@@ -230,6 +250,7 @@
     <footer class="hints">
       <span><b>A</b> Jugar</span>
       <span><b>Y</b> Detalle</span>
+      <span><b>X</b> Menú</span>
       <span><b>B</b> Volver</span>
       <span><b>LB/RB</b> Pestañas</span>
       <span><b>Menú</b> Configuración</span>
@@ -296,6 +317,8 @@
   {/if}
 
   <Toast />
+  <ErrorBanner />
+  <PlayingOverlay />
 </div>
 
 <style>

@@ -8,7 +8,7 @@
     openConfirm,
     showToast,
   } from "../stores/ui.js";
-  import { launchGame } from "../ipc/index.js";
+  import { startPlay } from "../stores/playsession.js";
   import { hide } from "../stores/hidden.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { openKeyboard } from "../stores/keyboard.js";
@@ -43,9 +43,8 @@
   $: sub, tick().then(reposition);
 
   function play() {
-    showToast(`${isApp ? "Ejecutando" : "Lanzando"} ${game.title}…`);
-    launchGame(game.id, game.launchTarget);
     closeContext();
+    startPlay(game);
   }
   function detail() {
     openDetail(game);

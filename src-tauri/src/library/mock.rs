@@ -1,5 +1,7 @@
 //! Fuente de biblioteca simulada para desarrollar en macOS sin las tiendas reales.
 //! Espejo aproximado de los datos mock del frontend (src/lib/ipc/index.js).
+//! (Solo se usa como fallback fuera de Windows; en Windows queda sin usar.)
+#![allow(dead_code)]
 
 use super::{Game, LibrarySource};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -26,6 +28,9 @@ fn game(id: &str, title: &str, store: &str, kind: &str, last: Option<i64>) -> Ga
         store: store.to_string(),
         kind: kind.to_string(),
         cover_path: None,
+        wide_path: None,
+        hero_path: None,
+        logo_path: None,
         install_dir: Some(format!("C:/Games/{}", id)),
         launch_target: format!("mock://launch/{}", id),
         last_played: last,

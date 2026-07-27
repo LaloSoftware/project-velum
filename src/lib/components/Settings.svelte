@@ -15,8 +15,10 @@
 
   const themes = themeOptions();
   const ACCENTS = ["#4c8dff", "#37e6b4", "#ff7a59", "#ffd166", "#c77dff", "#ff5d8f"];
+  const CARD_W_DEFAULT = 190;
 
   $: active = $profiles.find((p) => p.id === $activeProfileId) || $profiles[0];
+  $: cardW = parseInt(active?.tokenOverrides?.["--gm-card-w"]) || CARD_W_DEFAULT;
 
   async function newProfile() {
     const name = await openKeyboard("", "Nombre del perfil");
@@ -32,6 +34,12 @@
   async function pickAccent(color) {
     await updateActive({
       tokenOverrides: { ...active.tokenOverrides, "--gm-accent": color },
+    });
+  }
+  async function pickCardSize(e) {
+    const px = e.target.value;
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-card-w": `${px}px` },
     });
   }
   async function loadExternalCss() {
@@ -91,6 +99,22 @@
           on:click={() => pickAccent(c)}
         ></button>
       {/each}
+    </div>
+
+    <h2>Tamaño de tarjeta</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min="130"
+        max="260"
+        step="10"
+        value={cardW}
+        on:input={pickCardSize}
+      />
+      <span class="sizeval">{cardW}px</span>
     </div>
 
     <h2>CSS externo (perfil)</h2>
@@ -158,6 +182,29 @@
   }
   .chip:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  .sizerow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: 420px;
+  }
+  .size-slider {
+    flex: 1;
+    accent-color: var(--gm-accent);
+    cursor: pointer;
+  }
+  .size-slider:focus {
+    outline: none;
+    box-shadow: var(--gm-focus-ring);
+    border-radius: 999px;
+  }
+  .sizeval {
+    min-width: 52px;
+    text-align: right;
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
   .swatches {
     display: flex;

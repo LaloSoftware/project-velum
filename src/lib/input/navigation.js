@@ -84,7 +84,26 @@ function bestCandidate(cur, list, dir) {
   return best;
 }
 
+// Un <input type="range"> enfocado usa Izquierda/Derecha para ajustar su valor
+// (patrón estándar de sliders en UIs de mando) en vez de mover el foco.
+function adjustRange(el, dir) {
+  const step = Number(el.step) || 1;
+  const min = Number(el.min) || 0;
+  const max = Number(el.max) || 100;
+  const cur = Number(el.value);
+  const next = dir === "left" ? Math.max(min, cur - step) : Math.min(max, cur + step);
+  if (next === cur) return;
+  el.value = String(next);
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 export function move(dir) {
+  const cur0 = current();
+  if (cur0?.tagName === "INPUT" && cur0.type === "range" && (dir === "left" || dir === "right")) {
+    return adjustRange(cur0, dir);
+  }
+
   const list = focusables();
   if (!list.length) return;
   const cur = current();

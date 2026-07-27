@@ -11,9 +11,24 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 gilrs = "0.11"
+# Vigilar el proceso lanzado (fin del juego) para restaurar el launcher.
+sysinfo = "0.32"
+# Servir imágenes locales (carátulas) a la WebView como data URI.
+base64 = "0.22"
+
+# Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
+# y traer al frente la ventana del juego en marcha (Win32).
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52"
+rusqlite = { version = "0.32", features = ["bundled"] }
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 [profile.release]
 opt-level = "s"

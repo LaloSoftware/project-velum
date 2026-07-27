@@ -1,0 +1,12 @@
+{
+  "gameId": "1207658930",
+  "name": "The Witcher 3: Wild Hunt",
+  "playTasks": [
+    {
+      "category": "game",
+      "isPrimary": true,
+      "name": "Play The Witcher 3",
+      "path": "bin/x64/witcher3.exe"
+    }
+  ]
+}

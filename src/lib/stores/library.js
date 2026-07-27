@@ -21,17 +21,27 @@ export const enabledStores = writable({ steam: true, gog: true, epic: true });
 // Alineación de la barra de filtros: left | center | right (persistente).
 export const filterAlign = writable("left");
 
+// Alineación de las tarjetas en los grids (Juegos/Apps): left | center | right.
+// Los espaciados entre tarjetas (gap) no cambian; solo hacia qué lado se agrupan.
+export const cardAlign = writable("center");
+
 export async function initLibrary() {
   const cfg = await loadAppConfig();
   if (cfg && cfg.enabledStores) {
     enabledStores.set({ steam: true, gog: true, epic: true, ...cfg.enabledStores });
   }
   if (cfg && cfg.filterAlign) filterAlign.set(cfg.filterAlign);
+  if (cfg && cfg.cardAlign) cardAlign.set(cfg.cardAlign);
 }
 
 export async function setFilterAlign(v) {
   filterAlign.set(v);
   await patchAppConfig({ filterAlign: get(filterAlign) });
+}
+
+export async function setCardAlign(v) {
+  cardAlign.set(v);
+  await patchAppConfig({ cardAlign: get(cardAlign) });
 }
 
 export async function setStoreEnabled(store, on) {
@@ -42,11 +52,23 @@ export async function setStoreEnabled(store, on) {
 }
 
 // Lista de filtros visibles: "Todos" + tiendas habilitadas + grupos personalizados.
-export const filterList = derived([enabledStores, groups], ([$en, $groups]) => [
-  { id: "all", label: "Todos", type: "all" },
-  ...STORE_DEFS.filter((s) => $en[s.id] !== false).map((s) => ({ ...s, type: "store" })),
-  ...$groups.map((g) => ({ id: g.id, label: g.name, type: "group" })),
-]);
+// Blindado: config persistida corrupta (p. ej. un grupo mal formado) no debe
+// tirar este store abajo, ya que solo lo consume la vista Juegos.
+export const filterList = derived([enabledStores, groups], ([$en, $groups]) => {
+  try {
+    const gs = Array.isArray($groups) ? $groups : [];
+    return [
+      { id: "all", label: "Todos", type: "all" },
+      ...STORE_DEFS.filter((s) => $en?.[s.id] !== false).map((s) => ({ ...s, type: "store" })),
+      ...gs
+        .filter((g) => g && g.id)
+        .map((g) => ({ id: g.id, label: g.name || g.id, type: "group" })),
+    ];
+  } catch (e) {
+    console.error("[gm:error] (library:filterList)", e);
+    return [{ id: "all", label: "Todos", type: "all" }];
+  }
+});
 
 // Estado de UI (no persistente).
 export const activeFilter = writable("all");
