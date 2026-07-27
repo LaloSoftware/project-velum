@@ -6,6 +6,7 @@
   import { initBindings } from "./lib/stores/bindings.js";
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
+  import { initSorting } from "./lib/stores/sorting.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -17,6 +18,7 @@
     confirmDelete,
     popover,
     colorPicker,
+    filtersModal,
     appError,
     clearAppError,
     goto,
@@ -28,6 +30,8 @@
     closeConfirm,
     closePopover,
     closeColorPicker,
+    openFilters,
+    closeFilters,
   } from "./lib/stores/ui.js";
   import { vk, vkDone, vkType, vkBackspace, vkToggleShift } from "./lib/stores/keyboard.js";
 
@@ -49,6 +53,7 @@
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
+  import FiltersModal from "./lib/components/FiltersModal.svelte";
   import Toast from "./lib/components/Toast.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
@@ -59,7 +64,7 @@
     { id: "apps", label: "Aplicaciones" },
   ];
 
-  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl, colorPickerEl;
+  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl, colorPickerEl, filtersEl;
   let now = new Date();
 
   // ------- Interpretación de acciones de input según el contexto -------
@@ -86,17 +91,41 @@
         return nav.secondary(); // abrir detalle en la tarjeta enfocada
       case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
         if ($vk.open) return vkBackspace();
-        if ($overlay || $detailGame || $contextMenu || $confirmDelete || $popover || $colorPicker)
+        if (
+          $overlay ||
+          $detailGame ||
+          $contextMenu ||
+          $confirmDelete ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
           return;
         return nav.context();
-      case "context": // menú contextual de tarjeta (atajo dedicado, p. ej. R3)
-        if ($vk.open || $overlay || $detailGame || $popover || $colorPicker) return;
+      case "context": // menú contextual de tarjeta (atajo dedicado)
+        if ($vk.open || $overlay || $detailGame || $popover || $colorPicker || $filtersModal) return;
         return nav.context();
+      case "filters": // R3: modal de filtros y orden (Juegos/Apps)
+        if (
+          $vk.open ||
+          $overlay ||
+          $detailGame ||
+          $contextMenu ||
+          $confirmDelete ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
+          return;
+        if ($view === "games" || $view === "apps") return openFilters($view);
+        return;
       case "menu":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker) return;
+        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker || $filtersModal)
+          return;
         return $overlay === "config" ? closeOverlay() : openOverlay("config");
       case "quick":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker) return;
+        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker || $filtersModal)
+          return;
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
@@ -124,7 +153,8 @@
       !$detailGame &&
       !$vk.open &&
       !$contextMenu &&
-      !$confirmDelete
+      !$confirmDelete &&
+      !$filtersModal
     );
   }
 
@@ -132,6 +162,7 @@
     if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
     if ($colorPicker) return closeColorPicker();
+    if ($filtersModal) return closeFilters();
     if ($confirmDelete) return closeConfirm();
     if ($popover) {
       const a = $popover.anchor;
@@ -145,7 +176,16 @@
   }
 
   function cycleTab(dir) {
-    if ($vk.open || $detailGame || $overlay || $contextMenu || $confirmDelete || $popover)
+    if (
+      $vk.open ||
+      $detailGame ||
+      $overlay ||
+      $contextMenu ||
+      $confirmDelete ||
+      $popover ||
+      $colorPicker ||
+      $filtersModal
+    )
       return;
     const idx = TABS.findIndex((t) => t.id === $view);
     const next = (idx + dir + TABS.length) % TABS.length;
@@ -157,6 +197,8 @@
     ? "vk"
     : $colorPicker
       ? "colorpicker"
+      : $filtersModal
+        ? "filters"
       : $confirmDelete
         ? "confirm"
       : $popover
@@ -175,6 +217,7 @@
     await tick();
     if ($vk.open) nav.setScope(vkEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
+    else if ($filtersModal) nav.setScope(filtersEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
     else if ($popover) nav.setScope(popoverEl);
     else if ($contextMenu) nav.setScope(contextEl);
@@ -216,6 +259,7 @@
       initPlaytimes(),
       initArtOverrides(),
       initPlaySession(),
+      initSorting(),
     ]);
     await applyStartup();
     await initInput(dispatch);
@@ -259,6 +303,8 @@
       <span><b>A</b> Jugar</span>
       <span><b>Y</b> Detalle</span>
       <span><b>X</b> Menú</span>
+      {#if $view === "games"}<span><b>L3</b> Buscar</span>{/if}
+      {#if $view === "games" || $view === "apps"}<span><b>R3</b> Filtros y orden</span>{/if}
       <span><b>B</b> Volver</span>
       <span><b>LB/RB</b> Pestañas</span>
       <span><b>Menú</b> Configuración</span>
@@ -321,6 +367,13 @@
   {#if $colorPicker}
     <div bind:this={colorPickerEl}>
       <ColorPicker />
+    </div>
+  {/if}
+
+  <!-- Modal de filtros y orden (Juegos/Apps) -->
+  {#if $filtersModal}
+    <div bind:this={filtersEl}>
+      <FiltersModal />
     </div>
   {/if}
 

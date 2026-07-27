@@ -20,6 +20,7 @@ export const ACTIONS = [
   { id: "search", label: "Buscar (en Juegos)" },
   { id: "filterPrev", label: "Filtro tienda ◀ (Juegos)" },
   { id: "filterNext", label: "Filtro tienda ▶ (Juegos)" },
+  { id: "filters", label: "Filtros y orden (Juegos/Apps)" },
   { id: "context", label: "Menú de tarjeta" },
 ];
 
@@ -50,7 +51,7 @@ const DEFAULTS = {
   lt: "filterPrev",
   rt: "filterNext",
   l3: "search",
-  r3: "context",
+  r3: "filters",
   start: "menu",
   select: "quick",
   guide: "quick",

@@ -36,6 +36,8 @@ pub struct Game {
     pub launch_target: String,
     /// Última vez jugado, epoch en segundos (para "recientes").
     pub last_played: Option<i64>,
+    /// Tamaño en disco en bytes, si la fuente lo conoce (para ordenar por tamaño).
+    pub size_bytes: Option<u64>,
 }
 
 pub trait LibrarySource {

@@ -73,6 +73,7 @@ fn scan(dir: &Path, depth: u32, out: &mut Vec<Game>) {
             install_dir: None,
             launch_target: p.to_string_lossy().into_owned(),
             last_played: None,
+            size_bytes: None,
         });
     }
 }

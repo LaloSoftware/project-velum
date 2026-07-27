@@ -177,6 +177,7 @@ impl LibrarySource for SteamSource {
                     install_dir,
                     launch_target: format!("steam://rungameid/{appid}"),
                     last_played,
+                    size_bytes: None,
                 });
             }
         }
