@@ -6,15 +6,17 @@
   export let items = [];
   export let focusFirst = false;
 
-  const ALIGN = { left: "flex-start", center: "center", right: "flex-end" };
+  // Alineación del BLOQUE de columnas dentro del contenedor. Las tarjetas
+  // siempre caen en columna (grid); izq/centro/der solo mueve el bloque.
+  const JUSTIFY = { left: "start", center: "center", right: "end" };
 
   let gridEl;
-  let gridW = 0; // ancho disponible (bind:clientWidth)
+  let gridW = 0; // ancho del contenedor (bind:clientWidth)
   let cardW = 190;
   let gap = 18;
 
   // Lee las medidas reales de los tokens (--gm-card-w / --gm-gap) para calcular
-  // cuántas tarjetas caben por fila. Se relee al montar y si cambia la alineación.
+  // cuántas columnas caben. Se relee al montar y si cambia la alineación.
   function readVars() {
     if (!gridEl) return;
     const cs = getComputedStyle(gridEl);
@@ -24,30 +26,21 @@
   onMount(readVars);
   $: $cardAlign, readVars();
 
-  // Columnas que caben (el `gap` actúa como separación mínima).
+  // Columnas fijas que caben. Con columnas explícitas (no auto-fill) el bloque
+  // suma menos que el contenedor, así que `justify-content` puede posicionarlo.
   $: cols = Math.max(1, Math.floor((gridW + gap) / (cardW + gap)));
-
-  // Partimos en filas: las completas se reparten a lo ancho (space-between);
-  // la última fila incompleta usa hueco fijo y se alinea según `cardAlign`.
-  $: rows = (() => {
-    const out = [];
-    for (let i = 0; i < items.length; i += cols) out.push(items.slice(i, i + cols));
-    return out;
-  })();
 </script>
 
-<div class="grid" bind:this={gridEl} bind:clientWidth={gridW}>
-  {#each rows as row, ri}
-    <div
-      class="row"
-      style="justify-content: {row.length === cols && cols > 1
-        ? 'space-between'
-        : ALIGN[$cardAlign] || 'center'}"
-    >
-      {#each row as g, ci (g.id)}
-        <GameCard game={g} focusDefault={focusFirst && ri === 0 && ci === 0} />
-      {/each}
-    </div>
+<div
+  class="grid"
+  bind:this={gridEl}
+  bind:clientWidth={gridW}
+  style="grid-template-columns: repeat({cols}, var(--gm-card-w)); justify-content: {JUSTIFY[
+    $cardAlign
+  ] || 'center'}"
+>
+  {#each items as g, i (g.id)}
+    <GameCard game={g} focusDefault={focusFirst && i === 0} />
   {/each}
   {#if items.length === 0}
     <p class="empty">No hay elementos.</p>
@@ -56,16 +49,12 @@
 
 <style>
   .grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: var(--gm-gap);
     padding: 4px;
   }
-  .row {
-    display: flex;
-    gap: var(--gm-gap);
-  }
   .empty {
     color: var(--gm-text-dim);
+    grid-column: 1 / -1;
   }
 </style>
