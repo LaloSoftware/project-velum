@@ -109,3 +109,6 @@ El MVP vive en `dev`. Detalle en `docs/development.md`.
 `docs/architecture.md`, `docs/theming.md`, `docs/input.md`, `docs/stores.md`,
 `docs/system-controls.md`, `docs/development.md`, `docs/decisions.md`,
 `docs/roadmap.md` (fases futuras: tiendas reales, multi-monitor, etc.).
+
+`PRODUCT.md` (raíz) — verdad de producto para trabajo de diseño (impeccable): usuarios,
+propósito, posición, principios. No es visual; el mundo visual se documenta aparte.
