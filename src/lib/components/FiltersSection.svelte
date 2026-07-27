@@ -13,6 +13,7 @@
   import Select from "./Select.svelte";
 
   const isOn = (id) => $enabledStores[id] !== false;
+  $: enabledIds = STORE_DEFS.filter((s) => $enabledStores[s.id] !== false).map((s) => s.id);
   const ALIGNS = [
     { id: "left", label: "Izquierda" },
     { id: "center", label: "Centro" },
@@ -32,23 +33,13 @@
     uno, se oculta su chip de filtro y sus juegos dejan de aparecer allí.
   </p>
 
-  <div class="rows">
-    {#each STORE_DEFS as s, i}
-      <div class="row">
-        <span class="label">{s.label}</span>
-        <button
-          class="toggle"
-          class:on={isOn(s.id)}
-          data-focusable
-          data-focus-default={i === 0 ? "" : undefined}
-          tabindex="-1"
-          on:click={() => setStoreEnabled(s.id, !isOn(s.id))}
-        >
-          {isOn(s.id) ? "ON" : "OFF"}
-        </button>
-      </div>
-    {/each}
-  </div>
+  <h2>Tiendas mostradas</h2>
+  <Select
+    multi
+    options={STORE_DEFS.map((s) => ({ value: s.id, label: s.label }))}
+    values={enabledIds}
+    onToggle={(id) => setStoreEnabled(id, !isOn(id))}
+  />
 
   <h2>Alineación de la barra de filtros</h2>
   <Select value={$filterAlign} options={ALIGNS.map((a) => ({ value: a.id, label: a.label }))} onChange={setFilterAlign} />
@@ -114,22 +105,6 @@
   .label {
     flex: 1;
     font-weight: 700;
-  }
-  .toggle {
-    cursor: pointer;
-    min-width: 66px;
-    padding: 10px 0;
-    border-radius: 999px;
-    background: var(--gm-surface-2);
-    color: var(--gm-text-dim);
-    font-weight: 800;
-  }
-  .toggle.on {
-    background: var(--gm-success);
-    color: #04140d;
-  }
-  .toggle:focus {
-    box-shadow: var(--gm-focus-ring);
   }
   h2 {
     font-size: 1.1rem;

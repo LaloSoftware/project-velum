@@ -16,6 +16,7 @@
     contextMenu,
     confirmDelete,
     popover,
+    colorPicker,
     appError,
     clearAppError,
     goto,
@@ -26,6 +27,7 @@
     setContextSub,
     closeConfirm,
     closePopover,
+    closeColorPicker,
   } from "./lib/stores/ui.js";
   import { vk, vkDone, vkType, vkBackspace, vkToggleShift } from "./lib/stores/keyboard.js";
 
@@ -46,6 +48,7 @@
   import ConfirmDelete from "./lib/components/ConfirmDelete.svelte";
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
+  import ColorPicker from "./lib/components/ColorPicker.svelte";
   import Toast from "./lib/components/Toast.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
@@ -56,7 +59,7 @@
     { id: "apps", label: "Aplicaciones" },
   ];
 
-  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl;
+  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl, colorPickerEl;
   let now = new Date();
 
   // ------- Interpretación de acciones de input según el contexto -------
@@ -83,16 +86,17 @@
         return nav.secondary(); // abrir detalle en la tarjeta enfocada
       case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
         if ($vk.open) return vkBackspace();
-        if ($overlay || $detailGame || $contextMenu || $confirmDelete || $popover) return;
+        if ($overlay || $detailGame || $contextMenu || $confirmDelete || $popover || $colorPicker)
+          return;
         return nav.context();
       case "context": // menú contextual de tarjeta (atajo dedicado, p. ej. R3)
-        if ($vk.open || $overlay || $detailGame || $popover) return;
+        if ($vk.open || $overlay || $detailGame || $popover || $colorPicker) return;
         return nav.context();
       case "menu":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover) return;
+        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker) return;
         return $overlay === "config" ? closeOverlay() : openOverlay("config");
       case "quick":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover) return;
+        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker) return;
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
@@ -127,6 +131,7 @@
   function handleBack() {
     if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
+    if ($colorPicker) return closeColorPicker();
     if ($confirmDelete) return closeConfirm();
     if ($popover) {
       const a = $popover.anchor;
@@ -150,8 +155,10 @@
   // ------- Gestión del "scope" de navegación (capa activa) -------
   $: layerKey = $vk.open
     ? "vk"
-    : $confirmDelete
-      ? "confirm"
+    : $colorPicker
+      ? "colorpicker"
+      : $confirmDelete
+        ? "confirm"
       : $popover
         ? "popover"
         : $contextMenu
@@ -167,6 +174,7 @@
   async function scheduleScope() {
     await tick();
     if ($vk.open) nav.setScope(vkEl);
+    else if ($colorPicker) nav.setScope(colorPickerEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
     else if ($popover) nav.setScope(popoverEl);
     else if ($contextMenu) nav.setScope(contextEl);
@@ -306,6 +314,13 @@
   {#if $popover}
     <div bind:this={popoverEl}>
       <SelectPopover />
+    </div>
+  {/if}
+
+  <!-- Modal de color (capa por encima de overlays) -->
+  {#if $colorPicker}
+    <div bind:this={colorPickerEl}>
+      <ColorPicker />
     </div>
   {/if}
 
