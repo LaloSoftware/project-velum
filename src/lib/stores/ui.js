@@ -17,6 +17,9 @@ export const confirmDelete = writable(null);
 // Desplegable de un <Select>: { options, value, anchor, onSelect } (capa flotante).
 export const popover = writable(null);
 
+// Modal de color (capa modal por encima de overlays): { value, title, onApply }.
+export const colorPicker = writable(null);
+
 // Mensajes efímeros (toasts).
 export const toast = writable(null);
 let toastTimer = null;
@@ -77,4 +80,10 @@ export function openPopover(cfg) {
 }
 export function closePopover() {
   popover.set(null);
+}
+export function openColorPicker(cfg) {
+  colorPicker.set(cfg);
+}
+export function closeColorPicker() {
+  colorPicker.set(null);
 }

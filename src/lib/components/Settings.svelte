@@ -10,15 +10,20 @@
   import { themeOptions } from "../theming/index.js";
   import { EXAMPLE_EXTERNAL_CSS } from "../theming/themes.js";
   import { openKeyboard } from "../stores/keyboard.js";
-  import { showToast } from "../stores/ui.js";
+  import { showToast, openColorPicker } from "../stores/ui.js";
   import Select from "./Select.svelte";
 
   const themes = themeOptions();
-  const ACCENTS = ["#4c8dff", "#37e6b4", "#ff7a59", "#ffd166", "#c77dff", "#ff5d8f"];
+  const ACCENT_DEFAULT = "#4c8dff";
   const CARD_W_DEFAULT = 190;
 
   $: active = $profiles.find((p) => p.id === $activeProfileId) || $profiles[0];
   $: cardW = parseInt(active?.tokenOverrides?.["--gm-card-w"]) || CARD_W_DEFAULT;
+  $: accentColor = active?.tokenOverrides?.["--gm-accent"] || ACCENT_DEFAULT;
+
+  function openAccentPicker() {
+    openColorPicker({ value: accentColor, title: "Color de acento", onApply: pickAccent });
+  }
 
   async function newProfile() {
     const name = await openKeyboard("", "Nombre del perfil");
@@ -61,21 +66,15 @@
 <section class="settings">
   <h1>Ajustes · Apariencia</h1>
 
-  <h2>Perfiles</h2>
-  <div class="chips">
-    {#each $profiles as p, i (p.id)}
-      <button
-        class="chip"
-        class:sel={p.id === $activeProfileId}
-        data-focusable
-        data-focus-default={i === 0 ? "" : undefined}
-        tabindex="-1"
-        on:click={() => setActive(p.id)}
-      >
-        {p.name}
-      </button>
-    {/each}
-    <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo</button>
+  <h2>Perfil activo</h2>
+  <Select
+    value={$activeProfileId}
+    options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
+    onChange={setActive}
+  />
+  <div class="profile-actions">
+    <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
+    <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
   </div>
 
   {#if active}
@@ -87,19 +86,11 @@
     />
 
     <h2>Color de acento</h2>
-    <div class="swatches">
-      {#each ACCENTS as c}
-        <button
-          class="swatch"
-          style="background: {c}"
-          class:sel={active.tokenOverrides?.["--gm-accent"] === c}
-          data-focusable
-          tabindex="-1"
-          aria-label={c}
-          on:click={() => pickAccent(c)}
-        ></button>
-      {/each}
-    </div>
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openAccentPicker}>
+      <span class="swatch-sm" style="background: {accentColor}"></span>
+      <span class="cf-val">{accentColor.toUpperCase()}</span>
+      <span class="cf-cta">Personalizar</span>
+    </button>
 
     <h2>Tamaño de tarjeta</h2>
     <div class="sizerow">
@@ -128,9 +119,6 @@
       </button>
       <button class="chip" data-focusable tabindex="-1" on:click={clearCss}>
         Limpiar personalización
-      </button>
-      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>
-        Borrar perfil
       </button>
     </div>
   {/if}
@@ -169,10 +157,6 @@
     color: var(--gm-text-dim);
     font-weight: 700;
   }
-  .chip.sel {
-    background: var(--gm-accent);
-    color: #06101f;
-  }
   .chip.add {
     background: var(--gm-surface-2);
     color: var(--gm-text);
@@ -206,22 +190,42 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
-  .swatches {
+  .profile-actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .colorfield {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
     gap: 12px;
-  }
-  .swatch {
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
+    padding: 11px 14px;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface-2);
+    color: var(--gm-text);
+    font-weight: 700;
     cursor: pointer;
-    border: 3px solid transparent;
   }
-  .swatch.sel {
-    border-color: var(--gm-text);
-  }
-  .swatch:focus {
+  .colorfield:focus {
     box-shadow: var(--gm-focus-ring);
-    transform: scale(1.1);
+  }
+  .swatch-sm {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
+  }
+  .cf-val {
+    flex: 1;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  .cf-cta {
+    color: var(--gm-text-dim);
+    font-weight: 600;
+    font-size: 0.9rem;
   }
 </style>
