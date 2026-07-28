@@ -1,5 +1,5 @@
 <script>
-  import { closeDetail, showToast } from "../stores/ui.js";
+  import { closeDetail, showToast, detailExpanded } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
@@ -50,50 +50,71 @@
   }
 </script>
 
-<div
-  class="detail"
-  style="--hue: {h}"
->
-  <div class="art" class:photo={!!heroUrl} style={heroUrl ? `background-image: url("${heroUrl}")` : ""}></div>
-  <div class="content">
-    <span class="store">{STORE_LABEL[game.store] || game.store}</span>
-    <h1>{game.title}</h1>
-    <p class="meta">{fmtLast(game.lastPlayed)}</p>
-    {#if game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
+<div class="detail" class:expanded={$detailExpanded} style="--hue: {h}">
+  <!-- Escenario (hero): a pantalla completa; al desplegar el menú baja a la mitad -->
+  <div class="stage">
+    <div
+      class="art"
+      class:photo={!!heroUrl}
+      style={heroUrl ? `background-image: url("${heroUrl}")` : ""}
+    ></div>
+    <div class="content">
+      <span class="store">{STORE_LABEL[game.store] || game.store}</span>
+      <h1>{game.title}</h1>
+      <p class="meta">{fmtLast(game.lastPlayed)}</p>
+      {#if game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
 
-    <div class="actions">
-      <button class="play" data-focusable data-focus-default tabindex="-1" on:click={play}>
-        ▶ Jugar
-      </button>
-      <button class="back" data-focusable tabindex="-1" on:click={closeDetail}>
-        Volver
-      </button>
-    </div>
-
-    <!-- Grupos personalizados (no incluye las librerías por defecto) -->
-    <div class="groups">
-      <span class="glabel">Grupos:</span>
-      {#each $groups as g (g.id)}
+      <div class="actions">
         <button
-          class="chip"
-          class:on={inGroup(g)}
-          data-focusable
+          class="play"
+          data-focusable={!$detailExpanded ? "" : undefined}
+          data-focus-default
           tabindex="-1"
-          on:click={() => toggleGameInGroup(g.id, game.id)}
+          on:click={play}
         >
-          {inGroup(g) ? "✓ " : "+ "}{g.name}
+          ▶ Jugar
         </button>
-      {/each}
-      <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
-        + Nuevo grupo
-      </button>
+        <button
+          class="back"
+          data-focusable={!$detailExpanded ? "" : undefined}
+          tabindex="-1"
+          on:click={closeDetail}
+        >
+          Volver
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Editor de imágenes (a la derecha, al nivel del botón Jugar) -->
-  <div class="art-panel">
-    <ArtEditor {game} />
-  </div>
+  <!-- Menú inferior (aparece al pulsar abajo): Grupos + Imágenes -->
+  {#if $detailExpanded}
+    <div class="menu">
+      <section class="msection" data-focus-group="grupos" data-detail-top>
+        <h3>Grupos</h3>
+        <div class="groups">
+          {#each $groups as g (g.id)}
+            <button
+              class="chip"
+              class:on={inGroup(g)}
+              data-focusable
+              tabindex="-1"
+              on:click={() => toggleGameInGroup(g.id, game.id)}
+            >
+              {inGroup(g) ? "✓ " : "+ "}{g.name}
+            </button>
+          {/each}
+          <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
+            + Nuevo grupo
+          </button>
+        </div>
+      </section>
+
+      <section class="msection" data-focus-group="imagenes">
+        <h3>Imágenes</h3>
+        <ArtEditor {game} />
+      </section>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -101,18 +122,32 @@
     position: relative;
     height: 100%;
     display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--gm-wallpaper);
+  }
+  .stage {
+    position: relative;
+    display: flex;
     align-items: flex-end;
     padding: var(--gm-pad);
     overflow: hidden;
+    /* flex-basis (no height%) para que el tamaño resuelva bien dentro del flex.
+       Colapsado ocupa todo; expandido, la mitad, con transición suave. */
+    flex: 0 0 100%;
+    transition: flex-basis 0.3s ease;
+  }
+  .detail.expanded .stage {
+    flex-basis: 50%;
   }
   .art {
     position: absolute;
     inset: 0;
     background: linear-gradient(
-        120deg,
-        hsl(var(--hue) 55% 30%),
-        hsl(calc(var(--hue) + 40) 60% 14%)
-      );
+      120deg,
+      hsl(var(--hue) 55% 30%),
+      hsl(calc(var(--hue) + 40) 60% 14%)
+    );
     z-index: 0;
   }
   .art.photo {
@@ -131,11 +166,6 @@
     position: relative;
     z-index: 1;
     max-width: 720px;
-  }
-  .art-panel {
-    position: relative;
-    z-index: 1;
-    margin-left: auto;
   }
   .store {
     font-weight: 700;
@@ -162,33 +192,6 @@
     display: flex;
     gap: 14px;
   }
-  .groups {
-    margin-top: 22px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-  }
-  .glabel {
-    color: var(--gm-text-dim);
-    font-size: 0.9rem;
-  }
-  .groups .chip {
-    cursor: pointer;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: var(--gm-bg-overlay);
-    color: var(--gm-text);
-    font-weight: 600;
-    backdrop-filter: blur(4px);
-  }
-  .groups .chip.on {
-    background: var(--gm-accent);
-    color: #06101f;
-  }
-  .groups .chip:focus {
-    box-shadow: var(--gm-focus-ring);
-  }
   .play,
   .back {
     cursor: pointer;
@@ -209,5 +212,43 @@
   .back:focus {
     box-shadow: var(--gm-focus-ring);
     transform: scale(1.04);
+  }
+
+  /* Menú inferior a ancho completo, fondo acorde al tema */
+  .menu {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--gm-pad);
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .msection h3 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--gm-text-dim);
+  }
+  .groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .groups .chip {
+    cursor: pointer;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    color: var(--gm-text);
+    font-weight: 600;
+  }
+  .groups .chip.on {
+    background: var(--gm-accent);
+    color: #06101f;
+  }
+  .groups .chip:focus {
+    box-shadow: var(--gm-focus-ring);
   }
 </style>

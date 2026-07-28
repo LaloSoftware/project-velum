@@ -171,7 +171,9 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    max-width: 420px;
+    /* Ancho completo del panel (alineado con los Select) para que la navegación
+       vertical con el mando caiga en el slider y no lo salte. */
+    width: 100%;
   }
   .size-slider {
     flex: 1;
