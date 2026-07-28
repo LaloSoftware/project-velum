@@ -122,6 +122,8 @@
     cursor: pointer;
     transition: width 0.28s ease, transform 0.12s ease;
     outline: none;
+    /* Redondea el anillo de foco (box-shadow) igual que la portada. */
+    border-radius: var(--gm-radius);
   }
   .gm-card:focus {
     transform: scale(var(--gm-focus-scale));
