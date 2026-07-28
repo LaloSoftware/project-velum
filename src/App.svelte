@@ -14,6 +14,8 @@
     view,
     overlay,
     detailGame,
+    detailExpanded,
+    setDetailExpanded,
     contextMenu,
     confirmDelete,
     popover,
@@ -78,7 +80,11 @@
     }
     switch (action) {
       case "up":
+        if ($detailGame && $detailExpanded) return detailUp();
+        return nav.move("up");
       case "down":
+        if ($detailGame && !$detailExpanded) return detailDown();
+        return nav.move("down");
       case "left":
       case "right":
         return nav.move(action);
@@ -170,9 +176,33 @@
       return a?.focus({ preventScroll: true });
     }
     if ($contextMenu) return $contextMenu.sub ? setContextSub(null) : closeContext();
-    if ($detailGame) return closeDetail();
+    if ($detailGame) {
+      // Si el menú inferior está desplegado, B lo pliega primero; si no, cierra.
+      if ($detailExpanded) return collapseDetail();
+      return closeDetail();
+    }
     if ($overlay) return closeOverlay();
     if ($view !== "home") return goto("home");
+  }
+
+  // Detalle: abajo despliega el menú inferior (grupos/imágenes) y enfoca Grupos.
+  async function detailDown() {
+    setDetailExpanded(true);
+    await tick();
+    const top = detailEl?.querySelector("[data-detail-top]");
+    if (top) nav.focusFirstIn(top);
+  }
+  // Detalle: arriba navega dentro del menú; si ya está en la fila superior (sin
+  // candidato porque Jugar/Volver no son focusables en expandido), pliega y vuelve a Jugar.
+  function detailUp() {
+    const before = document.activeElement;
+    nav.move("up");
+    if (document.activeElement === before) collapseDetail();
+  }
+  async function collapseDetail() {
+    setDetailExpanded(false);
+    await tick();
+    nav.focusFirst();
   }
 
   function cycleTab(dir) {

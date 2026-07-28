@@ -21,6 +21,10 @@
   --gm-danger: #ff5d5d;
   --gm-success: #52d69a;
 
+  /* Scrollbar (thumb) acorde al tema. Un tema puede sobreescribirlo. */
+  --gm-scrollbar: color-mix(in srgb, var(--gm-text-dim) 45%, transparent);
+  --gm-scrollbar-hover: color-mix(in srgb, var(--gm-text-dim) 70%, transparent);
+
   /* Foco (navegación por mando/teclado) — tematizable */
   --gm-focus-ring: 0 0 0 3px var(--gm-accent), 0 0 22px 2px color-mix(in srgb, var(--gm-accent) 55%, transparent);
   --gm-focus-scale: 1.06;
@@ -69,6 +73,33 @@ body {
   user-select: none;
   -webkit-user-select: none;
   cursor: default;
+}
+
+/*
+ * Scrollbars limpios y acordes al tema: solo el thumb (track/botones ocultos),
+ * fino y con un tono derivado del tema. Solo aparece cuando hay overflow.
+ * Los scrollbars intencionalmente ocultos (chips/strip) los anulan localmente.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gm-scrollbar) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gm-scrollbar);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gm-scrollbar-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Foco visible en cualquier elemento navegable */
