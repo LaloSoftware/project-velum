@@ -125,7 +125,8 @@
 
 <style>
   .art-editor {
-    width: 320px;
+    width: 100%;
+    max-width: 820px;
     background: var(--gm-bg-overlay);
     backdrop-filter: blur(6px);
     border-radius: var(--gm-radius-lg);
