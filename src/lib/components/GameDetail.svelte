@@ -24,6 +24,19 @@
     });
   }
 
+  // Carátula expandida (wide) para el lado derecho del menú, si está disponible.
+  let wideUrl = null;
+  let wideFor = null;
+  $: wideSrc = effectiveArt(game, $overrides).wide;
+  $: if (wideSrc !== wideFor) {
+    wideFor = wideSrc;
+    wideUrl = null;
+    if (wideSrc)
+      imageUrl(wideSrc).then((u) => {
+        if (wideSrc === wideFor) wideUrl = u;
+      });
+  }
+
   async function newGroup() {
     const name = await openKeyboard("", "Nombre del grupo");
     if (name) {
@@ -89,30 +102,38 @@
   <!-- Menú inferior (aparece al pulsar abajo): Grupos + Imágenes -->
   {#if $detailExpanded}
     <div class="menu">
-      <section class="msection" data-focus-group="grupos" data-detail-top>
-        <h3>Grupos</h3>
-        <div class="groups">
-          {#each $groups as g (g.id)}
-            <button
-              class="chip"
-              class:on={inGroup(g)}
-              data-focusable
-              tabindex="-1"
-              on:click={() => toggleGameInGroup(g.id, game.id)}
-            >
-              {inGroup(g) ? "✓ " : "+ "}{g.name}
+      <!-- Mitad izquierda: opciones (Grupos + Imágenes), más anchas -->
+      <div class="menu-main">
+        <section class="msection" data-focus-group="grupos" data-detail-top>
+          <h3>Grupos</h3>
+          <div class="groups">
+            {#each $groups as g (g.id)}
+              <button
+                class="chip"
+                class:on={inGroup(g)}
+                data-focusable
+                tabindex="-1"
+                on:click={() => toggleGameInGroup(g.id, game.id)}
+              >
+                {inGroup(g) ? "✓ " : "+ "}{g.name}
+              </button>
+            {/each}
+            <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
+              + Nuevo grupo
             </button>
-          {/each}
-          <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
-            + Nuevo grupo
-          </button>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <section class="msection" data-focus-group="imagenes">
-        <h3>Imágenes</h3>
-        <ArtEditor {game} />
-      </section>
+        <section class="msection" data-focus-group="imagenes">
+          <h3>Imágenes</h3>
+          <ArtEditor {game} />
+        </section>
+      </div>
+
+      <!-- Mitad derecha: carátula expandida con difuminado a la izquierda -->
+      {#if wideUrl}
+        <div class="menu-art" style="background-image: url('{wideUrl}')"></div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -214,16 +235,34 @@
     transform: scale(1.04);
   }
 
-  /* Menú inferior a ancho completo, fondo acorde al tema */
+  /* Menú inferior a dos columnas: opciones (izq) + carátula expandida (der) */
   .menu {
     flex: 1 1 auto;
     width: 100%;
     min-height: 0;
+    display: flex;
+    flex-direction: row;
+  }
+  /* Mitad izquierda: opciones, más anchas y con scroll propio */
+  .menu-main {
+    flex: 1 1 50%;
+    min-width: 0;
     overflow-y: auto;
     padding: var(--gm-pad);
     display: flex;
     flex-direction: column;
     gap: 22px;
+  }
+  /* Mitad derecha: carátula expandida, difuminada hacia la izquierda para
+     fundirse con las opciones. */
+  .menu-art {
+    flex: 1 1 50%;
+    align-self: stretch;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 38%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 38%);
   }
   .msection h3 {
     margin: 0 0 12px;
