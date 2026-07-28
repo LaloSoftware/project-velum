@@ -1,6 +1,7 @@
 <script>
   import { recentGames, onlyGames } from "../stores/games.js";
   import { goto } from "../stores/ui.js";
+  import { hideLibraryButton } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import GameCard from "./GameCard.svelte";
@@ -49,11 +50,13 @@
       {/if}
     </div>
 
-    <div class="library-cta">
-      <button class="cta" data-focusable tabindex="-1" on:click={() => goto("games")}>
-        Ver biblioteca completa ({$onlyGames.length}) →
-      </button>
-    </div>
+    {#if !$hideLibraryButton}
+      <div class="library-cta">
+        <button class="cta" data-focusable tabindex="-1" on:click={() => goto("games")}>
+          Ver biblioteca completa ({$onlyGames.length}) →
+        </button>
+      </div>
+    {/if}
   </div>
 </section>
 
