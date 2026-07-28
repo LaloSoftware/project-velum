@@ -127,10 +127,9 @@
     display: flex;
     gap: var(--gm-gap);
     overflow-x: auto;
-    /* Aire para que el grow + anillo no se recorten. El padding da espacio al
-       anillo; un margen negativo pequeño deja un hueco visible con el borde
-       sin indentar demasiado las tarjetas respecto al título. */
-    padding: 10px var(--gm-focus-space) var(--gm-focus-space);
+    /* Aire simétrico para que el anillo de foco no se recorte por ningún lado
+       (antes el top tenía menos padding y el glow se veía cortado arriba). */
+    padding: var(--gm-focus-space);
     margin: 0 -12px;
     scroll-padding-inline: var(--gm-focus-space);
     scrollbar-width: none;

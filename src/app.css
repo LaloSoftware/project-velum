@@ -30,8 +30,8 @@
      (--gm-focus-ring-card) más difuso, editable por separado. */
   --gm-focus-ring: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 50%, transparent),
     0 0 20px 3px color-mix(in srgb, var(--gm-accent) 40%, transparent);
-  --gm-focus-ring-card: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 38%, transparent),
-    0 0 30px 6px color-mix(in srgb, var(--gm-accent) 50%, transparent);
+  --gm-focus-ring-card: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 40%, transparent),
+    0 0 16px 2px color-mix(in srgb, var(--gm-accent) 48%, transparent);
   --gm-focus-scale: 1.06;
   /* Aire alrededor de las tarjetas para que el grow + el anillo no se recorten */
   --gm-focus-space: 26px;
