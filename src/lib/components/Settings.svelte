@@ -11,6 +11,12 @@
   import { EXAMPLE_EXTERNAL_CSS } from "../theming/themes.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { showToast, openColorPicker } from "../stores/ui.js";
+  import {
+    hideCardText,
+    hideLibraryButton,
+    setHideCardText,
+    setHideLibraryButton,
+  } from "../stores/uiprefs.js";
   import Select from "./Select.svelte";
 
   const themes = themeOptions();
@@ -122,6 +128,34 @@
       </button>
     </div>
   {/if}
+
+  <h2>Interfaz</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="rlabel">Ocultar textos de las tarjetas</span>
+      <button
+        class="toggle"
+        class:on={$hideCardText}
+        data-focusable
+        tabindex="-1"
+        on:click={() => setHideCardText(!$hideCardText)}
+      >
+        {$hideCardText ? "ON" : "OFF"}
+      </button>
+    </div>
+    <div class="row">
+      <span class="rlabel">Ocultar botón «Ver biblioteca» (Inicio)</span>
+      <button
+        class="toggle"
+        class:on={$hideLibraryButton}
+        data-focusable
+        tabindex="-1"
+        on:click={() => setHideLibraryButton(!$hideLibraryButton)}
+      >
+        {$hideLibraryButton ? "ON" : "OFF"}
+      </button>
+    </div>
+  </div>
 </section>
 
 <style>
@@ -229,5 +263,38 @@
     color: var(--gm-text-dim);
     font-weight: 600;
     font-size: 0.9rem;
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px 16px;
+  }
+  .rlabel {
+    flex: 1;
+    font-weight: 600;
+  }
+  .toggle {
+    cursor: pointer;
+    min-width: 66px;
+    padding: 10px 0;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 800;
+  }
+  .toggle.on {
+    background: var(--gm-success);
+    color: #04140d;
+  }
+  .toggle:focus {
+    box-shadow: var(--gm-focus-ring);
   }
 </style>

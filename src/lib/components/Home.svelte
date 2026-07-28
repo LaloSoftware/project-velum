@@ -1,6 +1,7 @@
 <script>
   import { recentGames, onlyGames } from "../stores/games.js";
   import { goto } from "../stores/ui.js";
+  import { hideLibraryButton } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import GameCard from "./GameCard.svelte";
@@ -49,11 +50,13 @@
       {/if}
     </div>
 
-    <div class="library-cta">
-      <button class="cta" data-focusable tabindex="-1" on:click={() => goto("games")}>
-        Ver biblioteca completa ({$onlyGames.length}) →
-      </button>
-    </div>
+    {#if !$hideLibraryButton}
+      <div class="library-cta">
+        <button class="cta" data-focusable tabindex="-1" on:click={() => goto("games")}>
+          Ver biblioteca completa ({$onlyGames.length}) →
+        </button>
+      </div>
+    {/if}
   </div>
 </section>
 
@@ -124,10 +127,9 @@
     display: flex;
     gap: var(--gm-gap);
     overflow-x: auto;
-    /* Aire para que el grow + anillo no se recorten. El padding da espacio al
-       anillo; un margen negativo pequeño deja un hueco visible con el borde
-       sin indentar demasiado las tarjetas respecto al título. */
-    padding: 10px var(--gm-focus-space) var(--gm-focus-space);
+    /* Aire simétrico para que el anillo de foco no se recorte por ningún lado
+       (antes el top tenía menos padding y el glow se veía cortado arriba). */
+    padding: var(--gm-focus-space);
     margin: 0 -12px;
     scroll-padding-inline: var(--gm-focus-space);
     scrollbar-width: none;

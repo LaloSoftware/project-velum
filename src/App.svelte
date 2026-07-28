@@ -7,6 +7,7 @@
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initSorting } from "./lib/stores/sorting.js";
+  import { initUiPrefs } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -290,6 +291,7 @@
       initArtOverrides(),
       initPlaySession(),
       initSorting(),
+      initUiPrefs(),
     ]);
     await applyStartup();
     await initInput(dispatch);

@@ -3,6 +3,7 @@
   import { startPlay } from "../stores/playsession.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import { hideCardText } from "../stores/uiprefs.js";
 
   export let game;
   export let focusDefault = false;
@@ -110,7 +111,9 @@
     {/if}
     <span class="badge">{STORE_LABEL[game.store] || game.store}</span>
   </div>
-  <div class="title">{title}</div>
+  {#if !$hideCardText}
+    <div class="title">{title}</div>
+  {/if}
 </div>
 
 <style>
@@ -119,10 +122,17 @@
     cursor: pointer;
     transition: width 0.28s ease, transform 0.12s ease;
     outline: none;
+    /* Redondea el anillo de foco (box-shadow) igual que la portada. */
+    border-radius: var(--gm-radius);
   }
   .gm-card:focus {
     transform: scale(var(--gm-focus-scale));
     z-index: 2;
+  }
+  /* Foco de tarjeta con su propio token (más difuso). Especificidad extra
+     ([data-focusable]) para ganar al anillo global de app.css. */
+  .gm-card[data-focusable]:focus {
+    box-shadow: var(--gm-focus-ring-card);
   }
   /* En modo "Inicio" el crecimiento es de ancho (ver .hero-mode), no de escala. */
   .gm-card.no-grow:focus {

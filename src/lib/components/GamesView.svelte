@@ -140,9 +140,8 @@
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
-    /* Aire para que el grow + anillo no se recorten, dejando un hueco visible
-       con el borde (margen negativo pequeño en vez de cancelar el padding). */
-    padding: 10px var(--gm-focus-space) var(--gm-focus-space);
+    /* Aire simétrico para que el anillo de foco no se recorte por ningún lado. */
+    padding: var(--gm-focus-space);
     margin: 0 -12px;
     scroll-padding: var(--gm-focus-space);
   }
