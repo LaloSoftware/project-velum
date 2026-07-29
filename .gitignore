@@ -18,6 +18,10 @@ gm.bundle
 # Estado local de impeccable live (sesiones, config de inyección)
 .impeccable/live/
 
+# Planes de feature locales (no versionar)
+/feature-*.md
+/feature-*
+
 # Sistema / editor
 .DS_Store
 .idea/

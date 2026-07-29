@@ -16,6 +16,12 @@
     hideLibraryButton,
     setHideCardText,
     setHideLibraryButton,
+    gameView,
+    GAME_VIEW_FIELDS,
+    setGameViewField,
+    uiScale,
+    UI_SCALE_OPTIONS,
+    setUiScale,
   } from "../stores/uiprefs.js";
   import Select from "./Select.svelte";
 
@@ -25,6 +31,7 @@
 
   $: active = $profiles.find((p) => p.id === $activeProfileId) || $profiles[0];
   $: cardW = parseInt(active?.tokenOverrides?.["--gm-card-w"]) || CARD_W_DEFAULT;
+  $: cardWHome = parseInt(active?.tokenOverrides?.["--gm-card-w-home"]) || CARD_W_DEFAULT;
   $: accentColor = active?.tokenOverrides?.["--gm-accent"] || ACCENT_DEFAULT;
 
   function openAccentPicker() {
@@ -51,6 +58,12 @@
     const px = e.target.value;
     await updateActive({
       tokenOverrides: { ...active.tokenOverrides, "--gm-card-w": `${px}px` },
+    });
+  }
+  async function pickCardSizeHome(e) {
+    const px = e.target.value;
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-card-w-home": `${px}px` },
     });
   }
   async function loadExternalCss() {
@@ -98,7 +111,7 @@
       <span class="cf-cta">Personalizar</span>
     </button>
 
-    <h2>Tamaño de tarjeta</h2>
+    <h2>Tamaño de tarjeta (biblioteca)</h2>
     <div class="sizerow">
       <input
         type="range"
@@ -113,6 +126,29 @@
       />
       <span class="sizeval">{cardW}px</span>
     </div>
+
+    <h2>Tamaño de tarjeta (Inicio)</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min="130"
+        max="260"
+        step="10"
+        value={cardWHome}
+        on:input={pickCardSizeHome}
+      />
+      <span class="sizeval">{cardWHome}px</span>
+    </div>
+
+    <h2>Escala de interfaz</h2>
+    <Select
+      value={$uiScale}
+      options={UI_SCALE_OPTIONS}
+      onChange={setUiScale}
+    />
 
     <h2>CSS externo (perfil)</h2>
     <p class="dim">
@@ -155,6 +191,25 @@
         {$hideLibraryButton ? "ON" : "OFF"}
       </button>
     </div>
+  </div>
+
+  <h2>Vista de juego</h2>
+  <p class="dim">Datos del juego que se muestran en el detalle (Jugar/Volver siempre visibles).</p>
+  <div class="rows">
+    {#each GAME_VIEW_FIELDS as f (f.key)}
+      <div class="row">
+        <span class="rlabel">{f.label}</span>
+        <button
+          class="toggle"
+          class:on={$gameView[f.key]}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setGameViewField(f.key, !$gameView[f.key])}
+        >
+          {$gameView[f.key] ? "ON" : "OFF"}
+        </button>
+      </div>
+    {/each}
   </div>
 </section>
 

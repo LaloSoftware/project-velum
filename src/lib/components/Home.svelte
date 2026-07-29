@@ -127,6 +127,8 @@
     display: flex;
     gap: var(--gm-gap);
     overflow-x: auto;
+    /* Tamaño de tarjeta propio de Inicio, independiente del de la biblioteca. */
+    --gm-card-w: var(--gm-card-w-home);
     /* Aire simétrico para que el anillo de foco no se recorte por ningún lado
        (antes el top tenía menos padding y el glow se veía cortado arriba). */
     padding: var(--gm-focus-space);

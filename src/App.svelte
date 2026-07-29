@@ -7,7 +7,7 @@
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initSorting } from "./lib/stores/sorting.js";
-  import { initUiPrefs } from "./lib/stores/uiprefs.js";
+  import { initUiPrefs, uiScale, UI_SCALE_FACTORS } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -69,6 +69,9 @@
 
   let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl, colorPickerEl, filtersEl;
   let now = new Date();
+
+  // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
+  $: uiScaleFactor = UI_SCALE_FACTORS[$uiScale] || 1;
 
   // ------- Interpretación de acciones de input según el contexto -------
   function dispatch(action) {
@@ -301,7 +304,7 @@
   });
 </script>
 
-<div class="app" style="background: var(--gm-wallpaper)">
+<div class="app" style="background: var(--gm-wallpaper); zoom: {uiScaleFactor}">
   <!-- Capa base: barra superior + vista -->
   <div class="layer" bind:this={mainEl}>
     <header class="topbar">

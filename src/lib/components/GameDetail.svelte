@@ -5,6 +5,7 @@
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import { gameView, GAME_VIEW_FIELDS, setGameViewField } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
 
   export let game;
@@ -36,6 +37,25 @@
         if (wideSrc === wideFor) wideUrl = u;
       });
   }
+
+  // Logo sobre el hero (posición por preset 3×3, ver ArtEditor).
+  let logoUrl = null;
+  let logoFor = null;
+  $: logoSrc = effectiveArt(game, $overrides).logo;
+  $: logoPos = effectiveArt(game, $overrides).logoPos;
+  $: if (logoSrc !== logoFor) {
+    logoFor = logoSrc;
+    logoUrl = null;
+    if (logoSrc)
+      imageUrl(logoSrc).then((u) => {
+        if (logoSrc === logoFor) logoUrl = u;
+      });
+  }
+  // Códigos "tl tc tr / ml mc mr / bl bc br": 1ª letra = vertical, 2ª = horizontal.
+  const V_ALIGN = { t: "flex-start", m: "center", b: "flex-end" };
+  const H_ALIGN = { l: "flex-start", c: "center", r: "flex-end" };
+  $: logoAlignItems = V_ALIGN[logoPos?.[0]] || "flex-start";
+  $: logoJustify = H_ALIGN[logoPos?.[1]] || "flex-end";
 
   async function newGroup() {
     const name = await openKeyboard("", "Nombre del grupo");
@@ -71,11 +91,16 @@
       class:photo={!!heroUrl}
       style={heroUrl ? `background-image: url("${heroUrl}")` : ""}
     ></div>
+    {#if logoUrl}
+      <div class="hero-logo" style="align-items:{logoAlignItems}; justify-content:{logoJustify}">
+        <img src={logoUrl} alt="" />
+      </div>
+    {/if}
     <div class="content">
-      <span class="store">{STORE_LABEL[game.store] || game.store}</span>
-      <h1>{game.title}</h1>
-      <p class="meta">{fmtLast(game.lastPlayed)}</p>
-      {#if game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
+      {#if $gameView.platform}<span class="store">{STORE_LABEL[game.store] || game.store}</span>{/if}
+      {#if $gameView.title}<h1>{game.title}</h1>{/if}
+      {#if $gameView.lastPlayed}<p class="meta">{fmtLast(game.lastPlayed)}</p>{/if}
+      {#if $gameView.installDir && game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
 
       <div class="actions">
         <button
@@ -127,6 +152,26 @@
         <section class="msection" data-focus-group="imagenes">
           <h3>Imágenes</h3>
           <ArtEditor {game} />
+        </section>
+
+        <section class="msection" data-focus-group="vista-juego">
+          <h3>Vista de juego</h3>
+          <div class="rows">
+            {#each GAME_VIEW_FIELDS as f (f.key)}
+              <div class="row">
+                <span class="rlabel">{f.label}</span>
+                <button
+                  class="toggle"
+                  class:on={$gameView[f.key]}
+                  data-focusable
+                  tabindex="-1"
+                  on:click={() => setGameViewField(f.key, !$gameView[f.key])}
+                >
+                  {$gameView[f.key] ? "ON" : "OFF"}
+                </button>
+              </div>
+            {/each}
+          </div>
         </section>
       </div>
 
@@ -187,6 +232,20 @@
     position: relative;
     z-index: 1;
     max-width: 720px;
+  }
+  /* Logo superpuesto al hero, posicionado por preset 3×3 (ver ArtEditor). */
+  .hero-logo {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    padding: var(--gm-pad);
+    z-index: 1;
+    pointer-events: none;
+  }
+  .hero-logo img {
+    max-width: 40%;
+    max-height: 45%;
+    object-fit: contain;
   }
   .store {
     font-weight: 700;
@@ -288,6 +347,41 @@
     color: #06101f;
   }
   .groups .chip:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+
+  /* Toggles de "Vista de juego" (mismo patrón que Ajustes > Apariencia). */
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px 16px;
+  }
+  .rlabel {
+    flex: 1;
+    font-weight: 600;
+  }
+  .toggle {
+    cursor: pointer;
+    min-width: 66px;
+    padding: 10px 0;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 800;
+  }
+  .toggle.on {
+    background: var(--gm-success);
+    color: #04140d;
+  }
+  .toggle:focus {
     box-shadow: var(--gm-focus-ring);
   }
 </style>
