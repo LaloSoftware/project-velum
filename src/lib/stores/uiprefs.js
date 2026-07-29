@@ -37,6 +37,12 @@ export const UI_SCALE_OPTIONS = [
 export const UI_SCALE_FACTORS = { small: 0.85, original: 1, large: 1.25 };
 export const uiScale = writable("original");
 
+// Cantidad de tarjetas en la tira "Reciente" de Inicio.
+export const HOME_CARD_COUNT_DEFAULT = 12;
+export const HOME_CARD_COUNT_MIN = 4;
+export const HOME_CARD_COUNT_MAX = 24;
+export const homeCardCount = writable(HOME_CARD_COUNT_DEFAULT);
+
 export async function initUiPrefs() {
   const cfg = await loadAppConfig();
   if (cfg && cfg.ui) {
@@ -47,6 +53,11 @@ export async function initUiPrefs() {
   if (cfg && cfg.gameView) gameView.set({ ...defaultGameView(), ...cfg.gameView });
   if (cfg && typeof cfg.uiScale === "string" && UI_SCALE_FACTORS[cfg.uiScale]) {
     uiScale.set(cfg.uiScale);
+  }
+  if (cfg && Number.isFinite(cfg.homeCardCount)) {
+    homeCardCount.set(
+      Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, cfg.homeCardCount))
+    );
   }
 }
 
@@ -74,4 +85,10 @@ export async function setUiScale(v) {
   if (!UI_SCALE_FACTORS[v]) return;
   uiScale.set(v);
   await patchAppConfig({ uiScale: v });
+}
+
+export async function setHomeCardCount(n) {
+  const v = Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, Number(n) || HOME_CARD_COUNT_DEFAULT));
+  homeCardCount.set(v);
+  await patchAppConfig({ homeCardCount: v });
 }

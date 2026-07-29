@@ -1,7 +1,7 @@
 <script>
   import { recentGames, onlyGames } from "../stores/games.js";
   import { goto } from "../stores/ui.js";
-  import { hideLibraryButton } from "../stores/uiprefs.js";
+  import { hideLibraryButton, homeCardCount } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import GameCard from "./GameCard.svelte";
@@ -42,7 +42,7 @@
 
     <h2 class="section-title">Reciente</h2>
     <div class="strip">
-      {#each $recentGames.slice(0, 12) as g, i (g.id)}
+      {#each $recentGames.slice(0, $homeCardCount) as g, i (g.id)}
         <GameCard game={g} focusDefault={i === 0} heroOnFocus={true} onFocus={onCardFocus} />
       {/each}
       {#if $recentGames.length === 0}

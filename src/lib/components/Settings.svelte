@@ -22,6 +22,10 @@
     uiScale,
     UI_SCALE_OPTIONS,
     setUiScale,
+    homeCardCount,
+    HOME_CARD_COUNT_MIN,
+    HOME_CARD_COUNT_MAX,
+    setHomeCardCount,
   } from "../stores/uiprefs.js";
   import Select from "./Select.svelte";
 
@@ -65,6 +69,9 @@
     await updateActive({
       tokenOverrides: { ...active.tokenOverrides, "--gm-card-w-home": `${px}px` },
     });
+  }
+  async function pickHomeCardCount(e) {
+    await setHomeCardCount(e.target.value);
   }
   async function loadExternalCss() {
     await updateActive({ extraCss: EXAMPLE_EXTERNAL_CSS });
@@ -141,6 +148,22 @@
         on:input={pickCardSizeHome}
       />
       <span class="sizeval">{cardWHome}px</span>
+    </div>
+
+    <h2>Cantidad de tarjetas (Inicio)</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min={HOME_CARD_COUNT_MIN}
+        max={HOME_CARD_COUNT_MAX}
+        step="1"
+        value={$homeCardCount}
+        on:input={pickHomeCardCount}
+      />
+      <span class="sizeval">{$homeCardCount}</span>
     </div>
 
     <h2>Escala de interfaz</h2>
