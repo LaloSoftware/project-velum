@@ -1,5 +1,5 @@
 <script>
-  import { closeDetail, showToast, detailExpanded } from "../stores/ui.js";
+  import { closeDetail, showToast, detailExpanded, detailSection } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
@@ -124,55 +124,66 @@
     </div>
   </div>
 
-  <!-- Menú inferior (aparece al pulsar abajo): Grupos + Imágenes -->
+  <!-- Menú inferior (aparece al pulsar abajo): una sección a la vez (paginado) -->
   {#if $detailExpanded}
     <div class="menu">
-      <!-- Mitad izquierda: opciones (Grupos + Imágenes), más anchas -->
+      <!-- Mitad izquierda: indicador de sección + la sección activa -->
       <div class="menu-main">
-        <section class="msection" data-focus-group="grupos" data-detail-top>
-          <h3>Grupos</h3>
-          <div class="groups">
-            {#each $groups as g (g.id)}
-              <button
-                class="chip"
-                class:on={inGroup(g)}
-                data-focusable
-                tabindex="-1"
-                on:click={() => toggleGameInGroup(g.id, game.id)}
-              >
-                {inGroup(g) ? "✓ " : "+ "}{g.name}
-              </button>
-            {/each}
-            <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
-              + Nuevo grupo
-            </button>
-          </div>
-        </section>
+        <!-- Indicador vertical de posición (arriba/abajo = otras secciones) -->
+        <div class="section-dots" aria-hidden="true">
+          {#each ["Grupos", "Imágenes", "Vista de juego"] as _, i}
+            <span class="dot" class:active={$detailSection === i}></span>
+          {/each}
+        </div>
 
-        <section class="msection" data-focus-group="imagenes">
-          <h3>Imágenes</h3>
-          <ArtEditor {game} />
-        </section>
-
-        <section class="msection" data-focus-group="vista-juego">
-          <h3>Vista de juego</h3>
-          <div class="rows">
-            {#each GAME_VIEW_FIELDS as f (f.key)}
-              <div class="row">
-                <span class="rlabel">{f.label}</span>
-                <button
-                  class="toggle"
-                  class:on={$gameView[f.key]}
-                  data-focusable
-                  tabindex="-1"
-                  on:click={() => setGameViewField(f.key, !$gameView[f.key])}
-                >
-                  {$gameView[f.key] ? "ON" : "OFF"}
+        <div class="section-body">
+          {#if $detailSection === 0}
+            <section class="msection" data-focus-group="grupos" data-detail-top>
+              <h3>Grupos</h3>
+              <div class="groups">
+                {#each $groups as g (g.id)}
+                  <button
+                    class="chip"
+                    class:on={inGroup(g)}
+                    data-focusable
+                    tabindex="-1"
+                    on:click={() => toggleGameInGroup(g.id, game.id)}
+                  >
+                    {inGroup(g) ? "✓ " : "+ "}{g.name}
+                  </button>
+                {/each}
+                <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
+                  + Nuevo grupo
                 </button>
               </div>
-            {/each}
-          </div>
-        </section>
+            </section>
+          {:else if $detailSection === 1}
+            <section class="msection" data-focus-group="imagenes" data-detail-top>
+              <h3>Imágenes</h3>
+              <ArtEditor {game} />
+            </section>
+          {:else}
+            <section class="msection" data-focus-group="vista-juego" data-detail-top>
+              <h3>Vista de juego</h3>
+              <div class="rows">
+                {#each GAME_VIEW_FIELDS as f (f.key)}
+                  <div class="row">
+                    <span class="rlabel">{f.label}</span>
+                    <button
+                      class="toggle"
+                      class:on={$gameView[f.key]}
+                      data-focusable
+                      tabindex="-1"
+                      on:click={() => setGameViewField(f.key, !$gameView[f.key])}
+                    >
+                      {$gameView[f.key] ? "ON" : "OFF"}
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            </section>
+          {/if}
+        </div>
       </div>
 
       <!-- Mitad derecha: carátula expandida con difuminado a la izquierda -->
@@ -302,15 +313,41 @@
     display: flex;
     flex-direction: row;
   }
-  /* Mitad izquierda: opciones, más anchas y con scroll propio */
+  /* Mitad izquierda: indicador de sección (izq) + la sección activa (paginado) */
   .menu-main {
     flex: 1 1 50%;
     min-width: 0;
-    overflow-y: auto;
+    min-height: 0;
     padding: var(--gm-pad);
     display: flex;
+    flex-direction: row;
+    gap: 16px;
+  }
+  /* Indicador vertical: un punto por sección; la activa se alarga (píldora). */
+  .section-dots {
+    flex: 0 0 auto;
+    display: flex;
     flex-direction: column;
-    gap: 22px;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 6px; /* alinea el primer punto con el encabezado de la sección */
+    gap: 10px;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    transition: height 0.2s ease, background 0.2s ease;
+  }
+  .dot.active {
+    height: 24px;
+    background: var(--gm-accent);
+  }
+  .section-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
   }
   /* Mitad derecha: carátula expandida, difuminada hacia la izquierda para
      fundirse con las opciones. */

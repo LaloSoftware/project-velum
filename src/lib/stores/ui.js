@@ -9,8 +9,11 @@ export const overlay = writable(null); // null | 'config' | 'qam'
 
 // Detalle de juego (capa por encima de vista/overlay).
 export const detailGame = writable(null);
-// ¿El menú inferior del detalle (grupos + imágenes) está desplegado?
+// ¿El menú inferior del detalle está desplegado?
 export const detailExpanded = writable(false);
+// Sección visible del menú del detalle (paginado): índice en DETAIL_SECTIONS.
+export const DETAIL_SECTIONS = ["grupos", "imagenes", "vista"];
+export const detailSection = writable(0);
 
 // Menú contextual de tarjeta: { game, rect } (capa flotante).
 export const contextMenu = writable(null);
@@ -61,14 +64,20 @@ export function closeOverlay() {
 }
 export function openDetail(g) {
   detailExpanded.set(false);
+  detailSection.set(0);
   detailGame.set(g);
 }
 export function closeDetail() {
   detailExpanded.set(false);
+  detailSection.set(0);
   detailGame.set(null);
 }
 export function setDetailExpanded(v) {
   detailExpanded.set(v);
+  if (!v) detailSection.set(0);
+}
+export function setDetailSection(i) {
+  detailSection.set(i);
 }
 export function openContext(game, rect) {
   contextMenu.set({ game, rect, sub: null });

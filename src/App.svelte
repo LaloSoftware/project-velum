@@ -17,6 +17,9 @@
     detailGame,
     detailExpanded,
     setDetailExpanded,
+    detailSection,
+    setDetailSection,
+    DETAIL_SECTIONS,
     contextMenu,
     confirmDelete,
     popover,
@@ -84,10 +87,10 @@
     }
     switch (action) {
       case "up":
-        if ($detailGame && $detailExpanded) return detailUp();
+        if ($detailGame) return detailUp();
         return nav.move("up");
       case "down":
-        if ($detailGame && !$detailExpanded) return detailDown();
+        if ($detailGame) return detailDown();
         return nav.move("down");
       case "left":
       case "right":
@@ -189,19 +192,41 @@
     if ($view !== "home") return goto("home");
   }
 
-  // Detalle: abajo despliega el menú inferior (grupos/imágenes) y enfoca Grupos.
-  async function detailDown() {
-    setDetailExpanded(true);
+  // Enfoca la primera opción de la sección activa del menú (tras cambiar de sección).
+  async function focusSection() {
     await tick();
-    const top = detailEl?.querySelector("[data-detail-top]");
-    if (top) nav.focusFirstIn(top);
+    const sec = detailEl?.querySelector("[data-detail-top]");
+    if (sec) nav.focusFirstIn(sec);
   }
-  // Detalle: arriba navega dentro del menú; si ya está en la fila superior (sin
-  // candidato porque Jugar/Volver no son focusables en expandido), pliega y vuelve a Jugar.
+
+  // Detalle · abajo: despliega el menú; dentro, navega y al llegar al borde inferior
+  // pasa a la SIGUIENTE sección (Grupos → Imágenes → Vista de juego).
+  async function detailDown() {
+    if (!$detailExpanded) {
+      setDetailExpanded(true); // reinicia a la sección 0
+      return focusSection();
+    }
+    const before = document.activeElement;
+    nav.move("down");
+    if (document.activeElement === before && $detailSection < DETAIL_SECTIONS.length - 1) {
+      setDetailSection($detailSection + 1);
+      focusSection();
+    }
+  }
+  // Detalle · arriba: si el menú no está desplegado, navegación normal (Jugar/Volver).
+  // Desplegado: navega; en el borde superior pasa a la sección ANTERIOR, y desde la
+  // primera sección pliega el menú y vuelve a Jugar.
   function detailUp() {
+    if (!$detailExpanded) return nav.move("up");
     const before = document.activeElement;
     nav.move("up");
-    if (document.activeElement === before) collapseDetail();
+    if (document.activeElement !== before) return;
+    if ($detailSection > 0) {
+      setDetailSection($detailSection - 1);
+      focusSection();
+    } else {
+      collapseDetail();
+    }
   }
   async function collapseDetail() {
     setDetailExpanded(false);
@@ -245,7 +270,11 @@
               ? "ov:" + $overlay
               : "view:" + $view;
 
-  $: layerKey, scheduleScope();
+  // El scope del detalle también depende de si el menú está desplegado y de qué
+  // sección se ve: al desplegar, se acota a la sección activa para que la
+  // navegación no se escape a otras regiones (y "el foco no cambió" signifique
+  // de verdad "borde de la sección").
+  $: layerKey, $detailExpanded, $detailSection, scheduleScope();
 
   async function scheduleScope() {
     await tick();
@@ -255,8 +284,10 @@
     else if ($confirmDelete) nav.setScope(confirmEl);
     else if ($popover) nav.setScope(popoverEl);
     else if ($contextMenu) nav.setScope(contextEl);
-    else if ($detailGame) nav.setScope(detailEl);
-    else if ($overlay) nav.setScope(overlayEl);
+    else if ($detailGame) {
+      if ($detailExpanded) nav.setScope(detailEl?.querySelector("[data-detail-top]") || detailEl);
+      else nav.setScope(detailEl);
+    } else if ($overlay) nav.setScope(overlayEl);
     else nav.setScope(mainEl);
   }
 
