@@ -84,6 +84,27 @@ function bestCandidate(cur, list, dir) {
   return best;
 }
 
+// Elemento en el extremo de una lista según el eje ("x"/"y"), por geometría real
+// (no por índice de DOM). Usado por el wrap de "scroll infinito".
+function extremeInAxis(list, axis, mode) {
+  let best = null;
+  let bestVal = mode === "min" ? Infinity : -Infinity;
+  for (const el of list) {
+    const r = el.getBoundingClientRect();
+    const c = axis === "x" ? r.left + r.width / 2 : r.top + r.height / 2;
+    if ((mode === "min" && c < bestVal) || (mode === "max" && c > bestVal)) {
+      bestVal = c;
+      best = el;
+    }
+  }
+  return best;
+}
+
+const WRAP_AXIS = { left: "x", right: "x", up: "y", down: "y" };
+// Si no hay candidato hacia `dir` dentro del grupo, ya se está en ese extremo:
+// salta al elemento en el extremo opuesto del mismo eje.
+const WRAP_TARGET = { left: "max", right: "min", up: "max", down: "min" };
+
 // Un <input type="range"> enfocado usa Izquierda/Derecha para ajustar su valor
 // (patrón estándar de sliders en UIs de mando) en vez de mover el foco.
 function adjustRange(el, dir) {
@@ -116,7 +137,21 @@ export function move(dir) {
   if (group) {
     const inGroup = list.filter((el) => groupOf(el) === group);
     const outGroup = list.filter((el) => groupOf(el) !== group);
-    best = bestCandidate(cur, inGroup, dir) || bestCandidate(cur, outGroup, dir);
+    best = bestCandidate(cur, inGroup, dir);
+
+    // Scroll infinito: si no hay candidato dentro del grupo en este eje, y el
+    // grupo lo declara "wrap" para ese eje, saltar al extremo opuesto en vez de
+    // salir del grupo (prioridad sobre outGroup).
+    if (!best) {
+      const wrapAttr = group.getAttribute("data-focus-wrap"); // "horizontal" | "vertical" | null
+      const wrapAxis = wrapAttr === "horizontal" ? "x" : wrapAttr === "vertical" ? "y" : null;
+      if (wrapAxis && WRAP_AXIS[dir] === wrapAxis && inGroup.length > 1) {
+        const extreme = extremeInAxis(inGroup, wrapAxis, WRAP_TARGET[dir]);
+        if (extreme && extreme !== cur) best = extreme;
+      }
+    }
+
+    if (!best) best = bestCandidate(cur, outGroup, dir);
   } else {
     best = bestCandidate(cur, list, dir);
   }

@@ -21,3 +21,13 @@ Registro breve del *por qué* de las decisiones importantes.
   el desarrollo/verificación de la UI.
 - **Navegación por foco propia (spatial nav)**: ligera y tematizable con `--gm-focus-*`,
   sin depender de librerías atadas a un framework.
+- **Tira de Inicio: 3 capas ortogonales (orientación/recorrido/lectura) + posición
+  abstracta**: en vez de un enum combinado de "layouts" predefinidos, se separan en
+  ejes independientes para que las combinaciones salgan gratis (2×2×3). `homePosition`
+  y `homeCardAlign` guardan valores abstractos `start/center/end` (no
+  `top/bottom/left/right`) para no migrar el dato al cambiar de orientación — solo
+  cambian las etiquetas mostradas en Ajustes.
+- **Barra superior con grid de 3 columnas**: `tabsAlign`/`clockPosition` (alineación de
+  pestañas y posición del reloj, independientes entre sí) reemplazan el
+  `justify-content: space-between` fijo de `App.svelte`; el orden lógico de navegación
+  (`TABS`, `cycleTab`, bumpers) no cambia, es puramente visual.

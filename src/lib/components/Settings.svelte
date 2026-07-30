@@ -30,9 +30,26 @@
     HOME_TEXT_FIELDS,
     setHomeTextHidden,
     setHomeTextValue,
+    homeOrientation,
+    HOME_ORIENTATION_OPTIONS,
+    setHomeOrientation,
+    homeScrollMode,
+    HOME_SCROLL_MODE_OPTIONS,
+    setHomeScrollMode,
+    homeReading,
+    HOME_READING_OPTIONS,
+    setHomeReading,
     homePosition,
-    HOME_POSITION_OPTIONS,
+    homePositionOptions,
     setHomePosition,
+    homeCardAlign,
+    setHomeCardAlign,
+    tabsAlign,
+    TABS_ALIGN_OPTIONS,
+    setTabsAlign,
+    clockPosition,
+    CLOCK_POSITION_OPTIONS,
+    setClockPosition,
   } from "../stores/uiprefs.js";
   import Select from "./Select.svelte";
 
@@ -178,11 +195,53 @@
       <span class="sizeval">{$homeCardCount}</span>
     </div>
 
-    <h2>Posición del contenido (Inicio)</h2>
+    <h2>Orientación de la tira (Inicio)</h2>
+    <Select
+      value={$homeOrientation}
+      options={HOME_ORIENTATION_OPTIONS}
+      onChange={setHomeOrientation}
+    />
+
+    <h2>Modo de recorrido (Inicio)</h2>
+    <Select
+      value={$homeScrollMode}
+      options={HOME_SCROLL_MODE_OPTIONS}
+      onChange={setHomeScrollMode}
+    />
+
+    <h2>Comportamiento de lectura (Inicio)</h2>
+    <Select
+      value={$homeReading}
+      options={HOME_READING_OPTIONS}
+      onChange={setHomeReading}
+    />
+
+    <h2>Posición del bloque (Inicio)</h2>
     <Select
       value={$homePosition}
-      options={HOME_POSITION_OPTIONS}
+      options={homePositionOptions($homeOrientation)}
       onChange={setHomePosition}
+    />
+
+    <h2>Alineación de tarjetas (lista de Inicio)</h2>
+    <Select
+      value={$homeCardAlign}
+      options={homePositionOptions($homeOrientation)}
+      onChange={setHomeCardAlign}
+    />
+
+    <h2>Alineación de pestañas (barra superior)</h2>
+    <Select
+      value={$tabsAlign}
+      options={TABS_ALIGN_OPTIONS}
+      onChange={setTabsAlign}
+    />
+
+    <h2>Posición del reloj (barra superior)</h2>
+    <Select
+      value={$clockPosition}
+      options={CLOCK_POSITION_OPTIONS}
+      onChange={setClockPosition}
     />
 
     <h2>Escala de interfaz</h2>

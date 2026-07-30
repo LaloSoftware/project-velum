@@ -47,6 +47,10 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
 - `stores/hidden.js` — blacklist de juegos/apps ocultos (se gestiona en Configuración > Ocultos).
 - `stores/prompts.js` — estilo de los indicadores de botón (`ButtonPrompt`; hoy texto).
 - `stores/keyboard.js` — teclado virtual en pantalla (`openKeyboard()` devuelve Promise).
+- `stores/uiprefs.js` — preferencias visuales de Inicio/Detalle/barra superior
+  (orientación y comportamiento de la tira de Inicio, posición del bloque,
+  alineación de tarjetas, textos, cantidad de tarjetas, alineación de pestañas,
+  posición del reloj, escala de interfaz…), persistentes vía `appConfig`.
 
 ## Vistas y capas de UI (z-index)
 
