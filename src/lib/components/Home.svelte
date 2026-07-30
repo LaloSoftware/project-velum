@@ -1,7 +1,13 @@
 <script>
   import { recentGames, onlyGames } from "../stores/games.js";
   import { goto } from "../stores/ui.js";
-  import { hideLibraryButton, homeCardCount } from "../stores/uiprefs.js";
+  import {
+    hideLibraryButton,
+    homeCardCount,
+    homeTexts,
+    HOME_TEXT_FIELDS,
+    homePosition,
+  } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import GameCard from "./GameCard.svelte";
@@ -27,6 +33,12 @@
   }
 
   const onCardFocus = (g) => (featured = g);
+
+  // Texto efectivo de un campo de Inicio: el personalizado, o el de por defecto.
+  const HOME_TEXT_DEFAULT = Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, f.default]));
+  $: textOf = (key) => $homeTexts[key]?.text || HOME_TEXT_DEFAULT[key];
+  $: hidden = (key) => !!$homeTexts[key]?.hidden;
+  $: justify = { top: "flex-start", center: "center", bottom: "flex-end" }[$homePosition] || "flex-start";
 </script>
 
 <section class="home">
@@ -34,13 +46,15 @@
     <div class="bg" style="background-image: url('{bgUrl}')"></div>
   {/if}
 
-  <div class="content">
-    <header class="hero">
-      <h1>Bienvenido</h1>
-      <p>Reanuda donde lo dejaste o abre la biblioteca completa.</p>
-    </header>
+  <div class="content" style="justify-content: {justify}">
+    {#if !hidden("title") || !hidden("subtitle")}
+      <header class="hero">
+        {#if !hidden("title")}<h1>{textOf("title")}</h1>{/if}
+        {#if !hidden("subtitle")}<p>{textOf("subtitle")}</p>{/if}
+      </header>
+    {/if}
 
-    <h2 class="section-title">Reciente</h2>
+    {#if !hidden("recent")}<h2 class="section-title">{textOf("recent")}</h2>{/if}
     <div class="strip">
       {#each $recentGames.slice(0, $homeCardCount) as g, i (g.id)}
         <GameCard game={g} focusDefault={i === 0} heroOnFocus={true} onFocus={onCardFocus} />
@@ -109,6 +123,10 @@
   .content {
     position: relative;
     z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    /* justify-content viene de la posición configurable (arriba/centro/abajo). */
   }
   .hero h1 {
     font-size: 2.6rem;

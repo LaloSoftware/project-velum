@@ -26,6 +26,13 @@
     HOME_CARD_COUNT_MIN,
     HOME_CARD_COUNT_MAX,
     setHomeCardCount,
+    homeTexts,
+    HOME_TEXT_FIELDS,
+    setHomeTextHidden,
+    setHomeTextValue,
+    homePosition,
+    HOME_POSITION_OPTIONS,
+    setHomePosition,
   } from "../stores/uiprefs.js";
   import Select from "./Select.svelte";
 
@@ -80,6 +87,11 @@
   async function clearCss() {
     await updateActive({ extraCss: "", tokenOverrides: {} });
     showToast("Personalización CSS limpiada");
+  }
+  async function editHomeText(field) {
+    const current = $homeTexts[field.key]?.text || "";
+    const text = await openKeyboard(current, field.label);
+    if (text !== null) await setHomeTextValue(field.key, text);
   }
   async function removeProfile() {
     if ($profiles.length <= 1) return showToast("No puedes borrar el único perfil");
@@ -166,6 +178,13 @@
       <span class="sizeval">{$homeCardCount}</span>
     </div>
 
+    <h2>Posición del contenido (Inicio)</h2>
+    <Select
+      value={$homePosition}
+      options={HOME_POSITION_OPTIONS}
+      onChange={setHomePosition}
+    />
+
     <h2>Escala de interfaz</h2>
     <Select
       value={$uiScale}
@@ -214,6 +233,31 @@
         {$hideLibraryButton ? "ON" : "OFF"}
       </button>
     </div>
+  </div>
+
+  <h2>Inicio · Bienvenida</h2>
+  <p class="dim">
+    Título, subtítulo y encabezado "Reciente" de la pantalla de Inicio: cada uno se
+    puede ocultar o reemplazar por texto personalizado (texto vacío = por defecto).
+  </p>
+  <div class="rows">
+    {#each HOME_TEXT_FIELDS as f (f.key)}
+      <div class="row">
+        <span class="rlabel">{f.label}</span>
+        <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
+          Editar texto
+        </button>
+        <button
+          class="toggle"
+          class:on={!$homeTexts[f.key]?.hidden}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHomeTextHidden(f.key, !$homeTexts[f.key]?.hidden)}
+        >
+          {$homeTexts[f.key]?.hidden ? "OFF" : "ON"}
+        </button>
+      </div>
+    {/each}
   </div>
 
   <h2>Vista de juego</h2>

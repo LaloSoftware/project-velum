@@ -17,7 +17,7 @@
   const SLOTS = [
     { kind: "cover", label: "Carátula", dims: "600 × 900" },
     { kind: "wide", label: "Carátula expandida", dims: "920 × 430" },
-    { kind: "hero", label: "Hero (fondo)", dims: "1920 × 620" },
+    { kind: "hero", label: "Hero (fondo)", dims: "3840 × 1240 (sugerida, según tu pantalla)" },
     { kind: "logo", label: "Logo", dims: "PNG transparente" },
   ];
   const IMG_EXT = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
