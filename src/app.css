@@ -47,9 +47,12 @@
   --gm-gap: 18px;
   --gm-pad: 28px;
 
-  /* Tarjetas de juego */
+  /* Tarjetas de juego (biblioteca: Juegos/Apps) */
   --gm-card-w: 190px;
   --gm-card-ratio: 3 / 4;
+
+  /* Tarjetas de Inicio (tamaño independiente del de la biblioteca) */
+  --gm-card-w-home: 190px;
 
   /* Fondo de sala (wallpaper). Un tema puede reemplazarlo. */
   --gm-wallpaper: radial-gradient(1200px 800px at 15% -10%, #1b2740 0%, transparent 55%),

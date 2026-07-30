@@ -1,19 +1,39 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { overrides, effectiveArt, setOverride, clearOverride } from "../stores/artoverrides.js";
+  import {
+    overrides,
+    effectiveArt,
+    setOverride,
+    clearOverride,
+    setLogoPos,
+  } from "../stores/artoverrides.js";
   import { imageUrl } from "../util/asset.js";
   import { showToast } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
 
   export let game;
 
-  // Las 3 imágenes personalizables, con sus medidas sugeridas (SteamGridDB).
+  // Las 4 imágenes personalizables, con sus medidas sugeridas (SteamGridDB).
   const SLOTS = [
     { kind: "cover", label: "Carátula", dims: "600 × 900" },
     { kind: "wide", label: "Carátula expandida", dims: "920 × 430" },
     { kind: "hero", label: "Hero (fondo)", dims: "1920 × 620" },
+    { kind: "logo", label: "Logo", dims: "PNG transparente" },
   ];
   const IMG_EXT = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+
+  // Preset 3×3 de posición del logo sobre el hero (fila por fila).
+  const LOGO_POSITIONS = [
+    { code: "tl", label: "Arriba izquierda" },
+    { code: "tc", label: "Arriba centro" },
+    { code: "tr", label: "Arriba derecha" },
+    { code: "ml", label: "Centro izquierda" },
+    { code: "mc", label: "Centro" },
+    { code: "mr", label: "Centro derecha" },
+    { code: "bl", label: "Abajo izquierda" },
+    { code: "bc", label: "Abajo centro" },
+    { code: "br", label: "Abajo derecha" },
+  ];
 
   $: art = effectiveArt(game, $overrides);
   $: ov = (game && $overrides[game.id]) || {};
@@ -95,18 +115,18 @@
 
 <div class="art-editor">
   <div class="head">Imágenes</div>
-  {#each SLOTS as s (s.kind)}
-    <div class="slot" bind:this={slotEls[s.kind]}>
-      <div class="thumb" class:wide={s.kind !== "cover"}>
-        {#if previews[s.kind]}
-          <img src={previews[s.kind]} alt="" />
-        {:else}
-          <span class="ph">Sin imagen</span>
-        {/if}
-      </div>
-      <div class="info">
+  <div class="slots-row">
+    {#each SLOTS as s (s.kind)}
+      <div class="slot" bind:this={slotEls[s.kind]}>
+        <div class="thumb" class:wide={s.kind !== "cover" && s.kind !== "logo"} class:logo={s.kind === "logo"}>
+          {#if previews[s.kind]}
+            <img src={previews[s.kind]} alt="" />
+          {:else}
+            <span class="ph">Sin imagen</span>
+          {/if}
+        </div>
         <div class="name">{s.label}</div>
-        <div class="dims">Sugerido: {s.dims}</div>
+        <div class="dims">{s.dims}</div>
         <div class="btns">
           <button class="pick" data-focusable tabindex="-1" on:click={() => pick(s.kind)}>
             Elegir…
@@ -118,8 +138,27 @@
           {/if}
         </div>
       </div>
+    {/each}
+  </div>
+
+  {#if art.logo}
+    <div class="logo-pos">
+      <div class="logo-pos-label">Posición del logo</div>
+      <div class="logo-pos-grid">
+        {#each LOGO_POSITIONS as p (p.code)}
+          <button
+            class="pos-btn"
+            class:sel={art.logoPos === p.code}
+            data-focusable
+            tabindex="-1"
+            aria-label={p.label}
+            on:click={() => setLogoPos(game.id, p.code)}
+          ></button>
+        {/each}
+      </div>
     </div>
-  {/each}
+  {/if}
+
   <div class="hint">Arrastra una imagen aquí o usa «Elegir…».</div>
 </div>
 
@@ -139,15 +178,23 @@
     font-weight: 800;
     font-size: 1.05rem;
   }
+  /* Slots en renglón (antes en columna): cada uno es una mini-tarjeta vertical
+     que se envuelve (wrap) si el espacio disponible se estrecha. */
+  .slots-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
   .slot {
     display: flex;
-    gap: 12px;
-    align-items: center;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 160px;
+    min-width: 140px;
   }
   .thumb {
-    flex: 0 0 auto;
-    width: 52px;
-    height: 78px;
+    width: 100%;
+    aspect-ratio: 3 / 4;
     border-radius: 8px;
     overflow: hidden;
     background: var(--gm-surface-2);
@@ -156,22 +203,24 @@
     justify-content: center;
   }
   .thumb.wide {
-    width: 92px;
-    height: 52px;
+    aspect-ratio: 16 / 9;
+  }
+  .thumb.logo {
+    aspect-ratio: 16 / 9;
+    padding: 8px;
   }
   .thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+  .thumb.logo img {
+    object-fit: contain;
+  }
   .ph {
     color: var(--gm-text-dim);
     font-size: 0.62rem;
     text-align: center;
-  }
-  .info {
-    flex: 1;
-    min-width: 0;
   }
   .name {
     font-weight: 700;
@@ -180,11 +229,12 @@
   .dims {
     color: var(--gm-text-dim);
     font-size: 0.75rem;
-    margin: 2px 0 6px;
   }
   .btns {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
   }
   .pick,
   .rm {
@@ -203,6 +253,34 @@
   .rm:focus {
     box-shadow: var(--gm-focus-ring);
     background: var(--gm-surface-2);
+  }
+  /* Selector de posición del logo: preset 3×3 sobre el hero. */
+  .logo-pos-label {
+    color: var(--gm-text-dim);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .logo-pos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    width: 132px;
+  }
+  .pos-btn {
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--gm-surface);
+    border: 2px solid transparent;
+  }
+  .pos-btn.sel {
+    background: var(--gm-accent);
+    border-color: var(--gm-accent-2);
+  }
+  .pos-btn:focus {
+    box-shadow: var(--gm-focus-ring);
   }
   .hint {
     color: var(--gm-text-dim);
