@@ -7,7 +7,13 @@
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initSorting } from "./lib/stores/sorting.js";
-  import { initUiPrefs, uiScale, UI_SCALE_FACTORS } from "./lib/stores/uiprefs.js";
+  import {
+    initUiPrefs,
+    uiScale,
+    UI_SCALE_FACTORS,
+    tabsAlign,
+    clockPosition,
+  } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -338,7 +344,7 @@
 <div class="app" style="background: var(--gm-wallpaper); zoom: {uiScaleFactor}">
   <!-- Capa base: barra superior + vista -->
   <div class="layer" bind:this={mainEl}>
-    <header class="topbar">
+    {#snippet tabsNav()}
       <nav class="tabs">
         {#each TABS as t}
           <button
@@ -352,7 +358,24 @@
           </button>
         {/each}
       </nav>
+    {/snippet}
+
+    {#snippet clock()}
       <div class="clock">{now.toLocaleTimeString().slice(0, 5)}</div>
+    {/snippet}
+
+    <header class="topbar">
+      <div class="topbar-slot left">
+        {#if $tabsAlign === "left"}{@render tabsNav()}{/if}
+        {#if $clockPosition === "left"}{@render clock()}{/if}
+      </div>
+      <div class="topbar-slot center">
+        {#if $tabsAlign === "center"}{@render tabsNav()}{/if}
+      </div>
+      <div class="topbar-slot right">
+        {#if $tabsAlign === "right"}{@render tabsNav()}{/if}
+        {#if $clockPosition === "right"}{@render clock()}{/if}
+      </div>
     </header>
 
     <main class="content">
@@ -467,10 +490,24 @@
     height: 100%;
   }
   .topbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 16px var(--gm-pad);
+  }
+  .topbar-slot {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 16px var(--gm-pad);
+    gap: 16px;
+  }
+  .topbar-slot.left {
+    justify-content: flex-start;
+  }
+  .topbar-slot.center {
+    justify-content: center;
+  }
+  .topbar-slot.right {
+    justify-content: flex-end;
   }
   .tabs {
     display: flex;

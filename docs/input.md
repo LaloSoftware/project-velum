@@ -79,6 +79,12 @@ hay en esa dirección, **cruza** a otra región. Se usa en el menú de **Configu
 a los botones de ventana; derecha/aceptar entra al panel; izquierda vuelve) y en el
 **QAM** (acordeón: cada categoría es una región que se despliega al enfocarla).
 
+Una región puede además declarar `data-focus-wrap="horizontal"|"vertical"`: si no hay
+candidato en esa dirección **dentro** del grupo, en vez de cruzar a otra región salta al
+elemento en el extremo opuesto del mismo eje (wrap), con prioridad sobre el cruce de
+región. Lo usa la tira "Reciente" de Inicio cuando su modo de recorrido es "scroll
+infinito" (ver `stores/uiprefs.js` → `homeScrollMode`, `Home.svelte`).
+
 ## Teclado virtual
 
 `src/lib/components/VirtualKeyboard.svelte` + `stores/keyboard.js`. Se abre con

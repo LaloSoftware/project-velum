@@ -62,14 +62,69 @@ function defaultHomeTexts() {
 
 export const homeTexts = writable(defaultHomeTexts());
 
-// Posición vertical de todo el bloque de Inicio (bienvenida + "Reciente" + tarjetas
-// + botón de biblioteca), como un solo grupo.
-export const HOME_POSITION_OPTIONS = [
-  { value: "top", label: "Arriba" },
-  { value: "center", label: "Centro" },
-  { value: "bottom", label: "Abajo" },
+// Orientación de la tira "Reciente" de Inicio.
+export const HOME_ORIENTATION_OPTIONS = [
+  { value: "horizontal", label: "Horizontal" },
+  { value: "vertical", label: "Vertical" },
 ];
-export const homePosition = writable("top");
+export const homeOrientation = writable("horizontal");
+
+// Modo de recorrido: se detiene en los extremos, o da la vuelta (wrap).
+export const HOME_SCROLL_MODE_OPTIONS = [
+  { value: "scroll", label: "Scroll" },
+  { value: "infinito", label: "Scroll infinito" },
+];
+export const homeScrollMode = writable("scroll");
+
+// Comportamiento de lectura dentro del eje de la tira.
+export const HOME_READING_OPTIONS = [
+  { value: "natural", label: "Natural" },
+  { value: "invertido", label: "Invertido" },
+  { value: "centrado", label: "Principal al centro" },
+];
+export const homeReading = writable("natural");
+
+// Posición de todo el bloque de Inicio (bienvenida + "Reciente" + tarjetas +
+// botón de biblioteca), en el eje CONTRARIO al de la orientación de la tira.
+// Valor abstracto (no top/bottom/left/right) para no migrar el dato al cambiar
+// de orientación; las etiquetas se resuelven según la orientación activa.
+export const HOME_POSITION_VALUES = ["start", "center", "end"];
+export function homePositionOptions(orientation) {
+  return orientation === "vertical"
+    ? [
+        { value: "start", label: "Izquierda" },
+        { value: "center", label: "Centro" },
+        { value: "end", label: "Derecha" },
+      ]
+    : [
+        { value: "start", label: "Arriba" },
+        { value: "center", label: "Centro" },
+        { value: "end", label: "Abajo" },
+      ];
+}
+export const homePosition = writable("start");
+
+// Alineación de las tarjetas en el eje TRANSVERSAL de la lista (independiente de
+// la posición del bloque en pantalla): evita que la tarjeta enfocada, al crecer,
+// siempre parezca expandirse hacia un mismo lado. Mismos valores/etiquetas que
+// homePosition — se reutiliza `homePositionOptions()` para ambos selectores.
+export const homeCardAlign = writable("start");
+
+// Alineación del grupo de pestañas (Inicio/Juegos/Aplicaciones) en la barra
+// superior, y posición del reloj — ejes independientes entre sí.
+export const TABS_ALIGN_OPTIONS = [
+  { value: "left", label: "Izquierda" },
+  { value: "center", label: "Centro" },
+  { value: "right", label: "Derecha" },
+];
+export const tabsAlign = writable("left");
+
+export const CLOCK_POSITION_OPTIONS = [
+  { value: "left", label: "Izquierda" },
+  { value: "right", label: "Derecha" },
+  { value: "hidden", label: "Oculto" },
+];
+export const clockPosition = writable("right");
 
 export async function initUiPrefs() {
   const cfg = await loadAppConfig();
@@ -90,8 +145,32 @@ export async function initUiPrefs() {
   if (cfg && cfg.homeTexts) {
     homeTexts.set({ ...defaultHomeTexts(), ...cfg.homeTexts });
   }
-  if (cfg && HOME_POSITION_OPTIONS.some((o) => o.value === cfg.homePosition)) {
-    homePosition.set(cfg.homePosition);
+  if (cfg && HOME_ORIENTATION_OPTIONS.some((o) => o.value === cfg.homeOrientation)) {
+    homeOrientation.set(cfg.homeOrientation);
+  }
+  if (cfg && HOME_SCROLL_MODE_OPTIONS.some((o) => o.value === cfg.homeScrollMode)) {
+    homeScrollMode.set(cfg.homeScrollMode);
+  }
+  if (cfg && HOME_READING_OPTIONS.some((o) => o.value === cfg.homeReading)) {
+    homeReading.set(cfg.homeReading);
+  }
+  // homePosition: migra el formato legado (top/bottom) de instalaciones previas.
+  if (cfg && "homePosition" in cfg) {
+    const LEGACY_POSITION_MAP = { top: "start", bottom: "end", center: "center" };
+    const migrated = LEGACY_POSITION_MAP[cfg.homePosition] ?? cfg.homePosition;
+    if (HOME_POSITION_VALUES.includes(migrated)) {
+      homePosition.set(migrated);
+      if (migrated !== cfg.homePosition) await patchAppConfig({ homePosition: migrated });
+    }
+  }
+  if (cfg && HOME_POSITION_VALUES.includes(cfg.homeCardAlign)) {
+    homeCardAlign.set(cfg.homeCardAlign);
+  }
+  if (cfg && TABS_ALIGN_OPTIONS.some((o) => o.value === cfg.tabsAlign)) {
+    tabsAlign.set(cfg.tabsAlign);
+  }
+  if (cfg && CLOCK_POSITION_OPTIONS.some((o) => o.value === cfg.clockPosition)) {
+    clockPosition.set(cfg.clockPosition);
   }
 }
 
@@ -137,8 +216,44 @@ export async function setHomeTextValue(key, v) {
   await patchAppConfig({ homeTexts: get(homeTexts) });
 }
 
+export async function setHomeOrientation(v) {
+  if (!HOME_ORIENTATION_OPTIONS.some((o) => o.value === v)) return;
+  homeOrientation.set(v);
+  await patchAppConfig({ homeOrientation: v });
+}
+
+export async function setHomeScrollMode(v) {
+  if (!HOME_SCROLL_MODE_OPTIONS.some((o) => o.value === v)) return;
+  homeScrollMode.set(v);
+  await patchAppConfig({ homeScrollMode: v });
+}
+
+export async function setHomeReading(v) {
+  if (!HOME_READING_OPTIONS.some((o) => o.value === v)) return;
+  homeReading.set(v);
+  await patchAppConfig({ homeReading: v });
+}
+
 export async function setHomePosition(v) {
-  if (!HOME_POSITION_OPTIONS.some((o) => o.value === v)) return;
+  if (!HOME_POSITION_VALUES.includes(v)) return;
   homePosition.set(v);
   await patchAppConfig({ homePosition: v });
+}
+
+export async function setHomeCardAlign(v) {
+  if (!HOME_POSITION_VALUES.includes(v)) return;
+  homeCardAlign.set(v);
+  await patchAppConfig({ homeCardAlign: v });
+}
+
+export async function setTabsAlign(v) {
+  if (!TABS_ALIGN_OPTIONS.some((o) => o.value === v)) return;
+  tabsAlign.set(v);
+  await patchAppConfig({ tabsAlign: v });
+}
+
+export async function setClockPosition(v) {
+  if (!CLOCK_POSITION_OPTIONS.some((o) => o.value === v)) return;
+  clockPosition.set(v);
+  await patchAppConfig({ clockPosition: v });
 }
