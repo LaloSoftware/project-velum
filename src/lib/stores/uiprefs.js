@@ -43,6 +43,34 @@ export const HOME_CARD_COUNT_MIN = 4;
 export const HOME_CARD_COUNT_MAX = 24;
 export const homeCardCount = writable(HOME_CARD_COUNT_DEFAULT);
 
+// Textos de Inicio (título, subtítulo, encabezado "Reciente"): cada uno se puede
+// ocultar y/o reemplazar por texto personalizado. Fuente única — un texto nuevo de
+// Inicio se añade aquí y en su render condicional en Home.svelte.
+export const HOME_TEXT_FIELDS = [
+  { key: "title", label: "Título", default: "Bienvenido" },
+  {
+    key: "subtitle",
+    label: "Subtítulo",
+    default: "Reanuda donde lo dejaste o abre la biblioteca completa.",
+  },
+  { key: "recent", label: 'Encabezado "Reciente"', default: "Reciente" },
+];
+
+function defaultHomeTexts() {
+  return Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, { hidden: false, text: "" }]));
+}
+
+export const homeTexts = writable(defaultHomeTexts());
+
+// Posición vertical de todo el bloque de Inicio (bienvenida + "Reciente" + tarjetas
+// + botón de biblioteca), como un solo grupo.
+export const HOME_POSITION_OPTIONS = [
+  { value: "top", label: "Arriba" },
+  { value: "center", label: "Centro" },
+  { value: "bottom", label: "Abajo" },
+];
+export const homePosition = writable("top");
+
 export async function initUiPrefs() {
   const cfg = await loadAppConfig();
   if (cfg && cfg.ui) {
@@ -58,6 +86,12 @@ export async function initUiPrefs() {
     homeCardCount.set(
       Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, cfg.homeCardCount))
     );
+  }
+  if (cfg && cfg.homeTexts) {
+    homeTexts.set({ ...defaultHomeTexts(), ...cfg.homeTexts });
+  }
+  if (cfg && HOME_POSITION_OPTIONS.some((o) => o.value === cfg.homePosition)) {
+    homePosition.set(cfg.homePosition);
   }
 }
 
@@ -91,4 +125,20 @@ export async function setHomeCardCount(n) {
   const v = Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, Number(n) || HOME_CARD_COUNT_DEFAULT));
   homeCardCount.set(v);
   await patchAppConfig({ homeCardCount: v });
+}
+
+export async function setHomeTextHidden(key, v) {
+  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], hidden: !!v } }));
+  await patchAppConfig({ homeTexts: get(homeTexts) });
+}
+
+export async function setHomeTextValue(key, v) {
+  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], text: v } }));
+  await patchAppConfig({ homeTexts: get(homeTexts) });
+}
+
+export async function setHomePosition(v) {
+  if (!HOME_POSITION_OPTIONS.some((o) => o.value === v)) return;
+  homePosition.set(v);
+  await patchAppConfig({ homePosition: v });
 }
