@@ -13,6 +13,7 @@
     uiScale,
     tabsAlign,
     clockPosition,
+    hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initHidden } from "./lib/stores/hidden.js";
@@ -177,6 +178,7 @@
         if (inGames()) return cycleFilter(-1);
         return;
       case "filterNext":
+        if ($vk.open) return vkDone(false);
         if (inGames()) return cycleFilter(1);
         return;
     }
@@ -437,17 +439,19 @@
       {/if}
     </main>
 
-    <footer class="hints">
-      <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
-      <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
-      <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
-      {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
-      {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
-      <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
-      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
-      <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
-      <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
-    </footer>
+    {#if !$hideFooter}
+      <footer class="hints">
+        <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
+        <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
+        <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
+        {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
+        {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
+        <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
+        <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
+        <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
+        <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
+      </footer>
+    {/if}
   </div>
 
   <!-- Overlay: Configuración / QAM -->

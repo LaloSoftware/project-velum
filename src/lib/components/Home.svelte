@@ -37,9 +37,15 @@
     });
   }
 
-  // Texto efectivo de un campo de Inicio: el personalizado, o el de por defecto.
+  // Texto efectivo de un campo de Inicio: en modo "focus", el título del juego
+  // actualmente en foco (`featured`, ver onCardFocus más abajo); si no, el
+  // personalizado, o el de por defecto.
   const HOME_TEXT_DEFAULT = Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, f.default]));
-  $: textOf = (key) => $homeTexts[key]?.text || HOME_TEXT_DEFAULT[key];
+  $: textOf = (key) => {
+    const t = $homeTexts[key];
+    if (t?.mode === "focus") return featured?.title || HOME_TEXT_DEFAULT[key];
+    return t?.text || HOME_TEXT_DEFAULT[key];
+  };
   $: hidden = (key) => !!$homeTexts[key]?.hidden;
 
   $: isVertical = $homeOrientation === "vertical";

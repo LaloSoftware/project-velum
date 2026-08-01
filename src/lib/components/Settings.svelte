@@ -14,8 +14,10 @@
   import {
     hideCardText,
     hideLibraryButton,
+    hideFooter,
     setHideCardText,
     setHideLibraryButton,
+    setHideFooter,
     gameView,
     GAME_VIEW_FIELDS,
     setGameViewField,
@@ -32,6 +34,7 @@
     HOME_TEXT_FIELDS,
     setHomeTextHidden,
     setHomeTextValue,
+    setHomeTextMode,
     homeOrientation,
     HOME_ORIENTATION_OPTIONS,
     setHomeOrientation,
@@ -303,6 +306,18 @@
         {$hideLibraryButton ? "ON" : "OFF"}
       </button>
     </div>
+    <div class="row">
+      <span class="rlabel">Ocultar pie con guías de botones</span>
+      <button
+        class="toggle"
+        class:on={$hideFooter}
+        data-focusable
+        tabindex="-1"
+        on:click={() => setHideFooter(!$hideFooter)}
+      >
+        {$hideFooter ? "ON" : "OFF"}
+      </button>
+    </div>
   </div>
 
   <h2>Inicio · Bienvenida</h2>
@@ -314,9 +329,20 @@
     {#each HOME_TEXT_FIELDS as f (f.key)}
       <div class="row">
         <span class="rlabel">{f.label}</span>
-        <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
-          Editar texto
+        <button
+          class="chip"
+          data-focusable
+          tabindex="-1"
+          on:click={() =>
+            setHomeTextMode(f.key, $homeTexts[f.key]?.mode === "focus" ? "custom" : "focus")}
+        >
+          {$homeTexts[f.key]?.mode === "focus" ? "Juego en foco" : "Personalizado"}
         </button>
+        {#if $homeTexts[f.key]?.mode !== "focus"}
+          <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
+            Editar texto
+          </button>
+        {/if}
         <button
           class="toggle"
           class:on={!$homeTexts[f.key]?.hidden}

@@ -26,6 +26,7 @@ function defaultGameView() {
 
 export const hideCardText = writable(false);
 export const hideLibraryButton = writable(false);
+export const hideFooter = writable(false);
 export const gameView = writable(defaultGameView());
 
 // Escala de interfaz: multiplicador continuo sobre el tamaño original de
@@ -60,10 +61,19 @@ export const HOME_TEXT_FIELDS = [
 ];
 
 function defaultHomeTexts() {
-  return Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, { hidden: false, text: "" }]));
+  return Object.fromEntries(
+    HOME_TEXT_FIELDS.map((f) => [f.key, { hidden: false, text: "", mode: "custom" }])
+  );
 }
 
 export const homeTexts = writable(defaultHomeTexts());
+
+// Modo de un texto de Inicio: "custom" (texto fijo editado por el usuario) o
+// "focus" (muestra en vivo el título del juego actualmente en foco en la tira).
+export const HOME_TEXT_MODES = [
+  { value: "custom", label: "Personalizado" },
+  { value: "focus", label: "Juego en foco" },
+];
 
 // Orientación de la tira "Reciente" de Inicio.
 export const HOME_ORIENTATION_OPTIONS = [
@@ -135,6 +145,7 @@ export async function initUiPrefs() {
     if (typeof cfg.ui.hideCardText === "boolean") hideCardText.set(cfg.ui.hideCardText);
     if (typeof cfg.ui.hideLibraryButton === "boolean")
       hideLibraryButton.set(cfg.ui.hideLibraryButton);
+    if (typeof cfg.ui.hideFooter === "boolean") hideFooter.set(cfg.ui.hideFooter);
   }
   if (cfg && cfg.gameView) gameView.set({ ...defaultGameView(), ...cfg.gameView });
   if (cfg && cfg.uiScale != null) {
@@ -182,7 +193,11 @@ export async function initUiPrefs() {
 
 async function persist() {
   await patchAppConfig({
-    ui: { hideCardText: get(hideCardText), hideLibraryButton: get(hideLibraryButton) },
+    ui: {
+      hideCardText: get(hideCardText),
+      hideLibraryButton: get(hideLibraryButton),
+      hideFooter: get(hideFooter),
+    },
   });
 }
 
@@ -192,6 +207,10 @@ export async function setHideCardText(v) {
 }
 export async function setHideLibraryButton(v) {
   hideLibraryButton.set(!!v);
+  await persist();
+}
+export async function setHideFooter(v) {
+  hideFooter.set(!!v);
   await persist();
 }
 
@@ -220,6 +239,12 @@ export async function setHomeTextHidden(key, v) {
 
 export async function setHomeTextValue(key, v) {
   homeTexts.update((t) => ({ ...t, [key]: { ...t[key], text: v } }));
+  await patchAppConfig({ homeTexts: get(homeTexts) });
+}
+
+export async function setHomeTextMode(key, mode) {
+  if (!HOME_TEXT_MODES.some((m) => m.value === mode)) return;
+  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], mode } }));
   await patchAppConfig({ homeTexts: get(homeTexts) });
 }
 
