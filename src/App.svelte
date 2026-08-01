@@ -21,6 +21,7 @@
     view,
     overlay,
     detailGame,
+    detailAnchor,
     detailExpanded,
     setDetailExpanded,
     detailSection,
@@ -53,6 +54,7 @@
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
+  import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
 
   import Home from "./lib/components/Home.svelte";
   import GamesView from "./lib/components/GamesView.svelte";
@@ -82,8 +84,21 @@
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
   $: uiScaleFactor = UI_SCALE_FACTORS[$uiScale] || 1;
 
+  // Auto-ocultar el cursor del mouse cuando se usa mando/teclado: se oculta en
+  // cada acción de input procesada (ver dispatch) y reaparece con el mouse.
+  // Solo aplica en pantalla completa y fuera de una sesión de juego (ahí el
+  // launcher está minimizado/en reposo, ver más abajo).
+  let fullscreen = false;
+  let cursorHidden = false;
+  $: hideCursor = cursorHidden && fullscreen && !$session;
+  // El menú contextual y el popover de <Select> se renderizan fuera de .app
+  // (ver más abajo) para no quedar bajo su `zoom`, así que el estado se
+  // refleja en <body> y no en .app para cubrirlos también.
+  $: document.body.classList.toggle("cursor-hidden", hideCursor);
+
   // ------- Interpretación de acciones de input según el contexto -------
   function dispatch(action) {
+    cursorHidden = true;
     // En sesión de juego el launcher está en reposo: se ignora todo el input
     // (el botón de "volver" lo maneja playsession por eventos crudos). Solo
     // Aceptar/Jugar trae la instancia en marcha al frente.
@@ -188,11 +203,19 @@
       closePopover();
       return a?.focus({ preventScroll: true });
     }
-    if ($contextMenu) return $contextMenu.sub ? setContextSub(null) : closeContext();
+    if ($contextMenu) {
+      if ($contextMenu.sub) return setContextSub(null);
+      const a = $contextMenu.anchor;
+      closeContext();
+      return a?.focus({ preventScroll: true });
+    }
     if ($detailGame) {
-      // Si el menú inferior está desplegado, B lo pliega primero; si no, cierra.
+      // Si el menú inferior está desplegado, B lo pliega primero; si no, cierra
+      // y devuelve el foco a la tarjeta que abrió el detalle.
       if ($detailExpanded) return collapseDetail();
-      return closeDetail();
+      const a = $detailAnchor;
+      closeDetail();
+      return a?.focus({ preventScroll: true });
     }
     if ($overlay) return closeOverlay();
     if ($view !== "home") return goto("home");
@@ -337,7 +360,17 @@
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
-    return () => clearInterval(t);
+
+    const showCursor = () => (cursorHidden = false);
+    window.addEventListener("mousemove", showCursor);
+    fullscreen = await isFullscreen();
+    const unlistenFs = await onFullscreenChange((v) => (fullscreen = v));
+
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("mousemove", showCursor);
+      unlistenFs();
+    };
   });
 </script>
 
@@ -431,24 +464,10 @@
     </div>
   {/if}
 
-  <!-- Menú contextual de tarjeta (capa flotante) -->
-  {#if $contextMenu}
-    <div bind:this={contextEl}>
-      <CardContextMenu />
-    </div>
-  {/if}
-
   <!-- Confirmación de eliminar -->
   {#if $confirmDelete}
     <div bind:this={confirmEl}>
       <ConfirmDelete />
-    </div>
-  {/if}
-
-  <!-- Desplegable de <Select> (capa flotante) -->
-  {#if $popover}
-    <div bind:this={popoverEl}>
-      <SelectPopover />
     </div>
   {/if}
 
@@ -478,11 +497,30 @@
   <PlayingOverlay />
 </div>
 
+<!-- Menú contextual de tarjeta y desplegable de <Select>: fuera de .app para que
+     su `position: fixed` no quede anidado bajo el `zoom` de escala de interfaz
+     (Ajustes > Apariencia), que si no reescala también sus coordenadas. -->
+{#if $contextMenu}
+  <div bind:this={contextEl}>
+    <CardContextMenu />
+  </div>
+{/if}
+
+{#if $popover}
+  <div bind:this={popoverEl}>
+    <SelectPopover />
+  </div>
+{/if}
+
 <style>
   .app {
     position: relative;
     height: 100%;
     overflow: hidden;
+  }
+  :global(body.cursor-hidden),
+  :global(body.cursor-hidden *) {
+    cursor: none !important;
   }
   .layer {
     display: flex;

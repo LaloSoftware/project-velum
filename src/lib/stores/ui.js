@@ -9,13 +9,16 @@ export const overlay = writable(null); // null | 'config' | 'qam'
 
 // Detalle de juego (capa por encima de vista/overlay).
 export const detailGame = writable(null);
+// Tarjeta que abrió el detalle (para devolverle el foco al cerrar, en vez de
+// caer siempre a la primera tarjeta de la vista).
+export const detailAnchor = writable(null);
 // ¿El menú inferior del detalle está desplegado?
 export const detailExpanded = writable(false);
 // Sección visible del menú del detalle (paginado): índice en DETAIL_SECTIONS.
 export const DETAIL_SECTIONS = ["grupos", "imagenes", "vista"];
 export const detailSection = writable(0);
 
-// Menú contextual de tarjeta: { game, rect } (capa flotante).
+// Menú contextual de tarjeta: { game, rect, anchor } (capa flotante).
 export const contextMenu = writable(null);
 // Confirmación de eliminar/desinstalar: { game } (capa modal).
 export const confirmDelete = writable(null);
@@ -62,15 +65,17 @@ export function openOverlay(name) {
 export function closeOverlay() {
   overlay.set(null);
 }
-export function openDetail(g) {
+export function openDetail(g, anchor = null) {
   detailExpanded.set(false);
   detailSection.set(0);
   detailGame.set(g);
+  detailAnchor.set(anchor);
 }
 export function closeDetail() {
   detailExpanded.set(false);
   detailSection.set(0);
   detailGame.set(null);
+  detailAnchor.set(null);
 }
 export function setDetailExpanded(v) {
   detailExpanded.set(v);
@@ -79,8 +84,8 @@ export function setDetailExpanded(v) {
 export function setDetailSection(i) {
   detailSection.set(i);
 }
-export function openContext(game, rect) {
-  contextMenu.set({ game, rect, sub: null });
+export function openContext(game, rect, anchor = null) {
+  contextMenu.set({ game, rect, sub: null, anchor });
 }
 export function setContextSub(sub) {
   contextMenu.update((c) => (c ? { ...c, sub } : c));
