@@ -16,6 +16,7 @@
     hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
   import { soundSettings, initSounds } from "./lib/stores/sounds.js";
@@ -364,6 +365,7 @@
       initStartup(),
       initLibrary(),
       initGroups(),
+      initCustomShortcuts(),
       initHidden(),
       initPrompts(),
       initSounds(),

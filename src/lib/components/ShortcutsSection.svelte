@@ -14,15 +14,30 @@
     tokenForAction,
     labelForToken,
   } from "../stores/keyBindings.js";
-  import { setCapture, clearCapture, setKeyCapture, clearKeyCapture } from "../input/index.js";
+  import {
+    setCapture,
+    clearCapture,
+    setKeyCapture,
+    clearKeyCapture,
+    setComboCapture,
+    clearComboCapture,
+  } from "../input/index.js";
   import { showToast } from "../stores/ui.js";
   import { playConfig, updatePlayConfig } from "../stores/playsession.js";
+  import { openKeyboard } from "../stores/keyboard.js";
+  import {
+    customShortcuts,
+    displayLabel,
+    createCustomShortcut,
+    deleteCustomShortcut,
+  } from "../stores/customShortcuts.js";
   import Select from "./Select.svelte";
 
-  // listening: { action, mode: "km" | "pad" } | null
+  // listening: { action, mode: "km" | "pad" | "combo" } | null
   let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
+  let pendingShortcutName = ""; // nombre ya tecleado, mientras se captura el combo
 
   const HOLD_OPTS = [
     { value: 500, label: "0.5 s" },
@@ -60,8 +75,10 @@
   function stopListening() {
     listening = null;
     capturingReturn = false;
+    pendingShortcutName = "";
     clearCapture();
     clearKeyCapture();
+    clearComboCapture();
     clearTimeout(timer);
   }
 
@@ -92,6 +109,20 @@
     await resetBindings();
     await resetKeyBindings();
     showToast("Atajos restaurados por defecto");
+  }
+
+  async function addCustomShortcut() {
+    const name = await openKeyboard("", "Nombre del atajo");
+    if (!name) return;
+    pendingShortcutName = name;
+    listening = { action: null, mode: "combo" };
+    setComboCapture(({ modifiers, code }) => {
+      createCustomShortcut(name, modifiers, code);
+      stopListening();
+      showToast("Atajo personalizado creado");
+    });
+    clearTimeout(timer);
+    timer = setTimeout(stopListening, 6000);
   }
 
   onDestroy(stopListening); // limpia captura si se cierra el menú
@@ -184,6 +215,32 @@
       </div>
     {/if}
   </div>
+
+  <h2 class="subhead">Atajos personalizados</h2>
+  <p class="dim">
+    Combinaciones de teclas del sistema operativo (ej. Alt+R para un overlay de
+    FPS/CPU) que podrás disparar desde el menú de sistema, en su sección "Atajos".
+    Algunas combinaciones (ej. Alt+Tab, Alt+F4) pueden estar reservadas por Windows.
+  </p>
+  <div class="rows">
+    {#each $customShortcuts as s (s.id)}
+      <div class="row">
+        <span class="label">{s.label}</span>
+        <span class="btn">{displayLabel(s)}</span>
+        <button
+          class="rebind danger"
+          data-focusable
+          tabindex="-1"
+          on:click={() => deleteCustomShortcut(s.id)}
+        >
+          Borrar
+        </button>
+      </div>
+    {/each}
+    <button class="add" data-focusable tabindex="-1" on:click={addCustomShortcut}>
+      + Agregar atajo
+    </button>
+  </div>
 </section>
 
 {#if listening || capturingReturn}
@@ -192,12 +249,16 @@
       <div class="big">
         {capturingReturn || listening.mode === "pad"
           ? "Pulsa un botón del mando…"
-          : "Pulsa una tecla o botón del mouse…"}
+          : listening.mode === "combo"
+            ? "Pulsa una combinación de teclas…"
+            : "Pulsa una tecla o botón del mouse…"}
       </div>
       <div class="dim">
         para «{capturingReturn
           ? "Volver al launcher"
-          : ACTIONS.find((a) => a.id === listening.action)?.label}»
+          : listening.mode === "combo"
+            ? pendingShortcutName
+            : ACTIONS.find((a) => a.id === listening.action)?.label}»
       </div>
     </div>
   </div>
@@ -259,6 +320,22 @@
   }
   .rebind:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  .rebind.danger {
+    color: var(--gm-danger);
+  }
+  .add {
+    cursor: pointer;
+    padding: 12px 16px;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    text-align: center;
+  }
+  .add:focus {
+    box-shadow: var(--gm-focus-ring);
+    color: var(--gm-text);
   }
   .action-rows {
     margin: 22px 0;
