@@ -12,6 +12,7 @@
   import { hide } from "../stores/hidden.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { openKeyboard } from "../stores/keyboard.js";
+  import { uiScale } from "../stores/uiprefs.js";
 
   $: menu = $contextMenu; // { game, rect, sub }
   $: game = menu?.game;
@@ -23,12 +24,19 @@
   let el;
   let pos = { left: -9999, top: -9999 };
 
+  // El menú vive fuera de `.app` (ver App.svelte) para que su `position:
+  // fixed` no quede anidado bajo el `zoom` de escala de interfaz — así que
+  // acá se aplica un `transform: scale()` propio (ver markup) para que sí
+  // escale visualmente. `el.offsetWidth/Height` reflejan el tamaño SIN
+  // escalar (transform no afecta layout), por eso se multiplican por
+  // `$uiScale` para el cálculo de posición contra el viewport real.
   function reposition() {
     if (!el || !menu?.rect) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
+    const scale = $uiScale;
+    const w = el.offsetWidth * scale;
+    const h = el.offsetHeight * scale;
     let left = menu.rect.right + 8;
     if (left + w > vw - 8) left = menu.rect.left - w - 8;
     left = Math.max(8, left);
@@ -39,9 +47,10 @@
   }
 
   onMount(reposition);
-  // Reposicionar al cambiar de submenú (cambia la altura del menú) o si
-  // cambia el tamaño de la ventana mientras el menú sigue abierto.
-  $: sub, tick().then(reposition);
+  // Reposicionar al cambiar de submenú (cambia la altura del menú), de
+  // escala de interfaz, o si cambia el tamaño de la ventana mientras el
+  // menú sigue abierto.
+  $: sub, $uiScale, tick().then(reposition);
   onMount(() => {
     window.addEventListener("resize", reposition);
     return () => window.removeEventListener("resize", reposition);
@@ -101,7 +110,12 @@
 {#if game}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="scrim" on:click={dismiss} role="presentation"></div>
-  <div class="menu" bind:this={el} style="left:{pos.left}px; top:{pos.top}px" role="menu">
+  <div
+    class="menu"
+    bind:this={el}
+    style="left:{pos.left}px; top:{pos.top}px; max-height:{90 / $uiScale}vh; transform: scale({$uiScale})"
+    role="menu"
+  >
     {#if !sub}
       <button class="mi" data-focusable data-focus-default tabindex="-1" on:click={play}>
         {isApp ? "Ejecutar" : "Jugar"}
@@ -147,9 +161,9 @@
   }
   .menu {
     position: fixed;
+    transform-origin: top left;
     z-index: 55;
     min-width: 232px;
-    max-height: 90vh;
     overflow-y: auto;
     padding: 6px;
     background: var(--gm-bg-elev);

@@ -28,14 +28,17 @@ export const hideCardText = writable(false);
 export const hideLibraryButton = writable(false);
 export const gameView = writable(defaultGameView());
 
-// Escala de interfaz: "small" | "original" | "large".
-export const UI_SCALE_OPTIONS = [
-  { value: "small", label: "Pequeña (720p)" },
-  { value: "original", label: "Original" },
-  { value: "large", label: "Grande (4K)" },
-];
-export const UI_SCALE_FACTORS = { small: 0.85, original: 1, large: 1.25 };
-export const uiScale = writable("original");
+// Escala de interfaz: multiplicador continuo sobre el tamaño original de
+// textos/menús/iconos (1 = original). Reemplaza las 3 opciones fijas de
+// antes — en sofá/4K la escala grande (1.25x) se quedaba corta.
+export const UI_SCALE_MIN = 0.7;
+export const UI_SCALE_MAX = 2.5;
+export const UI_SCALE_STEP = 0.05;
+export const UI_SCALE_DEFAULT = 1;
+export const uiScale = writable(UI_SCALE_DEFAULT);
+
+// Migración de instalaciones previas ("small"/"original"/"large").
+const LEGACY_UI_SCALE = { small: 0.85, original: 1, large: 1.25 };
 
 // Cantidad de tarjetas en la tira "Reciente" de Inicio.
 export const HOME_CARD_COUNT_DEFAULT = 12;
@@ -134,8 +137,11 @@ export async function initUiPrefs() {
       hideLibraryButton.set(cfg.ui.hideLibraryButton);
   }
   if (cfg && cfg.gameView) gameView.set({ ...defaultGameView(), ...cfg.gameView });
-  if (cfg && typeof cfg.uiScale === "string" && UI_SCALE_FACTORS[cfg.uiScale]) {
-    uiScale.set(cfg.uiScale);
+  if (cfg && cfg.uiScale != null) {
+    const raw = typeof cfg.uiScale === "string" ? LEGACY_UI_SCALE[cfg.uiScale] : cfg.uiScale;
+    if (Number.isFinite(raw)) {
+      uiScale.set(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, raw)));
+    }
   }
   if (cfg && Number.isFinite(cfg.homeCardCount)) {
     homeCardCount.set(
@@ -195,9 +201,10 @@ export async function setGameViewField(key, v) {
 }
 
 export async function setUiScale(v) {
-  if (!UI_SCALE_FACTORS[v]) return;
-  uiScale.set(v);
-  await patchAppConfig({ uiScale: v });
+  const n = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, Number(v)));
+  if (!Number.isFinite(n)) return;
+  uiScale.set(n);
+  await patchAppConfig({ uiScale: n });
 }
 
 export async function setHomeCardCount(n) {

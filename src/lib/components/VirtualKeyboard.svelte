@@ -1,5 +1,6 @@
 <script>
   import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
+  import ButtonPrompt from "./ButtonPrompt.svelte";
 
   const ROWS = [
     "1234567890".split(""),
@@ -43,11 +44,11 @@
 
     <!-- Pistas de atajos de mando -->
     <div class="kb-hints">
-      <span><b>A</b> Escribir</span>
-      <span><b>Y/△</b> Espacio</span>
-      <span><b>X/□</b> Borrar</span>
-      <span><b>LB/RB</b> Mayús</span>
-      <span><b>B</b> Cancelar</span>
+      <span><ButtonPrompt token="A" button="south" action="accept" /> Escribir</span>
+      <span><ButtonPrompt token="Y/△" button="north" action="north" /> Espacio</span>
+      <span><ButtonPrompt token="X/□" button="west" action="west" /> Borrar</span>
+      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Mayús</span>
+      <span><ButtonPrompt token="B" button="east" action="back" /> Cancelar</span>
     </div>
   </div>
 </div>
@@ -140,7 +141,9 @@
     color: var(--gm-text-dim);
     font-size: 0.82rem;
   }
-  .kb-hints b {
-    color: var(--gm-accent-2);
+  .kb-hints span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 </style>

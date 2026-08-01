@@ -65,7 +65,7 @@
 
 <section class="games">
   <div class="filterbar">
-    <ButtonPrompt token="LT" />
+    <ButtonPrompt token="LT" button="lt" action="filterPrev" />
     <div class="chips" bind:this={chipsEl} style="justify-content: {ALIGN[$filterAlign] || 'flex-start'}">
       {#each $filterList as s}
         <button
@@ -80,7 +80,7 @@
         </button>
       {/each}
     </div>
-    <ButtonPrompt token="RT" />
+    <ButtonPrompt token="RT" button="rt" action="filterNext" />
   </div>
 
   <div class="grid-wrap">

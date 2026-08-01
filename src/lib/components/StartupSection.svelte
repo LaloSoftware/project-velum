@@ -1,5 +1,7 @@
 <script>
   import { startup, updateStartup } from "../stores/startup.js";
+  import { soundSettings, updateSounds } from "../stores/sounds.js";
+  import { soundNames, soundFor } from "../theming/sounds.js";
   import Select from "./Select.svelte";
 
   const VIEWS = [
@@ -7,6 +9,16 @@
     { id: "games", label: "Juegos" },
     { id: "apps", label: "Aplicaciones" },
   ];
+
+  const STARTUP_SOUNDS = soundNames("startup");
+
+  function previewStartupSound() {
+    const url = soundFor("startup", $soundSettings.startupSound);
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.volume = $soundSettings.startupVolume;
+    audio.play().catch(() => {});
+  }
 </script>
 
 <section class="panel">
@@ -29,6 +41,45 @@
   >
     {$startup.fullscreen ? "ON" : "OFF"}
   </button>
+
+  <h2>Sonido de inicio</h2>
+  <button
+    class="toggle"
+    class:on={$soundSettings.startupEnabled}
+    data-focusable
+    tabindex="-1"
+    on:click={() => updateSounds({ startupEnabled: !$soundSettings.startupEnabled })}
+  >
+    {$soundSettings.startupEnabled ? "ON" : "OFF"}
+  </button>
+
+  {#if STARTUP_SOUNDS.length}
+    <h2>Sonido a reproducir</h2>
+    <Select
+      value={$soundSettings.startupSound}
+      options={STARTUP_SOUNDS.map((n) => ({ value: n, label: n }))}
+      onChange={(v) => updateSounds({ startupSound: v })}
+    />
+    <button class="chip wide" data-focusable tabindex="-1" on:click={previewStartupSound}>
+      Probar sonido de inicio
+    </button>
+
+    <h2>Volumen del sonido de inicio</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min="0"
+        max="100"
+        step="5"
+        value={Math.round($soundSettings.startupVolume * 100)}
+        on:input={(e) => updateSounds({ startupVolume: e.target.value / 100 })}
+      />
+      <span class="sizeval">{Math.round($soundSettings.startupVolume * 100)}%</span>
+    </div>
+  {/if}
 
   <p class="dim">Autoarranque con Windows: próximamente.</p>
 </section>
@@ -68,5 +119,46 @@
   }
   .toggle:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  .chip {
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+    font-weight: 700;
+  }
+  .chip.wide {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .chip:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .sizerow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+  .size-slider {
+    flex: 1;
+    accent-color: var(--gm-accent);
+    cursor: pointer;
+  }
+  .size-slider:focus {
+    outline: none;
+    box-shadow: var(--gm-focus-ring);
+    border-radius: 999px;
+  }
+  .sizeval {
+    min-width: 52px;
+    text-align: right;
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 </style>

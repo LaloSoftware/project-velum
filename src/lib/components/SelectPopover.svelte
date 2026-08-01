@@ -1,6 +1,7 @@
 <script>
   import { onMount, tick } from "svelte";
   import { popover, closePopover } from "../stores/ui.js";
+  import { uiScale } from "../stores/uiprefs.js";
 
   $: p = $popover;
   let el;
@@ -19,15 +20,23 @@
     return p.multi ? selected.has(o.value) : o.value === p.value;
   }
 
+  // Igual que CardContextMenu.svelte: vive fuera de `.app` para que su
+  // `position: fixed` no quede anidado bajo el `zoom` de escala de interfaz,
+  // así que escala con su propio `transform: scale()` (ver markup). `width`
+  // es el ancho SIN escalar (el que se le da al elemento antes del
+  // transform); `visualWidth`/`h` son el tamaño ya escalado, para el cálculo
+  // de posición contra el viewport real.
   function reposition() {
     if (!el || !p?.anchor) return;
     const r = p.anchor.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const h = el.offsetHeight;
-    const width = Math.max(r.width, 180);
+    const scale = $uiScale;
+    const visualWidth = Math.max(r.width, 180 * scale);
+    const width = visualWidth / scale;
+    const h = el.offsetHeight * scale;
     let left = r.left;
-    if (left + width > vw - 8) left = vw - width - 8;
+    if (left + visualWidth > vw - 8) left = vw - visualWidth - 8;
     left = Math.max(8, left);
     // Debajo del anclaje; si no cabe, encima.
     let top = r.bottom + 4;
@@ -36,7 +45,7 @@
   }
 
   onMount(reposition);
-  $: p, tick().then(reposition);
+  $: p, $uiScale, tick().then(reposition);
   onMount(() => {
     window.addEventListener("resize", reposition);
     return () => window.removeEventListener("resize", reposition);
@@ -74,7 +83,12 @@
 {#if p}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="scrim" on:click={done} role="presentation"></div>
-  <div class="pop" bind:this={el} style="left:{pos.left}px; top:{pos.top}px; min-width:{pos.width}px" role="listbox">
+  <div
+    class="pop"
+    bind:this={el}
+    style="left:{pos.left}px; top:{pos.top}px; min-width:{pos.width}px; max-height:{60 / $uiScale}vh; transform: scale({$uiScale})"
+    role="listbox"
+  >
     {#each p.options as o, i (o.value)}
       <button
         class="opt"
@@ -105,8 +119,8 @@
   }
   .pop {
     position: fixed;
+    transform-origin: top left;
     z-index: 59;
-    max-height: 60vh;
     overflow-y: auto;
     padding: 6px;
     background: var(--gm-bg-elev);

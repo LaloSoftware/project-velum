@@ -7,35 +7,25 @@
  *   - "button" -> name: south|east|north|west|l1|r1|start|select|guide (remapeable)
  *
  * El mapeo botón→acción vive en `stores/bindings.js` (configurable/persistente).
- * El teclado físico mapea directo a acciones (ayuda de dev + red de seguridad).
+ * El teclado y el mouse tienen su propio mapeo configurable, independiente y
+ * simultáneo, en `stores/keyBindings.js` (tecla/botón de mouse → acción).
  * `App.svelte -> dispatch` interpreta la acción según el contexto.
  */
 
 import { get } from "svelte/store";
 import { isTauri } from "../ipc/index.js";
 import { resolve } from "../stores/bindings.js";
+import { resolveKeyBinding } from "../stores/keyBindings.js";
+import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 
-// Teclado físico → acción directa (no pasa por bindings; red de seguridad).
-const KEY_MAP = {
+// Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
+// El resto de teclado/mouse vive en `stores/keyBindings.js` (configurable).
+const NAV_KEY_MAP = {
   ArrowUp: "up",
   ArrowDown: "down",
   ArrowLeft: "left",
   ArrowRight: "right",
-  Enter: "accept",
-  " ": "accept",
-  Escape: "back",
-  Backspace: "back",
-  Tab: "menu", // menú Configuración
-  q: "quick", // QAM de sistema
-  Q: "quick",
-  e: "tabLeft",
-  r: "tabRight",
-  i: "north", // detalle / espacio-en-teclado (para probar sin mando)
-  x: "west", // borrar-en-teclado (para probar sin mando)
-  c: "context", // menú contextual de tarjeta (para probar sin mando)
-  s: "search", // buscar (L3) — para probar sin mando
-  f: "filters", // filtros y orden (R3) — para probar sin mando
 };
 
 // Botón crudo por índice de la Gamepad API estándar del navegador.
@@ -56,13 +46,20 @@ const PAD_BUTTON_RAW = {
 };
 
 let dispatchFn = () => {};
-let captureFn = null; // modo "pulsa un botón" para remapear
+let captureFn = null; // modo "pulsa un botón de mando" para remapear
+let keyCaptureFn = null; // modo "pulsa tecla o botón de mouse" para remapear teclado/mouse
 
 export function setCapture(fn) {
   captureFn = fn;
 }
 export function clearCapture() {
   captureFn = null;
+}
+export function setKeyCapture(fn) {
+  keyCaptureFn = fn;
+}
+export function clearKeyCapture() {
+  keyCaptureFn = null;
 }
 
 // Listeners de eventos CRUDOS de botón (press y release), independientes del
@@ -76,6 +73,7 @@ export function onRawButton(cb) {
 export async function initInput(dispatch) {
   dispatchFn = dispatch;
   initKeyboard();
+  initMouse();
   if (isTauri) {
     await initTauriGamepad();
   } else {
@@ -86,6 +84,7 @@ export async function initInput(dispatch) {
 // Procesa un evento crudo de mando (de gilrs o del navegador).
 function handleRaw(ev) {
   if (!ev) return;
+  inputSource.set("gamepad");
   // Los listeners crudos reciben press Y release (para detectar "mantener").
   if (ev.type === "button") {
     for (const cb of rawListeners) cb(ev.name, ev.pressed);
@@ -107,14 +106,28 @@ function handleRaw(ev) {
 // -------- 1. Teclado --------
 function initKeyboard() {
   window.addEventListener("keydown", (e) => {
+    inputSource.set("keymouse");
     const tag = e.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+    // Modo remapeo de teclado/mouse: captura la tecla y no dispatch normal.
+    if (keyCaptureFn) {
+      e.preventDefault();
+      keyCaptureFn(`key:${e.code}`);
+      return;
+    }
     // Con el teclado virtual abierto, permitir escribir con el teclado físico.
     if (get(vk).open && handlePhysicalTyping(e)) {
       e.preventDefault();
       return;
     }
-    const action = KEY_MAP[e.key];
+    const navAction = NAV_KEY_MAP[e.key];
+    if (navAction) {
+      e.preventDefault();
+      dispatchFn(navAction);
+      return;
+    }
+    const action = resolveKeyBinding(`key:${e.code}`);
     if (action) {
       e.preventDefault();
       dispatchFn(action);
@@ -122,8 +135,40 @@ function initKeyboard() {
   });
 }
 
+// -------- 1b. Mouse (botones ligados a acciones vía keyBindings.js) --------
+function initMouse() {
+  window.addEventListener("mousedown", (e) => {
+    inputSource.set("keymouse");
+    const tag = e.target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    const token = `mouse:${e.button}`;
+
+    if (keyCaptureFn) {
+      if (e.button === 2) e.preventDefault(); // que no abra el menú nativo del SO
+      keyCaptureFn(token);
+      return;
+    }
+    const action = resolveKeyBinding(token);
+    if (action) {
+      // Evita autoscroll (medio) y navegación atrás/adelante del navegador (3/4).
+      if (e.button === 1 || e.button === 3 || e.button === 4) e.preventDefault();
+      dispatchFn(action);
+    }
+  });
+
+  // Si el clic derecho tiene una acción ligada (o hay una captura en curso), se
+  // suprime el menú contextual nativo del SO/navegador para que no interfiera.
+  window.addEventListener("contextmenu", (e) => {
+    if (keyCaptureFn) {
+      e.preventDefault();
+      return;
+    }
+    if (resolveKeyBinding("mouse:2")) e.preventDefault();
+  });
+}
+
 // Escritura directa en el teclado virtual con teclado físico.
-// (Las flechas caen a KEY_MAP para seguir navegando las teclas en pantalla.)
+// (Las flechas caen a NAV_KEY_MAP para seguir navegando las teclas en pantalla.)
 function handlePhysicalTyping(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return false;
   if (e.key === "Enter") return vkDone(false), true;
