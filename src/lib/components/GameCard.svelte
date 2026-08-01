@@ -1,5 +1,5 @@
 <script>
-  import { openDetail, openContext, reportError } from "../stores/ui.js";
+  import { openDetail, openContext, contextMenu, reportError } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
@@ -14,6 +14,10 @@
 
   let el; // ref del div (para posicionar el menú contextual junto a la tarjeta)
   let focused = false;
+  // Mientras el menú contextual de ESTA tarjeta está abierto, el foco del DOM
+  // se mueve al menú (dispara blur) — se mantiene el aspecto "enfocado" para
+  // no perder la animación ni desplazar el ancla que usa el menú para ubicarse.
+  $: pinned = $contextMenu?.game === game;
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
   $: title = game?.title || "";
@@ -56,7 +60,7 @@
 
   // El ensanchado (modo Inicio) es una propiedad del foco, no de si hay imagen
   // real: sin arte (mock/sin Steam) se ensancha igual mostrando el degradado.
-  $: expanded = heroOnFocus && focused;
+  $: expanded = heroOnFocus && (focused || pinned);
   $: activeUrl = expanded ? wideUrl || coverUrl : coverUrl;
   $: hasImage = !!activeUrl;
   $: cover = hasImage
@@ -77,11 +81,11 @@
     }
   }
   function detail() {
-    openDetail(game);
+    openDetail(game, el);
   }
   function ctx() {
     try {
-      openContext(game, el.getBoundingClientRect());
+      openContext(game, el.getBoundingClientRect(), el);
     } catch (e) {
       reportError(e, "GameCard:ctx");
     }
@@ -93,6 +97,7 @@
   class="gm-card"
   class:hero-mode={expanded}
   class:no-grow={heroOnFocus}
+  class:ctx-open={pinned}
   data-focusable
   data-focus-default={focusDefault ? "" : undefined}
   tabindex="-1"
@@ -125,17 +130,22 @@
     /* Redondea el anillo de foco (box-shadow) igual que la portada. */
     border-radius: var(--gm-radius);
   }
-  .gm-card:focus {
+  /* .ctx-open: mismo aspecto que :focus, mantenido mientras el menú contextual
+     de esta tarjeta está abierto (el foco real del DOM se mueve al menú). */
+  .gm-card:focus,
+  .gm-card.ctx-open {
     transform: scale(var(--gm-focus-scale));
     z-index: 2;
   }
   /* Foco de tarjeta con su propio token (más difuso). Especificidad extra
      ([data-focusable]) para ganar al anillo global de app.css. */
-  .gm-card[data-focusable]:focus {
+  .gm-card[data-focusable]:focus,
+  .gm-card[data-focusable].ctx-open {
     box-shadow: var(--gm-focus-ring-card);
   }
   /* En modo "Inicio" el crecimiento es de ancho (ver .hero-mode), no de escala. */
-  .gm-card.no-grow:focus {
+  .gm-card.no-grow:focus,
+  .gm-card.no-grow.ctx-open {
     transform: none;
   }
   .gm-card.hero-mode {
@@ -188,7 +198,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .gm-card:focus .title {
+  .gm-card:focus .title,
+  .gm-card.ctx-open .title {
     color: var(--gm-text);
   }
 </style>

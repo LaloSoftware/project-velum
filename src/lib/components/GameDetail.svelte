@@ -1,5 +1,5 @@
 <script>
-  import { closeDetail, showToast, detailExpanded, detailSection } from "../stores/ui.js";
+  import { closeDetail, detailAnchor, showToast, detailExpanded, detailSection } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
@@ -56,6 +56,12 @@
   const H_ALIGN = { l: "flex-start", c: "center", r: "flex-end" };
   $: logoAlignItems = V_ALIGN[logoPos?.[0]] || "flex-start";
   $: logoJustify = H_ALIGN[logoPos?.[1]] || "flex-end";
+
+  function back() {
+    const a = $detailAnchor;
+    closeDetail();
+    a?.focus({ preventScroll: true });
+  }
 
   async function newGroup() {
     const name = await openKeyboard("", "Nombre del grupo");
@@ -116,7 +122,7 @@
           class="back"
           data-focusable={!$detailExpanded ? "" : undefined}
           tabindex="-1"
-          on:click={closeDetail}
+          on:click={back}
         >
           Volver
         </button>

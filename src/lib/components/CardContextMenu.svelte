@@ -39,49 +39,68 @@
   }
 
   onMount(reposition);
-  // Reposicionar al cambiar de submenú (cambia la altura del menú).
+  // Reposicionar al cambiar de submenú (cambia la altura del menú) o si
+  // cambia el tamaño de la ventana mientras el menú sigue abierto.
   $: sub, tick().then(reposition);
+  onMount(() => {
+    window.addEventListener("resize", reposition);
+    return () => window.removeEventListener("resize", reposition);
+  });
 
   function play() {
     closeContext();
     startPlay(game);
   }
   function detail() {
-    openDetail(game);
+    // Se traslada el ancla al detalle: al cerrarlo, el foco vuelve a esta tarjeta.
+    openDetail(game, menu.anchor);
     closeContext();
   }
   function ocultar() {
+    const a = menu.anchor;
     hide(game.id);
     showToast(`«${game.title}» oculto`);
     closeContext();
+    a?.focus({ preventScroll: true });
   }
   function eliminar() {
     openConfirm(game);
     closeContext();
   }
   async function addTo(g) {
+    const a = menu.anchor;
     await toggleGameInGroup(g.id, game.id);
     showToast(`Añadido a «${g.name}»`);
     closeContext();
+    a?.focus({ preventScroll: true });
   }
   async function removeFrom(g) {
+    const a = menu.anchor;
     await toggleGameInGroup(g.id, game.id);
     showToast(`Quitado de «${g.name}»`);
     closeContext();
+    a?.focus({ preventScroll: true });
   }
   async function nuevoGrupo() {
+    const a = menu.anchor;
     const name = await openKeyboard("", "Nombre del grupo");
     if (name) {
       await createGroup(name, game.id);
       showToast(`Añadido a «${name}»`);
     }
     closeContext();
+    a?.focus({ preventScroll: true });
+  }
+  function dismiss() {
+    const a = menu.anchor;
+    closeContext();
+    a?.focus({ preventScroll: true });
   }
 </script>
 
 {#if game}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="scrim" on:click={closeContext} role="presentation"></div>
+  <div class="scrim" on:click={dismiss} role="presentation"></div>
   <div class="menu" bind:this={el} style="left:{pos.left}px; top:{pos.top}px" role="menu">
     {#if !sub}
       <button class="mi" data-focusable data-focus-default tabindex="-1" on:click={play}>

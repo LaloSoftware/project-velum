@@ -37,6 +37,10 @@
 
   onMount(reposition);
   $: p, tick().then(reposition);
+  onMount(() => {
+    window.addEventListener("resize", reposition);
+    return () => window.removeEventListener("resize", reposition);
+  });
 
   function pick(v) {
     // Multi: alterna y mantiene abierto (selección múltiple).

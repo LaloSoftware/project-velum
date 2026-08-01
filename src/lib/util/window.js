@@ -62,6 +62,20 @@ export async function isFullscreen() {
   }
 }
 
+// Notifica `cb(fullscreen)` cuando cambia el tamaño de la ventana (entrar/salir
+// de pantalla completa dispara un resize). Devuelve una función para dejar de
+// escuchar. No hay evento nativo de "fullscreen-changed", así que se infiere
+// re-consultando `isFullscreen()` en cada resize.
+export async function onFullscreenChange(cb) {
+  try {
+    const w = await win();
+    const unlisten = await w.onResized(async () => cb(await isFullscreen()));
+    return unlisten;
+  } catch {
+    return () => {}; // modo web
+  }
+}
+
 export async function closeApp() {
   try {
     await (await win()).close();
