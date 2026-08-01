@@ -7,12 +7,20 @@
     assignAction,
     resetBindings,
   } from "../stores/bindings.js";
-  import { setCapture, clearCapture } from "../input/index.js";
+  import {
+    keyBindings,
+    assignKeyAction,
+    resetKeyBindings,
+    tokenForAction,
+    labelForToken,
+  } from "../stores/keyBindings.js";
+  import { setCapture, clearCapture, setKeyCapture, clearKeyCapture } from "../input/index.js";
   import { showToast } from "../stores/ui.js";
   import { playConfig, updatePlayConfig } from "../stores/playsession.js";
   import Select from "./Select.svelte";
 
-  let listening = null; // acción que se está reasignando
+  // listening: { action, mode: "km" | "pad" } | null
+  let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
 
@@ -37,33 +45,52 @@
     }, 6000);
   }
 
-  // Botón (etiqueta) asignado a una acción, reactivo a $bindings.
+  // Botón de mando (etiqueta) asignado a una acción, reactivo a $bindings.
   $: labelFor = (action) => {
     const btn = Object.keys($bindings).find((b) => $bindings[b] === action);
     return btn ? BUTTON_LABELS[btn] : "—";
+  };
+
+  // Tecla/botón de mouse (etiqueta) asignado a una acción, reactivo a $keyBindings.
+  $: kmLabelFor = (action) => {
+    $keyBindings; // dependencia reactiva explícita
+    return labelForToken(tokenForAction(action));
   };
 
   function stopListening() {
     listening = null;
     capturingReturn = false;
     clearCapture();
+    clearKeyCapture();
     clearTimeout(timer);
   }
 
-  function rebind(action) {
-    listening = action;
+  function rebindPad(action) {
+    listening = { action, mode: "pad" };
     setCapture((rawButton) => {
       assignAction(action, rawButton);
       stopListening();
-      showToast("Atajo asignado");
+      showToast("Atajo de mando asignado");
     });
     // Auto-cancela por si no se pulsa nada.
     clearTimeout(timer);
     timer = setTimeout(stopListening, 6000);
   }
 
+  function rebindKeyMouse(action) {
+    listening = { action, mode: "km" };
+    setKeyCapture((token) => {
+      assignKeyAction(action, token);
+      stopListening();
+      showToast("Atajo de teclado/mouse asignado");
+    });
+    clearTimeout(timer);
+    timer = setTimeout(stopListening, 6000);
+  }
+
   async function reset() {
     await resetBindings();
+    await resetKeyBindings();
     showToast("Atajos restaurados por defecto");
   }
 
@@ -73,18 +100,43 @@
 <section class="panel">
   <h1>Configuración de atajos</h1>
   <p class="dim">
-    Asigna qué botón del mando ejecuta cada acción. Las direcciones (d-pad/stick) son
-    fijas. El teclado sigue funcionando como respaldo.
+    Asigna qué tecla/botón de mouse y qué botón de mando ejecutan cada acción — ambos
+    atajos conviven a la vez. Las direcciones (d-pad/stick/flechas) son fijas.
   </p>
 
-  <div class="rows">
+  <div class="action-rows">
+    <div class="action-row head">
+      <span></span>
+      <span class="col-title">Teclado / Mouse</span>
+      <span class="col-title">Control</span>
+    </div>
     {#each ACTIONS as a}
-      <div class="row">
+      <div class="action-row">
         <span class="label">{a.label}</span>
-        <span class="btn">{labelFor(a.id)}</span>
-        <button class="rebind" data-focusable tabindex="-1" on:click={() => rebind(a.id)}>
-          Reasignar
-        </button>
+        <div
+          class="cell"
+          class:unset={kmLabelFor(a.id) === "—"}
+          class:listening={listening?.action === a.id && listening?.mode === "km"}
+          data-focusable
+          tabindex="-1"
+          role="button"
+          on:click={() => rebindKeyMouse(a.id)}
+          on:keydown={(e) => (e.key === "Enter" || e.key === " ") && rebindKeyMouse(a.id)}
+        >
+          {kmLabelFor(a.id)}
+        </div>
+        <div
+          class="cell"
+          class:unset={labelFor(a.id) === "—"}
+          class:listening={listening?.action === a.id && listening?.mode === "pad"}
+          data-focusable
+          tabindex="-1"
+          role="button"
+          on:click={() => rebindPad(a.id)}
+          on:keydown={(e) => (e.key === "Enter" || e.key === " ") && rebindPad(a.id)}
+        >
+          {labelFor(a.id)}
+        </div>
       </div>
     {/each}
   </div>
@@ -137,11 +189,15 @@
 {#if listening || capturingReturn}
   <div class="capture">
     <div class="box">
-      <div class="big">Pulsa un botón del mando…</div>
+      <div class="big">
+        {capturingReturn || listening.mode === "pad"
+          ? "Pulsa un botón del mando…"
+          : "Pulsa una tecla o botón del mouse…"}
+      </div>
       <div class="dim">
         para «{capturingReturn
           ? "Volver al launcher"
-          : ACTIONS.find((a) => a.id === listening)?.label}»
+          : ACTIONS.find((a) => a.id === listening.action)?.label}»
       </div>
     </div>
   </div>
@@ -202,6 +258,48 @@
     font-weight: 700;
   }
   .rebind:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .action-rows {
+    margin: 22px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 170px 170px;
+    align-items: center;
+    gap: 14px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px 16px;
+  }
+  .action-row.head {
+    background: none;
+    padding: 0 16px;
+  }
+  .col-title {
+    color: var(--gm-text-dim);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .cell {
+    cursor: pointer;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-accent-2);
+    font-weight: 800;
+    outline: none;
+  }
+  .cell.unset {
+    color: var(--gm-text-dim);
+    font-weight: 600;
+  }
+  .cell.listening,
+  .cell:focus {
     box-shadow: var(--gm-focus-ring);
   }
   .reset {

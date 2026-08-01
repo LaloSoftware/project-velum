@@ -4,6 +4,7 @@
   import { loadGames } from "./lib/stores/games.js";
   import { initProfiles } from "./lib/stores/profiles.js";
   import { initBindings } from "./lib/stores/bindings.js";
+  import { initKeyBindings } from "./lib/stores/keyBindings.js";
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initSorting } from "./lib/stores/sorting.js";
@@ -345,6 +346,7 @@
       loadGames(),
       initProfiles(),
       initBindings(),
+      initKeyBindings(),
       initStartup(),
       initLibrary(),
       initGroups(),
