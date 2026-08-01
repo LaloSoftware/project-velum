@@ -1,12 +1,6 @@
 <script>
   import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
-  import { inputSource } from "../stores/inputSource.js";
-  import { keyBindings, tokenForAction, labelForToken } from "../stores/keyBindings.js";
-
-  // Mismo patrón que el footer de App.svelte: en modo mando se ve el texto de
-  // siempre; con teclado/mouse activo, el atajo configurado para esa acción.
-  $: hint = (padText, action) =>
-    $inputSource === "gamepad" ? padText : ($keyBindings, labelForToken(tokenForAction(action)));
+  import ButtonPrompt from "./ButtonPrompt.svelte";
 
   const ROWS = [
     "1234567890".split(""),
@@ -50,11 +44,11 @@
 
     <!-- Pistas de atajos de mando -->
     <div class="kb-hints">
-      <span><b>{hint("A", "accept")}</b> Escribir</span>
-      <span><b>{hint("Y/△", "north")}</b> Espacio</span>
-      <span><b>{hint("X/□", "west")}</b> Borrar</span>
-      <span><b>{hint("LB", "tabLeft")}/{hint("RB", "tabRight")}</b> Mayús</span>
-      <span><b>{hint("B", "back")}</b> Cancelar</span>
+      <span><ButtonPrompt token="A" button="south" action="accept" /> Escribir</span>
+      <span><ButtonPrompt token="Y/△" button="north" action="north" /> Espacio</span>
+      <span><ButtonPrompt token="X/□" button="west" action="west" /> Borrar</span>
+      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Mayús</span>
+      <span><ButtonPrompt token="B" button="east" action="back" /> Cancelar</span>
     </div>
   </div>
 </div>
@@ -147,7 +141,9 @@
     color: var(--gm-text-dim);
     font-size: 0.82rem;
   }
-  .kb-hints b {
-    color: var(--gm-accent-2);
+  .kb-hints span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 </style>

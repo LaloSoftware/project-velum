@@ -27,3 +27,4 @@ gm.bundle
 .idea/
 .vscode/
 *.log
+.cursor/

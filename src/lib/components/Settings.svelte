@@ -20,7 +20,9 @@
     GAME_VIEW_FIELDS,
     setGameViewField,
     uiScale,
-    UI_SCALE_OPTIONS,
+    UI_SCALE_MIN,
+    UI_SCALE_MAX,
+    UI_SCALE_STEP,
     setUiScale,
     homeCardCount,
     HOME_CARD_COUNT_MIN,
@@ -245,11 +247,20 @@
     />
 
     <h2>Escala de interfaz</h2>
-    <Select
-      value={$uiScale}
-      options={UI_SCALE_OPTIONS}
-      onChange={setUiScale}
-    />
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min={UI_SCALE_MIN}
+        max={UI_SCALE_MAX}
+        step={UI_SCALE_STEP}
+        value={$uiScale}
+        on:input={(e) => setUiScale(e.target.value)}
+      />
+      <span class="sizeval">{$uiScale.toFixed(2)}x</span>
+    </div>
 
     <h2>CSS externo (perfil)</h2>
     <p class="dim">

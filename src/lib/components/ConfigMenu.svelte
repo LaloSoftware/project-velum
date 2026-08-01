@@ -6,6 +6,7 @@
   import FiltersSection from "./FiltersSection.svelte";
   import HiddenSection from "./HiddenSection.svelte";
   import ButtonIconsSection from "./ButtonIconsSection.svelte";
+  import SoundsSection from "./SoundsSection.svelte";
   import {
     minimizeWindow,
     enterFullscreen,
@@ -39,6 +40,7 @@
     { id: "filters", label: "Filtros de biblioteca" },
     { id: "hidden", label: "Ocultos" },
     { id: "buttonicons", label: "Iconos de botones" },
+    { id: "sounds", label: "Sonidos" },
   ];
   let section = "appearance";
   let contentEl;
@@ -84,6 +86,8 @@
         <HiddenSection />
       {:else if section === "buttonicons"}
         <ButtonIconsSection />
+      {:else if section === "sounds"}
+        <SoundsSection />
       {/if}
     </div>
   </div>

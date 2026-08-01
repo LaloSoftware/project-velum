@@ -1,13 +1,17 @@
 <script>
   import { PROMPT_STYLES, promptStyle, setPromptStyle } from "../stores/prompts.js";
   import Select from "./Select.svelte";
+  import ButtonPrompt from "./ButtonPrompt.svelte";
+
+  // Botones representativos para la vista previa (acción, dirección y hombros).
+  const PREVIEW_BUTTONS = ["south", "east", "north", "west", "l1", "r1", "lt", "rt", "start", "select", "guide"];
 </script>
 
 <section class="panel">
   <h1>Iconos de botones</h1>
   <p class="dim">
-    Estilo de los indicadores de botón en la interfaz. Por ahora se muestran como texto;
-    los sets de iconos (Xbox / PlayStation / genérico) llegarán más adelante.
+    Estilo de los indicadores de botón de mando en la interfaz: texto plano o un set
+    de iconos por plataforma. Los atajos de teclado/mouse siempre se muestran como texto.
   </p>
 
   <div class="wrap">
@@ -18,7 +22,12 @@
     />
   </div>
 
-  <p class="dim soon">Más estilos de iconos: próximamente.</p>
+  <p class="dim preview-label">Vista previa</p>
+  <div class="preview">
+    {#each PREVIEW_BUTTONS as b}
+      <ButtonPrompt token={b} button={b} />
+    {/each}
+  </div>
 </section>
 
 <style>
@@ -37,10 +46,16 @@
     color: var(--gm-text-dim);
     max-width: 560px;
   }
-  .soon {
-    margin-top: 26px;
-  }
   .wrap {
     margin-top: 20px;
+  }
+  .preview-label {
+    margin-top: 26px;
+  }
+  .preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
   }
 </style>

@@ -4,21 +4,21 @@
   import { loadGames } from "./lib/stores/games.js";
   import { initProfiles } from "./lib/stores/profiles.js";
   import { initBindings } from "./lib/stores/bindings.js";
-  import { initKeyBindings, keyBindings, tokenForAction, labelForToken } from "./lib/stores/keyBindings.js";
-  import { inputSource } from "./lib/stores/inputSource.js";
+  import { initKeyBindings } from "./lib/stores/keyBindings.js";
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initSorting } from "./lib/stores/sorting.js";
   import {
     initUiPrefs,
     uiScale,
-    UI_SCALE_FACTORS,
     tabsAlign,
     clockPosition,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
+  import { soundSettings, initSounds } from "./lib/stores/sounds.js";
+  import { soundFor } from "./lib/theming/sounds.js";
   import {
     view,
     overlay,
@@ -73,6 +73,7 @@
   import Toast from "./lib/components/Toast.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
+  import ButtonPrompt from "./lib/components/ButtonPrompt.svelte";
 
   const TABS = [
     { id: "home", label: "Inicio" },
@@ -84,7 +85,7 @@
   let now = new Date();
 
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
-  $: uiScaleFactor = UI_SCALE_FACTORS[$uiScale] || 1;
+  $: uiScaleFactor = $uiScale;
 
   // Auto-ocultar el cursor del mouse cuando se usa mando/teclado: se oculta en
   // cada acción de input procesada (ver dispatch) y reaparece con el mouse.
@@ -97,12 +98,6 @@
   // (ver más abajo) para no quedar bajo su `zoom`, así que el estado se
   // refleja en <body> y no en .app para cubrirlos también.
   $: document.body.classList.toggle("cursor-hidden", hideCursor);
-
-  // Indicaciones del footer/menús: en modo mando se ve el texto de siempre
-  // (padText); en cuanto se detecta actividad de teclado/mouse, se muestra el
-  // atajo de teclado/mouse configurado para esa acción (stores/keyBindings.js).
-  $: hint = (padText, action) =>
-    $inputSource === "gamepad" ? padText : ($keyBindings, labelForToken(tokenForAction(action)));
 
   // ------- Interpretación de acciones de input según el contexto -------
   function dispatch(action) {
@@ -348,6 +343,16 @@
     }
   }
 
+  function playStartupSound() {
+    const s = $soundSettings;
+    if (!s.startupEnabled) return;
+    const url = soundFor("startup", s.startupSound);
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.volume = s.startupVolume;
+    audio.play().catch(() => {});
+  }
+
   onMount(async () => {
     await Promise.all([
       loadGames(),
@@ -359,6 +364,7 @@
       initGroups(),
       initHidden(),
       initPrompts(),
+      initSounds(),
       initPlaytimes(),
       initArtOverrides(),
       initPlaySession(),
@@ -366,6 +372,7 @@
       initUiPrefs(),
     ]);
     await applyStartup();
+    playStartupSound();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
@@ -431,15 +438,15 @@
     </main>
 
     <footer class="hints">
-      <span><b>{hint("A", "accept")}</b> Jugar</span>
-      <span><b>{hint("Y", "north")}</b> Detalle</span>
-      <span><b>{hint("X", "west")}</b> Menú</span>
-      {#if $view === "games"}<span><b>{hint("L3", "search")}</b> Buscar</span>{/if}
-      {#if $view === "games" || $view === "apps"}<span><b>{hint("R3", "filters")}</b> Filtros y orden</span>{/if}
-      <span><b>{hint("B", "back")}</b> Volver</span>
-      <span><b>{hint("LB", "tabLeft")}/{hint("RB", "tabRight")}</b> Pestañas</span>
-      <span><b>{hint("Menú", "menu")}</b> Configuración</span>
-      <span><b>{hint("Ver", "quick")}</b> Sistema</span>
+      <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
+      <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
+      <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
+      {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
+      {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
+      <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
+      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
+      <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
+      <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
     </footer>
   </div>
 
@@ -588,14 +595,17 @@
   }
   .hints {
     display: flex;
+    align-items: center;
     gap: 22px;
     padding: 12px var(--gm-pad);
     color: var(--gm-text-dim);
     font-size: 0.85rem;
     border-top: 1px solid var(--gm-surface);
   }
-  .hints b {
-    color: var(--gm-accent-2);
+  .hints span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .overlay-scrim {
