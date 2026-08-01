@@ -1,5 +1,12 @@
 <script>
   import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
+  import { inputSource } from "../stores/inputSource.js";
+  import { keyBindings, tokenForAction, labelForToken } from "../stores/keyBindings.js";
+
+  // Mismo patrón que el footer de App.svelte: en modo mando se ve el texto de
+  // siempre; con teclado/mouse activo, el atajo configurado para esa acción.
+  $: hint = (padText, action) =>
+    $inputSource === "gamepad" ? padText : ($keyBindings, labelForToken(tokenForAction(action)));
 
   const ROWS = [
     "1234567890".split(""),
@@ -43,11 +50,11 @@
 
     <!-- Pistas de atajos de mando -->
     <div class="kb-hints">
-      <span><b>A</b> Escribir</span>
-      <span><b>Y/△</b> Espacio</span>
-      <span><b>X/□</b> Borrar</span>
-      <span><b>LB/RB</b> Mayús</span>
-      <span><b>B</b> Cancelar</span>
+      <span><b>{hint("A", "accept")}</b> Escribir</span>
+      <span><b>{hint("Y/△", "north")}</b> Espacio</span>
+      <span><b>{hint("X/□", "west")}</b> Borrar</span>
+      <span><b>{hint("LB", "tabLeft")}/{hint("RB", "tabRight")}</b> Mayús</span>
+      <span><b>{hint("B", "back")}</b> Cancelar</span>
     </div>
   </div>
 </div>

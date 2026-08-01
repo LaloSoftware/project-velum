@@ -1,13 +1,24 @@
 <script>
   import { promptStyle } from "../stores/prompts.js";
+  import { inputSource } from "../stores/inputSource.js";
+  import { keyBindings, tokenForAction, labelForToken } from "../stores/keyBindings.js";
 
   // Indicador de botón. `token` = "A" | "B" | "LT" | "RT" | "Menú" | ...
-  // Hoy siempre muestra el texto; preparado para sustituir por iconos según
-  // `$promptStyle` (Xbox/PlayStation/genérico) más adelante.
+  // Si se da `action` (id de ACTIONS en stores/bindings.js) y la última fuente
+  // de input detectada es teclado/mouse, se muestra en su lugar el atajo de
+  // teclado/mouse configurado para esa acción — `token` sigue siendo lo que se
+  // ve en modo mando (sin cambios respecto a hoy).
+  // Preparado para sustituir por iconos según `$promptStyle` más adelante.
   export let token = "";
+  export let action = null;
+
+  $: display =
+    action && $inputSource === "keymouse"
+      ? ($keyBindings, labelForToken(tokenForAction(action)))
+      : token;
 </script>
 
-<span class="prompt" data-style={$promptStyle}>{token}</span>
+<span class="prompt" data-style={$promptStyle}>{display}</span>
 
 <style>
   .prompt {

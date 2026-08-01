@@ -16,6 +16,7 @@ import { get } from "svelte/store";
 import { isTauri } from "../ipc/index.js";
 import { resolve } from "../stores/bindings.js";
 import { resolveKeyBinding } from "../stores/keyBindings.js";
+import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
@@ -83,6 +84,7 @@ export async function initInput(dispatch) {
 // Procesa un evento crudo de mando (de gilrs o del navegador).
 function handleRaw(ev) {
   if (!ev) return;
+  inputSource.set("gamepad");
   // Los listeners crudos reciben press Y release (para detectar "mantener").
   if (ev.type === "button") {
     for (const cb of rawListeners) cb(ev.name, ev.pressed);
@@ -104,6 +106,7 @@ function handleRaw(ev) {
 // -------- 1. Teclado --------
 function initKeyboard() {
   window.addEventListener("keydown", (e) => {
+    inputSource.set("keymouse");
     const tag = e.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
 
@@ -135,6 +138,7 @@ function initKeyboard() {
 // -------- 1b. Mouse (botones ligados a acciones vía keyBindings.js) --------
 function initMouse() {
   window.addEventListener("mousedown", (e) => {
+    inputSource.set("keymouse");
     const tag = e.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     const token = `mouse:${e.button}`;

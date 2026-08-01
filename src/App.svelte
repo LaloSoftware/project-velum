@@ -4,7 +4,8 @@
   import { loadGames } from "./lib/stores/games.js";
   import { initProfiles } from "./lib/stores/profiles.js";
   import { initBindings } from "./lib/stores/bindings.js";
-  import { initKeyBindings } from "./lib/stores/keyBindings.js";
+  import { initKeyBindings, keyBindings, tokenForAction, labelForToken } from "./lib/stores/keyBindings.js";
+  import { inputSource } from "./lib/stores/inputSource.js";
   import { startup, initStartup } from "./lib/stores/startup.js";
   import { initLibrary, runSearch, cycleFilter, enterGames } from "./lib/stores/library.js";
   import { initSorting } from "./lib/stores/sorting.js";
@@ -96,6 +97,12 @@
   // (ver más abajo) para no quedar bajo su `zoom`, así que el estado se
   // refleja en <body> y no en .app para cubrirlos también.
   $: document.body.classList.toggle("cursor-hidden", hideCursor);
+
+  // Indicaciones del footer/menús: en modo mando se ve el texto de siempre
+  // (padText); en cuanto se detecta actividad de teclado/mouse, se muestra el
+  // atajo de teclado/mouse configurado para esa acción (stores/keyBindings.js).
+  $: hint = (padText, action) =>
+    $inputSource === "gamepad" ? padText : ($keyBindings, labelForToken(tokenForAction(action)));
 
   // ------- Interpretación de acciones de input según el contexto -------
   function dispatch(action) {
@@ -424,15 +431,15 @@
     </main>
 
     <footer class="hints">
-      <span><b>A</b> Jugar</span>
-      <span><b>Y</b> Detalle</span>
-      <span><b>X</b> Menú</span>
-      {#if $view === "games"}<span><b>L3</b> Buscar</span>{/if}
-      {#if $view === "games" || $view === "apps"}<span><b>R3</b> Filtros y orden</span>{/if}
-      <span><b>B</b> Volver</span>
-      <span><b>LB/RB</b> Pestañas</span>
-      <span><b>Menú</b> Configuración</span>
-      <span><b>Ver</b> Sistema</span>
+      <span><b>{hint("A", "accept")}</b> Jugar</span>
+      <span><b>{hint("Y", "north")}</b> Detalle</span>
+      <span><b>{hint("X", "west")}</b> Menú</span>
+      {#if $view === "games"}<span><b>{hint("L3", "search")}</b> Buscar</span>{/if}
+      {#if $view === "games" || $view === "apps"}<span><b>{hint("R3", "filters")}</b> Filtros y orden</span>{/if}
+      <span><b>{hint("B", "back")}</b> Volver</span>
+      <span><b>{hint("LB", "tabLeft")}/{hint("RB", "tabRight")}</b> Pestañas</span>
+      <span><b>{hint("Menú", "menu")}</b> Configuración</span>
+      <span><b>{hint("Ver", "quick")}</b> Sistema</span>
     </footer>
   </div>
 
