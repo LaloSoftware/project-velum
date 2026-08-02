@@ -38,10 +38,10 @@
     { id: "appearance", label: "Apariencia" },
     { id: "startup", label: "Configuración de inicio" },
     { id: "shortcuts", label: "Configuración de atajos" },
+    { id: "sounds", label: "Sonidos" },
+    { id: "buttonicons", label: "Iconos de botones" },
     { id: "filters", label: "Filtros de biblioteca" },
     { id: "hidden", label: "Ocultos" },
-    { id: "buttonicons", label: "Iconos de botones" },
-    { id: "sounds", label: "Sonidos" },
   ];
   let section = "appearance";
   let contentEl;

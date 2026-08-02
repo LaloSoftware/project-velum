@@ -65,6 +65,8 @@
   import * as nav from "./lib/input/navigation.js";
   import { initPlaytimes } from "./lib/stores/playtimes.js";
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
+  import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
+  import { initSoundtrackPlayer } from "./lib/stores/soundtrackPlayer.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
   import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
@@ -72,6 +74,7 @@
   import Home from "./lib/components/Home.svelte";
   import GamesView from "./lib/components/GamesView.svelte";
   import AppsView from "./lib/components/AppsView.svelte";
+  import MultimediaView from "./lib/components/MultimediaView.svelte";
   import ConfigMenu from "./lib/components/ConfigMenu.svelte";
   import QuickAccessMenu from "./lib/components/QuickAccessMenu.svelte";
   import GameDetail from "./lib/components/GameDetail.svelte";
@@ -91,6 +94,7 @@
     { id: "home", label: "Inicio" },
     { id: "games", label: "Juegos" },
     { id: "apps", label: "Aplicaciones" },
+    { id: "multimedia", label: "Multimedia" },
   ];
 
   let mainEl,
@@ -446,12 +450,14 @@
       initSounds(),
       initPlaytimes(),
       initArtOverrides(),
+      initSoundtrack(),
       initPlaySession(),
       initSorting(),
       initUiPrefs(),
     ]);
     await applyStartup();
     playStartupSound();
+    initSoundtrackPlayer();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
@@ -513,6 +519,8 @@
         <GamesView />
       {:else if $view === "apps"}
         <AppsView />
+      {:else if $view === "multimedia"}
+        <MultimediaView />
       {/if}
     </main>
 

@@ -1,5 +1,6 @@
 <script>
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
+  import { focusFirstIn } from "../input/navigation.js";
   import {
     ACTIONS,
     BUTTON_LABELS,
@@ -19,8 +20,6 @@
     clearCapture,
     setKeyCapture,
     clearKeyCapture,
-    setComboCapture,
-    clearComboCapture,
   } from "../input/index.js";
   import { showToast } from "../stores/ui.js";
   import { playConfig, updatePlayConfig } from "../stores/playsession.js";
@@ -33,11 +32,32 @@
   } from "../stores/customShortcuts.js";
   import Select from "./Select.svelte";
 
-  // listening: { action, mode: "km" | "pad" | "combo" } | null
+  // listening: { action, mode: "km" | "pad" } | null
   let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
-  let pendingShortcutName = ""; // nombre ya tecleado, mientras se captura el combo
+
+  // Atajo personalizado en edición: { name, mods: {ctrl,alt,shift,meta}, code } | null.
+  // Selector manual en vez de "pulsa la combinación en vivo": Windows no deja
+  // que la app reciba Alt (mensajes "de sistema") ni Win+tecla (atajos globales
+  // del shell) como una tecla normal, así que capturarlos en vivo no es fiable.
+  let newShortcut = null;
+  let newShortcutEl;
+
+  const MODIFIER_OPTS = [
+    { key: "ctrl", label: "Ctrl" },
+    { key: "alt", label: "Alt" },
+    { key: "shift", label: "Shift" },
+    { key: "meta", label: "Win" },
+  ];
+  const KEY_OPTIONS = [
+    ...Array.from({ length: 26 }, (_, i) => {
+      const letter = String.fromCharCode(65 + i);
+      return { value: `Key${letter}`, label: letter };
+    }),
+    ...Array.from({ length: 10 }, (_, i) => ({ value: `Digit${i}`, label: String(i) })),
+    ...Array.from({ length: 12 }, (_, i) => ({ value: `F${i + 1}`, label: `F${i + 1}` })),
+  ];
 
   const HOLD_OPTS = [
     { value: 500, label: "0.5 s" },
@@ -75,10 +95,8 @@
   function stopListening() {
     listening = null;
     capturingReturn = false;
-    pendingShortcutName = "";
     clearCapture();
     clearKeyCapture();
-    clearComboCapture();
     clearTimeout(timer);
   }
 
@@ -114,18 +132,35 @@
   async function addCustomShortcut() {
     const name = await openKeyboard("", "Nombre del atajo");
     if (!name) return;
-    pendingShortcutName = name;
-    listening = { action: null, mode: "combo" };
-    setComboCapture(({ modifiers, code }) => {
-      createCustomShortcut(name, modifiers, code);
-      stopListening();
-      showToast("Atajo personalizado creado");
-    });
-    clearTimeout(timer);
-    timer = setTimeout(stopListening, 6000);
+    newShortcut = {
+      name,
+      mods: { ctrl: false, alt: false, shift: false, meta: false },
+      code: KEY_OPTIONS[0].value,
+    };
+    await tick();
+    focusFirstIn(newShortcutEl);
   }
 
-  onDestroy(stopListening); // limpia captura si se cierra el menú
+  function toggleShortcutMod(key) {
+    newShortcut.mods[key] = !newShortcut.mods[key];
+    newShortcut = newShortcut; // fuerza reactividad (mutación de objeto anidado)
+  }
+
+  async function confirmShortcut() {
+    const modifiers = Object.keys(newShortcut.mods).filter((k) => newShortcut.mods[k]);
+    await createCustomShortcut(newShortcut.name, modifiers, newShortcut.code);
+    newShortcut = null;
+    showToast("Atajo personalizado creado");
+  }
+
+  function cancelShortcut() {
+    newShortcut = null;
+  }
+
+  onDestroy(() => {
+    stopListening();
+    newShortcut = null;
+  });
 </script>
 
 <section class="panel">
@@ -249,16 +284,49 @@
       <div class="big">
         {capturingReturn || listening.mode === "pad"
           ? "Pulsa un botón del mando…"
-          : listening.mode === "combo"
-            ? "Pulsa una combinación de teclas…"
-            : "Pulsa una tecla o botón del mouse…"}
+          : "Pulsa una tecla o botón del mouse…"}
       </div>
       <div class="dim">
         para «{capturingReturn
           ? "Volver al launcher"
-          : listening.mode === "combo"
-            ? pendingShortcutName
-            : ACTIONS.find((a) => a.id === listening.action)?.label}»
+          : ACTIONS.find((a) => a.id === listening.action)?.label}»
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if newShortcut}
+  <div class="capture">
+    <div class="box editor" data-focus-group="new-shortcut" bind:this={newShortcutEl}>
+      <div class="big">Nuevo atajo: «{newShortcut.name}»</div>
+      <div class="dim">Elige los modificadores y la tecla (no hace falta pulsarlos).</div>
+      <div class="mods">
+        {#each MODIFIER_OPTS as m (m.key)}
+          <button
+            class="chip"
+            class:on={newShortcut.mods[m.key]}
+            data-focusable
+            tabindex="-1"
+            on:click={() => toggleShortcutMod(m.key)}
+          >
+            {m.label}
+          </button>
+        {/each}
+      </div>
+      <div class="key-select">
+        <Select
+          value={newShortcut.code}
+          options={KEY_OPTIONS}
+          onChange={(v) => (newShortcut.code = v)}
+        />
+      </div>
+      <div class="editor-actions">
+        <button class="rebind" data-focusable tabindex="-1" on:click={cancelShortcut}>
+          Cancelar
+        </button>
+        <button class="rebind primary" data-focusable tabindex="-1" on:click={confirmShortcut}>
+          Guardar atajo
+        </button>
       </div>
     </div>
   </div>
@@ -410,5 +478,45 @@
     font-size: 1.5rem;
     font-weight: 800;
     margin-bottom: 8px;
+  }
+  .box.editor {
+    width: min(420px, 90vw);
+  }
+  .box.editor .dim {
+    margin: 0 0 18px;
+  }
+  .mods {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .chip {
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+    font-weight: 700;
+  }
+  .chip.on {
+    background: var(--gm-accent);
+    color: #06101f;
+  }
+  .chip:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .key-select {
+    margin-bottom: 20px;
+  }
+  .editor-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  .rebind.primary {
+    background: var(--gm-accent);
+    color: #06101f;
   }
 </style>

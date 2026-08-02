@@ -39,6 +39,7 @@ fn main() {
             launch::focus_game,
             launch::uninstall_game,
             assets::read_image,
+            assets::read_audio,
             config::load_config,
             config::save_config,
             shortcuts::run_shortcut,

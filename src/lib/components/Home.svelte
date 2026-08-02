@@ -1,7 +1,7 @@
 <script>
-  import { tick } from "svelte";
+  import { tick, onDestroy } from "svelte";
   import { recentGames, onlyGames } from "../stores/games.js";
-  import { goto } from "../stores/ui.js";
+  import { goto, homeFeaturedGame } from "../stores/ui.js";
   import {
     hideLibraryButton,
     homeCardCount,
@@ -25,6 +25,11 @@
   $: if (featured && !$recentGames.some((g) => g.id === featured.id)) {
     featured = $recentGames[0] || null;
   }
+  // Expone el destacado a stores/soundtrackPlayer.js (loop del soundtrack
+  // del juego enfocado en Inicio). Se limpia al desmontar Home (salir de la
+  // pestaña Inicio) para no dejar un valor obsoleto.
+  $: homeFeaturedGame.set(featured);
+  onDestroy(() => homeFeaturedGame.set(null));
 
   let bgUrl = null;
   let bgFor = null;

@@ -10,7 +10,13 @@ macOS; estas fases añaden la integración real y capacidades extra.
   Galaxy), usado en tarjeta/detalle/Inicio (card enfocada con hero + fondo hero de Inicio).
   `lastPlayed` de GOG (BD) + registro local de "reciente" al lanzar. Ver `docs/stores.md`.
 - **Pendiente**: `EpicSource`, vincular-cuenta (biblioteca completa vía Steam Web API),
-  iconos de apps, arte de GOG **offline**.
+  iconos de apps, arte de GOG **offline**. Clasificación de biblioteca: los soundtracks
+  descargados de Steam aparecen como un "juego" aparte, y algunos DLCs de GOG aparecen
+  duplicados (un registro en Juegos y otro en Aplicaciones) — encontrado probando con
+  bibliotecas reales en Windows. A evaluar: (a) detección automática por heurística
+  (nombre/tipo de producto en Steam/GOG) que los reclasifique a la sección "Multimedia"
+  en vez de Juego/Aplicación, o (b) opción manual (menú contextual/detalle) para marcar
+  un ítem como Multimedia/Aplicación/Juego y moverlo de sección.
 
 ## F3 — Ciclo lanzar / suspender
 - **Hecho (MVP)**: al lanzar, `PlayingOverlay` **bloquea el input** (evita instancias
