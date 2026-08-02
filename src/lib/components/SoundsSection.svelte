@@ -92,13 +92,16 @@
     max-width: 560px;
   }
   .toggle {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
     cursor: pointer;
-    min-width: 72px;
     padding: 12px 0;
     border-radius: 999px;
     background: var(--gm-surface-2);
     color: var(--gm-text-dim);
     font-weight: 800;
+    text-align: center;
   }
   .toggle.on {
     background: var(--gm-success);
