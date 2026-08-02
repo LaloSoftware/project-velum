@@ -2,6 +2,7 @@ import { derived, get } from "svelte/store";
 import { view, detailGame, homeFeaturedGame } from "./ui.js";
 import { soundtrack } from "./soundtrackOverrides.js";
 import { audioUrl } from "../util/asset.js";
+import { session } from "./playsession.js";
 
 /*
  * Reproduce en loop el soundtrack del juego "activo": el que se ve en
@@ -68,5 +69,17 @@ export function initSoundtrackPlayer() {
       return;
     }
     if (entry.path === currentPath && audioEl) audioEl.volume = entry.volume ?? 1;
+  });
+
+  // Al lanzar un juego el launcher se suspende (ver stores/playsession.js) para
+  // no consumir recursos mientras se juega; el soundtrack se pausa para no
+  // interferir con el audio del juego en ejecución, y se retoma donde iba al
+  // volver (no se reinicia).
+  session.subscribe((s) => {
+    if (s) {
+      audioEl?.pause();
+    } else if (audioEl) {
+      audioEl.play().catch(() => {});
+    }
   });
 }
