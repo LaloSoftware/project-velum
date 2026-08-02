@@ -19,7 +19,14 @@
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
-  import { soundSettings, initSounds, playNavPrimary, playNavBack } from "./lib/stores/sounds.js";
+  import {
+    soundSettings,
+    initSounds,
+    playNavPrimary,
+    playNavBack,
+    playMenuOpen,
+    playMenuClose,
+  } from "./lib/stores/sounds.js";
   import { soundFor } from "./lib/theming/sounds.js";
   import {
     view,
@@ -203,8 +210,12 @@
           $filtersModal
         )
           return;
-        playNavPrimary();
-        return $overlay === "config" ? closeOverlay() : openOverlay("config");
+        if ($overlay === "config") {
+          playMenuClose();
+          return closeOverlay();
+        }
+        playMenuOpen();
+        return openOverlay("config");
       case "quick":
         if (
           $vk.open ||
@@ -216,8 +227,12 @@
           $filtersModal
         )
           return;
-        playNavPrimary();
-        return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
+        if ($overlay === "qam") {
+          playMenuClose();
+          return closeOverlay();
+        }
+        playMenuOpen();
+        return openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
         playNavPrimary();

@@ -10,12 +10,17 @@ import { soundFor } from "../theming/sounds.js";
  *   - directional_0: "aceptar", moverse entre tarjetas/menús, cualquier
  *     movimiento direccional (up/down/left/right) y cambio de pestaña.
  *   - directional_1: cerrar modales al cancelar/retroceder (B / Esc).
- * Notificaciones (categoría "notifications") solo suena para errores por
- * ahora (ver stores/ui.js reportError) — no para toasts normales.
+ * Notificaciones (categoría "notifications"):
+ *   - notification_0: mensaje de error (ver stores/ui.js reportError) — no
+ *     para toasts normales.
+ *   - notification_1: abrir el menú de Configuración o el de Sistema (QAM).
+ *   - notification_2: cerrar cualquiera de esos dos menús.
  */
 const NAV_PRIMARY_SOUND = "directional_0";
 const NAV_BACK_SOUND = "directional_1";
 const NOTIFICATION_SOUND = "notification_0";
+const MENU_OPEN_SOUND = "notification_1";
+const MENU_CLOSE_SOUND = "notification_2";
 
 const DEFAULTS = {
   startupEnabled: true,
@@ -64,4 +69,14 @@ export function playNavBack() {
 export function playNotification() {
   const s = get(soundSettings);
   play("notifications", NOTIFICATION_SOUND, s.notificationsEnabled, s.notificationsVolume);
+}
+
+// Abrir/cerrar el menú de Configuración o el de Sistema (QAM).
+export function playMenuOpen() {
+  const s = get(soundSettings);
+  play("notifications", MENU_OPEN_SOUND, s.notificationsEnabled, s.notificationsVolume);
+}
+export function playMenuClose() {
+  const s = get(soundSettings);
+  play("notifications", MENU_CLOSE_SOUND, s.notificationsEnabled, s.notificationsVolume);
 }

@@ -41,7 +41,9 @@
   </div>
 
   <h2>Notificaciones</h2>
-  <p class="dim">Por ahora, solo cuando aparece un mensaje de error.</p>
+  <p class="dim">
+    Mensajes de error, y abrir/cerrar los menús de Configuración y Sistema.
+  </p>
   <button
     class="toggle"
     class:on={$soundSettings.notificationsEnabled}
