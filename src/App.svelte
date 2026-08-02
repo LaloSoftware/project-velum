@@ -66,6 +66,7 @@
   import { initPlaytimes } from "./lib/stores/playtimes.js";
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
   import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
+  import { initSoundtrackPlayer } from "./lib/stores/soundtrackPlayer.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
   import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
@@ -456,6 +457,7 @@
     ]);
     await applyStartup();
     playStartupSound();
+    initSoundtrackPlayer();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);

@@ -5,6 +5,10 @@ import { playNotification } from "./sounds.js";
 export const view = writable("home"); // home | games | apps | multimedia
 export const VIEWS = ["home", "games", "apps", "multimedia"];
 
+// Juego actualmente enfocado en la tira de Inicio (o null si Inicio no está
+// montado). Ver Home.svelte::onCardFocus y stores/soundtrackPlayer.js.
+export const homeFeaturedGame = writable(null);
+
 // Overlay activo por encima de la vista (menús tipo consola).
 export const overlay = writable(null); // null | 'config' | 'qam'
 
