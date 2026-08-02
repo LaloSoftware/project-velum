@@ -19,7 +19,7 @@
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
-  import { soundSettings, initSounds } from "./lib/stores/sounds.js";
+  import { soundSettings, initSounds, playNavPrimary, playNavBack } from "./lib/stores/sounds.js";
   import { soundFor } from "./lib/theming/sounds.js";
   import {
     view,
@@ -113,17 +113,22 @@
     }
     switch (action) {
       case "up":
+        playNavPrimary();
         if ($detailGame) return detailUp();
         return nav.move("up");
       case "down":
+        playNavPrimary();
         if ($detailGame) return detailDown();
         return nav.move("down");
       case "left":
       case "right":
+        playNavPrimary();
         return nav.move(action);
       case "accept":
+        playNavPrimary();
         return nav.activate();
       case "back":
+        playNavBack();
         return handleBack();
       case "north": // Y / Triángulo
         if ($vk.open) return vkType(" ");
@@ -168,9 +173,11 @@
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
+        playNavPrimary();
         return cycleTab(-1);
       case "tabRight":
         if ($vk.open) return vkToggleShift();
+        playNavPrimary();
         return cycleTab(1);
       case "search":
         if (inGames()) return runSearch();

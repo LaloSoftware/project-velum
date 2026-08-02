@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import { playNotification } from "./sounds.js";
 
 // Vista principal (pestañas superiores).
 export const view = writable("home"); // home | games | apps
@@ -48,6 +49,7 @@ export function reportError(err, ctx = "") {
   const stack = err && err.stack ? String(err.stack) : null;
   console.error(`[gm:error]${ctx ? ` (${ctx})` : ""}`, err);
   appError.set({ msg, ctx, stack });
+  playNotification();
 }
 export function clearAppError() {
   appError.set(null);
