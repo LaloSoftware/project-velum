@@ -417,8 +417,8 @@
     box-shadow: var(--gm-focus-ring);
   }
   .apply {
-    background: var(--gm-success);
-    color: #04140d;
+    background: var(--gm-accent);
+    color: #06101f;
   }
   .cancel {
     background: var(--gm-surface);
