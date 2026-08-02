@@ -118,10 +118,18 @@
   .krow {
     display: flex;
     gap: 8px;
-    justify-content: center;
   }
   .krow.bottom {
+    gap: 10px;
     margin-top: 8px;
+  }
+  /* Las teclas de letras/dígitos se reparten el ancho completo de la fila en
+     partes iguales (en vez de un ancho fijo centrado): así el primer y último
+     carácter de CUALQUIER fila —tenga 7, 9 o 10 teclas— tocan los bordes de
+     kb-grid, quedando pegados a Mayús/Borrar sin importar el largo de la fila. */
+  .krow:not(.bottom) > .key {
+    flex: 1;
+    min-width: 0;
   }
   .key {
     cursor: pointer;
@@ -143,7 +151,7 @@
     color: #06101f;
   }
   .key.side {
-    flex: 0 0 64px;
+    flex: 0 0 56px;
     height: auto;
     display: flex;
     flex-direction: column;
@@ -152,6 +160,17 @@
     gap: 2px;
     font-size: 0.85rem;
     line-height: 1.3;
+  }
+  /* Fila inferior: botones más angostos y con menos "pop" al enfocar (el
+     scale de .key:focus alcanza a empalmarse con el vecino cuando están tan
+     juntos), para que no se superpongan entre sí. */
+  .krow.bottom .key {
+    height: 46px;
+    font-size: 1rem;
+    padding: 0 10px;
+  }
+  .krow.bottom .key:focus {
+    transform: scale(1.03);
   }
   .space {
     flex: 2;
