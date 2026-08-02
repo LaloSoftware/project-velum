@@ -21,13 +21,15 @@ sysinfo = "0.32"
 base64 = "0.22"
 
 # Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
-# y traer al frente la ventana del juego en marcha (Win32).
+# traer al frente la ventana del juego en marcha (Win32), y simular atajos de
+# teclado del sistema (ver src/shortcuts.rs).
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 rusqlite = { version = "0.32", features = ["bundled"] }
 windows = { version = "0.58", features = [
   "Win32_Foundation",
   "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Input_KeyboardAndMouse",
 ] }
 
 [profile.release]

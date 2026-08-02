@@ -164,6 +164,23 @@ export async function systemSetBluetooth(enabled) {
   }
 }
 
+export async function systemShutdown() {
+  try {
+    return await invoke("system_shutdown");
+  } catch {
+    console.info("[mock] system_shutdown");
+  }
+}
+
+// Ejecuta un atajo de teclado a nivel de sistema operativo (ver stores/customShortcuts.js).
+export async function runShortcut(modifiers, code) {
+  try {
+    return await invoke("run_shortcut", { modifiers, code });
+  } catch {
+    console.info(`[mock] run_shortcut: ${modifiers.join("+")}+${code}`);
+  }
+}
+
 // Config (perfiles/temas). En web se guarda en localStorage.
 export async function loadConfig() {
   try {

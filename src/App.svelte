@@ -13,11 +13,20 @@
     uiScale,
     tabsAlign,
     clockPosition,
+    hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
-  import { soundSettings, initSounds } from "./lib/stores/sounds.js";
+  import {
+    soundSettings,
+    initSounds,
+    playNavPrimary,
+    playNavBack,
+    playMenuOpen,
+    playMenuClose,
+  } from "./lib/stores/sounds.js";
   import { soundFor } from "./lib/theming/sounds.js";
   import {
     view,
@@ -31,6 +40,8 @@
     DETAIL_SECTIONS,
     contextMenu,
     confirmDelete,
+    shutdownConfirm,
+    closeShutdownConfirm,
     popover,
     colorPicker,
     filtersModal,
@@ -54,6 +65,8 @@
   import * as nav from "./lib/input/navigation.js";
   import { initPlaytimes } from "./lib/stores/playtimes.js";
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
+  import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
+  import { initSoundtrackPlayer } from "./lib/stores/soundtrackPlayer.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
   import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
@@ -61,11 +74,13 @@
   import Home from "./lib/components/Home.svelte";
   import GamesView from "./lib/components/GamesView.svelte";
   import AppsView from "./lib/components/AppsView.svelte";
+  import MultimediaView from "./lib/components/MultimediaView.svelte";
   import ConfigMenu from "./lib/components/ConfigMenu.svelte";
   import QuickAccessMenu from "./lib/components/QuickAccessMenu.svelte";
   import GameDetail from "./lib/components/GameDetail.svelte";
   import CardContextMenu from "./lib/components/CardContextMenu.svelte";
   import ConfirmDelete from "./lib/components/ConfirmDelete.svelte";
+  import ShutdownConfirm from "./lib/components/ShutdownConfirm.svelte";
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
@@ -79,9 +94,19 @@
     { id: "home", label: "Inicio" },
     { id: "games", label: "Juegos" },
     { id: "apps", label: "Aplicaciones" },
+    { id: "multimedia", label: "Multimedia" },
   ];
 
-  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl, colorPickerEl, filtersEl;
+  let mainEl,
+    overlayEl,
+    detailEl,
+    vkEl,
+    contextEl,
+    confirmEl,
+    shutdownEl,
+    popoverEl,
+    colorPickerEl,
+    filtersEl;
   let now = new Date();
 
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
@@ -111,21 +136,27 @@
     }
     switch (action) {
       case "up":
+        playNavPrimary();
         if ($detailGame) return detailUp();
         return nav.move("up");
       case "down":
+        playNavPrimary();
         if ($detailGame) return detailDown();
         return nav.move("down");
       case "left":
       case "right":
+        playNavPrimary();
         return nav.move(action);
       case "accept":
+        playNavPrimary();
         return nav.activate();
       case "back":
+        playNavBack();
         return handleBack();
       case "north": // Y / Triángulo
         if ($vk.open) return vkType(" ");
-        return nav.secondary(); // abrir detalle en la tarjeta enfocada
+        playNavPrimary(); // abrir detalle en la tarjeta enfocada
+        return nav.secondary();
       case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
         if ($vk.open) return vkBackspace();
         if (
@@ -133,14 +164,26 @@
           $detailGame ||
           $contextMenu ||
           $confirmDelete ||
+          $shutdownConfirm ||
           $popover ||
           $colorPicker ||
           $filtersModal
         )
           return;
+        playNavPrimary();
         return nav.context();
       case "context": // menú contextual de tarjeta (atajo dedicado)
-        if ($vk.open || $overlay || $detailGame || $popover || $colorPicker || $filtersModal) return;
+        if (
+          $vk.open ||
+          $overlay ||
+          $detailGame ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
+          return;
+        playNavPrimary();
         return nav.context();
       case "filters": // R3: modal de filtros y orden (Juegos/Apps)
         if (
@@ -149,26 +192,58 @@
           $detailGame ||
           $contextMenu ||
           $confirmDelete ||
+          $shutdownConfirm ||
           $popover ||
           $colorPicker ||
           $filtersModal
         )
           return;
-        if ($view === "games" || $view === "apps") return openFilters($view);
+        if ($view === "games" || $view === "apps") {
+          playNavPrimary();
+          return openFilters($view);
+        }
         return;
       case "menu":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker || $filtersModal)
+        if (
+          $vk.open ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
           return;
-        return $overlay === "config" ? closeOverlay() : openOverlay("config");
+        if ($overlay === "config") {
+          playMenuClose();
+          return closeOverlay();
+        }
+        playMenuOpen();
+        return openOverlay("config");
       case "quick":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker || $filtersModal)
+        if (
+          $vk.open ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
           return;
-        return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
+        if ($overlay === "qam") {
+          playMenuClose();
+          return closeOverlay();
+        }
+        playMenuOpen();
+        return openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
+        playNavPrimary();
         return cycleTab(-1);
       case "tabRight":
         if ($vk.open) return vkToggleShift();
+        playNavPrimary();
         return cycleTab(1);
       case "search":
         if (inGames()) return runSearch();
@@ -177,6 +252,7 @@
         if (inGames()) return cycleFilter(-1);
         return;
       case "filterNext":
+        if ($vk.open) return vkDone(false);
         if (inGames()) return cycleFilter(1);
         return;
     }
@@ -191,6 +267,7 @@
       !$vk.open &&
       !$contextMenu &&
       !$confirmDelete &&
+      !$shutdownConfirm &&
       !$filtersModal
     );
   }
@@ -198,6 +275,7 @@
   function handleBack() {
     if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
+    if ($shutdownConfirm) return closeShutdownConfirm();
     if ($colorPicker) return closeColorPicker();
     if ($filtersModal) return closeFilters();
     if ($confirmDelete) return closeConfirm();
@@ -273,6 +351,7 @@
       $overlay ||
       $contextMenu ||
       $confirmDelete ||
+      $shutdownConfirm ||
       $popover ||
       $colorPicker ||
       $filtersModal
@@ -286,21 +365,23 @@
   // ------- Gestión del "scope" de navegación (capa activa) -------
   $: layerKey = $vk.open
     ? "vk"
-    : $colorPicker
-      ? "colorpicker"
-      : $filtersModal
-        ? "filters"
-      : $confirmDelete
-        ? "confirm"
-      : $popover
-        ? "popover"
-        : $contextMenu
-          ? "ctx:" + ($contextMenu.sub || "main")
-          : $detailGame
-            ? "detail"
-            : $overlay
-              ? "ov:" + $overlay
-              : "view:" + $view;
+    : $shutdownConfirm
+      ? "shutdown"
+      : $colorPicker
+        ? "colorpicker"
+        : $filtersModal
+          ? "filters"
+          : $confirmDelete
+            ? "confirm"
+            : $popover
+              ? "popover"
+              : $contextMenu
+                ? "ctx:" + ($contextMenu.sub || "main")
+                : $detailGame
+                  ? "detail"
+                  : $overlay
+                    ? "ov:" + $overlay
+                    : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -311,6 +392,7 @@
   async function scheduleScope() {
     await tick();
     if ($vk.open) nav.setScope(vkEl);
+    else if ($shutdownConfirm) nav.setScope(shutdownEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
     else if ($filtersModal) nav.setScope(filtersEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
@@ -362,17 +444,20 @@
       initStartup(),
       initLibrary(),
       initGroups(),
+      initCustomShortcuts(),
       initHidden(),
       initPrompts(),
       initSounds(),
       initPlaytimes(),
       initArtOverrides(),
+      initSoundtrack(),
       initPlaySession(),
       initSorting(),
       initUiPrefs(),
     ]);
     await applyStartup();
     playStartupSound();
+    initSoundtrackPlayer();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
@@ -434,20 +519,24 @@
         <GamesView />
       {:else if $view === "apps"}
         <AppsView />
+      {:else if $view === "multimedia"}
+        <MultimediaView />
       {/if}
     </main>
 
-    <footer class="hints">
-      <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
-      <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
-      <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
-      {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
-      {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
-      <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
-      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
-      <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
-      <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
-    </footer>
+    {#if !$hideFooter}
+      <footer class="hints">
+        <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
+        <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
+        <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
+        {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
+        {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
+        <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
+        <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
+        <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
+        <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
+      </footer>
+    {/if}
   </div>
 
   <!-- Overlay: Configuración / QAM -->
@@ -484,6 +573,13 @@
   {#if $confirmDelete}
     <div bind:this={confirmEl}>
       <ConfirmDelete />
+    </div>
+  {/if}
+
+  <!-- Confirmación de apagar el sistema -->
+  {#if $shutdownConfirm}
+    <div bind:this={shutdownEl}>
+      <ShutdownConfirm />
     </div>
   {/if}
 

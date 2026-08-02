@@ -1,5 +1,6 @@
 <script>
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
+  import { focusFirstIn } from "../input/navigation.js";
   import {
     ACTIONS,
     BUTTON_LABELS,
@@ -14,15 +15,49 @@
     tokenForAction,
     labelForToken,
   } from "../stores/keyBindings.js";
-  import { setCapture, clearCapture, setKeyCapture, clearKeyCapture } from "../input/index.js";
+  import {
+    setCapture,
+    clearCapture,
+    setKeyCapture,
+    clearKeyCapture,
+  } from "../input/index.js";
   import { showToast } from "../stores/ui.js";
   import { playConfig, updatePlayConfig } from "../stores/playsession.js";
+  import { openKeyboard } from "../stores/keyboard.js";
+  import {
+    customShortcuts,
+    displayLabel,
+    createCustomShortcut,
+    deleteCustomShortcut,
+  } from "../stores/customShortcuts.js";
   import Select from "./Select.svelte";
 
   // listening: { action, mode: "km" | "pad" } | null
   let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
+
+  // Atajo personalizado en edición: { name, mods: {ctrl,alt,shift,meta}, code } | null.
+  // Selector manual en vez de "pulsa la combinación en vivo": Windows no deja
+  // que la app reciba Alt (mensajes "de sistema") ni Win+tecla (atajos globales
+  // del shell) como una tecla normal, así que capturarlos en vivo no es fiable.
+  let newShortcut = null;
+  let newShortcutEl;
+
+  const MODIFIER_OPTS = [
+    { key: "ctrl", label: "Ctrl" },
+    { key: "alt", label: "Alt" },
+    { key: "shift", label: "Shift" },
+    { key: "meta", label: "Win" },
+  ];
+  const KEY_OPTIONS = [
+    ...Array.from({ length: 26 }, (_, i) => {
+      const letter = String.fromCharCode(65 + i);
+      return { value: `Key${letter}`, label: letter };
+    }),
+    ...Array.from({ length: 10 }, (_, i) => ({ value: `Digit${i}`, label: String(i) })),
+    ...Array.from({ length: 12 }, (_, i) => ({ value: `F${i + 1}`, label: `F${i + 1}` })),
+  ];
 
   const HOLD_OPTS = [
     { value: 500, label: "0.5 s" },
@@ -94,7 +129,38 @@
     showToast("Atajos restaurados por defecto");
   }
 
-  onDestroy(stopListening); // limpia captura si se cierra el menú
+  async function addCustomShortcut() {
+    const name = await openKeyboard("", "Nombre del atajo");
+    if (!name) return;
+    newShortcut = {
+      name,
+      mods: { ctrl: false, alt: false, shift: false, meta: false },
+      code: KEY_OPTIONS[0].value,
+    };
+    await tick();
+    focusFirstIn(newShortcutEl);
+  }
+
+  function toggleShortcutMod(key) {
+    newShortcut.mods[key] = !newShortcut.mods[key];
+    newShortcut = newShortcut; // fuerza reactividad (mutación de objeto anidado)
+  }
+
+  async function confirmShortcut() {
+    const modifiers = Object.keys(newShortcut.mods).filter((k) => newShortcut.mods[k]);
+    await createCustomShortcut(newShortcut.name, modifiers, newShortcut.code);
+    newShortcut = null;
+    showToast("Atajo personalizado creado");
+  }
+
+  function cancelShortcut() {
+    newShortcut = null;
+  }
+
+  onDestroy(() => {
+    stopListening();
+    newShortcut = null;
+  });
 </script>
 
 <section class="panel">
@@ -184,6 +250,32 @@
       </div>
     {/if}
   </div>
+
+  <h2 class="subhead">Atajos personalizados</h2>
+  <p class="dim">
+    Combinaciones de teclas del sistema operativo (ej. Alt+R para un overlay de
+    FPS/CPU) que podrás disparar desde el menú de sistema, en su sección "Atajos".
+    Algunas combinaciones (ej. Alt+Tab, Alt+F4) pueden estar reservadas por Windows.
+  </p>
+  <div class="rows">
+    {#each $customShortcuts as s (s.id)}
+      <div class="row">
+        <span class="label">{s.label}</span>
+        <span class="btn">{displayLabel(s)}</span>
+        <button
+          class="rebind danger"
+          data-focusable
+          tabindex="-1"
+          on:click={() => deleteCustomShortcut(s.id)}
+        >
+          Borrar
+        </button>
+      </div>
+    {/each}
+    <button class="add" data-focusable tabindex="-1" on:click={addCustomShortcut}>
+      + Agregar atajo
+    </button>
+  </div>
 </section>
 
 {#if listening || capturingReturn}
@@ -198,6 +290,43 @@
         para «{capturingReturn
           ? "Volver al launcher"
           : ACTIONS.find((a) => a.id === listening.action)?.label}»
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if newShortcut}
+  <div class="capture">
+    <div class="box editor" data-focus-group="new-shortcut" bind:this={newShortcutEl}>
+      <div class="big">Nuevo atajo: «{newShortcut.name}»</div>
+      <div class="dim">Elige los modificadores y la tecla (no hace falta pulsarlos).</div>
+      <div class="mods">
+        {#each MODIFIER_OPTS as m (m.key)}
+          <button
+            class="chip"
+            class:on={newShortcut.mods[m.key]}
+            data-focusable
+            tabindex="-1"
+            on:click={() => toggleShortcutMod(m.key)}
+          >
+            {m.label}
+          </button>
+        {/each}
+      </div>
+      <div class="key-select">
+        <Select
+          value={newShortcut.code}
+          options={KEY_OPTIONS}
+          onChange={(v) => (newShortcut.code = v)}
+        />
+      </div>
+      <div class="editor-actions">
+        <button class="rebind" data-focusable tabindex="-1" on:click={cancelShortcut}>
+          Cancelar
+        </button>
+        <button class="rebind primary" data-focusable tabindex="-1" on:click={confirmShortcut}>
+          Guardar atajo
+        </button>
       </div>
     </div>
   </div>
@@ -259,6 +388,22 @@
   }
   .rebind:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  .rebind.danger {
+    color: var(--gm-danger);
+  }
+  .add {
+    cursor: pointer;
+    padding: 12px 16px;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    text-align: center;
+  }
+  .add:focus {
+    box-shadow: var(--gm-focus-ring);
+    color: var(--gm-text);
   }
   .action-rows {
     margin: 22px 0;
@@ -333,5 +478,45 @@
     font-size: 1.5rem;
     font-weight: 800;
     margin-bottom: 8px;
+  }
+  .box.editor {
+    width: min(420px, 90vw);
+  }
+  .box.editor .dim {
+    margin: 0 0 18px;
+  }
+  .mods {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .chip {
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+    font-weight: 700;
+  }
+  .chip.on {
+    background: var(--gm-accent);
+    color: #06101f;
+  }
+  .chip:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .key-select {
+    margin-bottom: 20px;
+  }
+  .editor-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  .rebind.primary {
+    background: var(--gm-accent);
+    color: #06101f;
   }
 </style>

@@ -14,8 +14,10 @@
   import {
     hideCardText,
     hideLibraryButton,
+    hideFooter,
     setHideCardText,
     setHideLibraryButton,
+    setHideFooter,
     gameView,
     GAME_VIEW_FIELDS,
     setGameViewField,
@@ -32,6 +34,7 @@
     HOME_TEXT_FIELDS,
     setHomeTextHidden,
     setHomeTextValue,
+    setHomeTextMode,
     homeOrientation,
     HOME_ORIENTATION_OPTIONS,
     setHomeOrientation,
@@ -118,6 +121,9 @@
     await deleteProfile(active.id);
     showToast(`Perfil "${name}" eliminado`);
   }
+  function exportProfileCss() {
+    showToast("Exportar perfil CSS: próximamente");
+  }
 </script>
 
 <section class="settings">
@@ -149,6 +155,22 @@
       <span class="cf-cta">Personalizar</span>
     </button>
 
+    <h2>Escala de interfaz</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min={UI_SCALE_MIN}
+        max={UI_SCALE_MAX}
+        step={UI_SCALE_STEP}
+        value={$uiScale}
+        on:input={(e) => setUiScale(e.target.value)}
+      />
+      <span class="sizeval">{$uiScale.toFixed(2)}x</span>
+    </div>
+
     <h2>Tamaño de tarjeta (biblioteca)</h2>
     <div class="sizerow">
       <input
@@ -179,6 +201,101 @@
         on:input={pickCardSizeHome}
       />
       <span class="sizeval">{cardWHome}px</span>
+    </div>
+
+    <h2>Interfaz</h2>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">Ocultar textos de las tarjetas</span>
+        <button
+          class="toggle"
+          class:on={$hideCardText}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHideCardText(!$hideCardText)}
+        >
+          {$hideCardText ? "ON" : "OFF"}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">Ocultar botón «Ver biblioteca» (Inicio)</span>
+        <button
+          class="toggle"
+          class:on={$hideLibraryButton}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHideLibraryButton(!$hideLibraryButton)}
+        >
+          {$hideLibraryButton ? "ON" : "OFF"}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">Ocultar pie con guías de botones</span>
+        <button
+          class="toggle"
+          class:on={$hideFooter}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHideFooter(!$hideFooter)}
+        >
+          {$hideFooter ? "ON" : "OFF"}
+        </button>
+      </div>
+    </div>
+
+    <h2>Vista de juego</h2>
+    <p class="dim">Datos del juego que se muestran en el detalle (Jugar/Volver siempre visibles).</p>
+    <div class="rows">
+      {#each GAME_VIEW_FIELDS as f (f.key)}
+        <div class="row">
+          <span class="rlabel">{f.label}</span>
+          <button
+            class="toggle"
+            class:on={$gameView[f.key]}
+            data-focusable
+            tabindex="-1"
+            on:click={() => setGameViewField(f.key, !$gameView[f.key])}
+          >
+            {$gameView[f.key] ? "ON" : "OFF"}
+          </button>
+        </div>
+      {/each}
+    </div>
+
+    <h2>Inicio · Bienvenida</h2>
+    <p class="dim">
+      Título, subtítulo y encabezado "Reciente" de la pantalla de Inicio: cada uno se
+      puede ocultar o reemplazar por texto personalizado (texto vacío = por defecto).
+    </p>
+    <div class="rows">
+      {#each HOME_TEXT_FIELDS as f (f.key)}
+        <div class="row">
+          <span class="rlabel">{f.label}</span>
+          <button
+            class="chip"
+            data-focusable
+            tabindex="-1"
+            on:click={() =>
+              setHomeTextMode(f.key, $homeTexts[f.key]?.mode === "focus" ? "custom" : "focus")}
+          >
+            {$homeTexts[f.key]?.mode === "focus" ? "Juego en foco" : "Personalizado"}
+          </button>
+          {#if $homeTexts[f.key]?.mode !== "focus"}
+            <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
+              Editar texto
+            </button>
+          {/if}
+          <button
+            class="toggle"
+            class:on={!$homeTexts[f.key]?.hidden}
+            data-focusable
+            tabindex="-1"
+            on:click={() => setHomeTextHidden(f.key, !$homeTexts[f.key]?.hidden)}
+          >
+            {$homeTexts[f.key]?.hidden ? "OFF" : "ON"}
+          </button>
+        </div>
+      {/each}
     </div>
 
     <h2>Cantidad de tarjetas (Inicio)</h2>
@@ -246,23 +363,7 @@
       onChange={setClockPosition}
     />
 
-    <h2>Escala de interfaz</h2>
-    <div class="sizerow">
-      <input
-        type="range"
-        class="size-slider"
-        data-focusable
-        tabindex="-1"
-        min={UI_SCALE_MIN}
-        max={UI_SCALE_MAX}
-        step={UI_SCALE_STEP}
-        value={$uiScale}
-        on:input={(e) => setUiScale(e.target.value)}
-      />
-      <span class="sizeval">{$uiScale.toFixed(2)}x</span>
-    </div>
-
-    <h2>CSS externo (perfil)</h2>
+    <h2>Avanzado</h2>
     <p class="dim">
       Prueba de carga de CSS en runtime. En la app real cargarías un archivo .css;
       aquí se aplica un ejemplo que redefine tokens --gm-*.
@@ -274,80 +375,11 @@
       <button class="chip" data-focusable tabindex="-1" on:click={clearCss}>
         Limpiar personalización
       </button>
+      <button class="chip" data-focusable tabindex="-1" on:click={exportProfileCss}>
+        Exportar perfil CSS
+      </button>
     </div>
   {/if}
-
-  <h2>Interfaz</h2>
-  <div class="rows">
-    <div class="row">
-      <span class="rlabel">Ocultar textos de las tarjetas</span>
-      <button
-        class="toggle"
-        class:on={$hideCardText}
-        data-focusable
-        tabindex="-1"
-        on:click={() => setHideCardText(!$hideCardText)}
-      >
-        {$hideCardText ? "ON" : "OFF"}
-      </button>
-    </div>
-    <div class="row">
-      <span class="rlabel">Ocultar botón «Ver biblioteca» (Inicio)</span>
-      <button
-        class="toggle"
-        class:on={$hideLibraryButton}
-        data-focusable
-        tabindex="-1"
-        on:click={() => setHideLibraryButton(!$hideLibraryButton)}
-      >
-        {$hideLibraryButton ? "ON" : "OFF"}
-      </button>
-    </div>
-  </div>
-
-  <h2>Inicio · Bienvenida</h2>
-  <p class="dim">
-    Título, subtítulo y encabezado "Reciente" de la pantalla de Inicio: cada uno se
-    puede ocultar o reemplazar por texto personalizado (texto vacío = por defecto).
-  </p>
-  <div class="rows">
-    {#each HOME_TEXT_FIELDS as f (f.key)}
-      <div class="row">
-        <span class="rlabel">{f.label}</span>
-        <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
-          Editar texto
-        </button>
-        <button
-          class="toggle"
-          class:on={!$homeTexts[f.key]?.hidden}
-          data-focusable
-          tabindex="-1"
-          on:click={() => setHomeTextHidden(f.key, !$homeTexts[f.key]?.hidden)}
-        >
-          {$homeTexts[f.key]?.hidden ? "OFF" : "ON"}
-        </button>
-      </div>
-    {/each}
-  </div>
-
-  <h2>Vista de juego</h2>
-  <p class="dim">Datos del juego que se muestran en el detalle (Jugar/Volver siempre visibles).</p>
-  <div class="rows">
-    {#each GAME_VIEW_FIELDS as f (f.key)}
-      <div class="row">
-        <span class="rlabel">{f.label}</span>
-        <button
-          class="toggle"
-          class:on={$gameView[f.key]}
-          data-focusable
-          tabindex="-1"
-          on:click={() => setGameViewField(f.key, !$gameView[f.key])}
-        >
-          {$gameView[f.key] ? "ON" : "OFF"}
-        </button>
-      </div>
-    {/each}
-  </div>
 </section>
 
 <style>

@@ -40,3 +40,25 @@ export async function imageUrl(path) {
   cache.set(path, p); // evita peticiones duplicadas mientras está en vuelo
   return p;
 }
+
+// Igual que imageUrl(), para el soundtrack por-juego (ver stores/soundtrackOverrides.js).
+const audioCache = new Map();
+
+export async function audioUrl(path) {
+  if (!path) return null;
+  if (READY.test(path)) return path;
+  if (!isTauri) return null;
+  if (audioCache.has(path)) return audioCache.get(path);
+
+  const p = invoke("read_audio", { path })
+    .then((uri) => {
+      audioCache.set(path, uri);
+      return uri;
+    })
+    .catch(() => {
+      audioCache.set(path, null);
+      return null;
+    });
+  audioCache.set(path, p);
+  return p;
+}

@@ -21,25 +21,36 @@
       {$vk.value || " "}<span class="caret">|</span>
     </div>
 
-    {#each ROWS as row}
-      <div class="krow">
-        {#each row as ch}
-          <button class="key" data-focusable tabindex="-1" on:click={() => press(ch)}>
-            {$vk.shift ? ch.toUpperCase() : ch}
-          </button>
+    <div class="kb-main">
+      <button
+        class="key side"
+        class:on={$vk.shift}
+        data-focusable
+        tabindex="-1"
+        on:click={vkToggleShift}
+      >
+        ⇧<br />Mayús
+      </button>
+      <div class="kb-grid">
+        {#each ROWS as row}
+          <div class="krow">
+            {#each row as ch}
+              <button class="key" data-focusable tabindex="-1" on:click={() => press(ch)}>
+                {$vk.shift ? ch.toUpperCase() : ch}
+              </button>
+            {/each}
+          </div>
         {/each}
       </div>
-    {/each}
-
-    <div class="krow">
-      <button class="key wide" class:on={$vk.shift} data-focusable tabindex="-1" on:click={vkToggleShift}>⇧ Mayús</button>
-      <button class="key space" data-focusable data-focus-default tabindex="-1" on:click={() => vkType(" ")}>Espacio</button>
-      <button class="key wide" data-focusable tabindex="-1" on:click={vkBackspace}>⌫ Borrar</button>
+      <button class="key side" data-focusable tabindex="-1" on:click={vkBackspace}>
+        ⌫<br />Borrar
+      </button>
     </div>
 
-    <div class="krow">
-      <button class="key done" data-focusable tabindex="-1" on:click={() => vkDone(false)}>✓ Aceptar</button>
+    <div class="krow bottom">
       <button class="key cancel" data-focusable tabindex="-1" on:click={() => vkDone(true)}>✕ Cancelar</button>
+      <button class="key space" data-focusable data-focus-default tabindex="-1" on:click={() => vkType(" ")}>Espacio</button>
+      <button class="key done" data-focusable tabindex="-1" on:click={() => vkDone(false)}>✓ Aceptar</button>
     </div>
 
     <!-- Pistas de atajos de mando -->
@@ -49,6 +60,7 @@
       <span><ButtonPrompt token="X/□" button="west" action="west" /> Borrar</span>
       <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Mayús</span>
       <span><ButtonPrompt token="B" button="east" action="back" /> Cancelar</span>
+      <span><ButtonPrompt token="RT" button="rt" action="filterNext" /> Enviar</span>
     </div>
   </div>
 </div>
@@ -91,11 +103,33 @@
       opacity: 0;
     }
   }
+  .kb-main {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .kb-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
   .krow {
     display: flex;
     gap: 8px;
-    justify-content: center;
+  }
+  .krow.bottom {
+    gap: 10px;
     margin-top: 8px;
+  }
+  /* Las teclas de letras/dígitos se reparten el ancho completo de la fila en
+     partes iguales (en vez de un ancho fijo centrado): así el primer y último
+     carácter de CUALQUIER fila —tenga 7, 9 o 10 teclas— tocan los bordes de
+     kb-grid, quedando pegados a Mayús/Borrar sin importar el largo de la fila. */
+  .krow:not(.bottom) > .key {
+    flex: 1;
+    min-width: 0;
   }
   .key {
     cursor: pointer;
@@ -116,16 +150,34 @@
     background: var(--gm-accent);
     color: #06101f;
   }
-  .space {
-    flex: 1;
-    max-width: 320px;
+  .key.side {
+    flex: 0 0 56px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.85rem;
+    line-height: 1.3;
   }
-  .wide {
-    min-width: 120px;
+  /* Fila inferior: botones más angostos y con menos "pop" al enfocar (el
+     scale de .key:focus alcanza a empalmarse con el vecino cuando están tan
+     juntos), para que no se superpongan entre sí. */
+  .krow.bottom .key {
+    height: 46px;
+    font-size: 1rem;
+    padding: 0 10px;
+  }
+  .krow.bottom .key:focus {
+    transform: scale(1.03);
+  }
+  .space {
+    flex: 2;
   }
   .done {
-    background: var(--gm-success);
-    color: #04140d;
+    background: var(--gm-accent);
+    color: #06101f;
     flex: 1;
   }
   .cancel {

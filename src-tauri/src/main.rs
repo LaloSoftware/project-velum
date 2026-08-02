@@ -6,6 +6,7 @@ mod config;
 mod input;
 mod launch;
 mod library;
+mod shortcuts;
 mod system;
 
 use std::sync::Mutex;
@@ -33,12 +34,15 @@ fn main() {
             system::system_set_output_device,
             system::system_set_wifi,
             system::system_set_bluetooth,
+            system::system_shutdown,
             launch::launch_game,
             launch::focus_game,
             launch::uninstall_game,
             assets::read_image,
+            assets::read_audio,
             config::load_config,
             config::save_config,
+            shortcuts::run_shortcut,
         ])
         .run(tauri::generate_context!())
         .expect("error al arrancar la aplicación Tauri");

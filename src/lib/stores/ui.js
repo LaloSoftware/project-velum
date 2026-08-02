@@ -1,8 +1,13 @@
 import { writable } from "svelte/store";
+import { playNotification } from "./sounds.js";
 
 // Vista principal (pestañas superiores).
-export const view = writable("home"); // home | games | apps
-export const VIEWS = ["home", "games", "apps"];
+export const view = writable("home"); // home | games | apps | multimedia
+export const VIEWS = ["home", "games", "apps", "multimedia"];
+
+// Juego actualmente enfocado en la tira de Inicio (o null si Inicio no está
+// montado). Ver Home.svelte::onCardFocus y stores/soundtrackPlayer.js.
+export const homeFeaturedGame = writable(null);
 
 // Overlay activo por encima de la vista (menús tipo consola).
 export const overlay = writable(null); // null | 'config' | 'qam'
@@ -15,13 +20,16 @@ export const detailAnchor = writable(null);
 // ¿El menú inferior del detalle está desplegado?
 export const detailExpanded = writable(false);
 // Sección visible del menú del detalle (paginado): índice en DETAIL_SECTIONS.
-export const DETAIL_SECTIONS = ["grupos", "imagenes", "vista"];
+export const DETAIL_SECTIONS = ["grupos", "imagenes", "soundtrack", "vista"];
 export const detailSection = writable(0);
 
 // Menú contextual de tarjeta: { game, rect, anchor } (capa flotante).
 export const contextMenu = writable(null);
 // Confirmación de eliminar/desinstalar: { game } (capa modal).
 export const confirmDelete = writable(null);
+
+// Confirmación de apagar el sistema (capa modal), desde Configuración.
+export const shutdownConfirm = writable(false);
 // Desplegable de un <Select>: { options, value, anchor, onSelect } (capa flotante).
 export const popover = writable(null);
 
@@ -48,6 +56,7 @@ export function reportError(err, ctx = "") {
   const stack = err && err.stack ? String(err.stack) : null;
   console.error(`[gm:error]${ctx ? ` (${ctx})` : ""}`, err);
   appError.set({ msg, ctx, stack });
+  playNotification();
 }
 export function clearAppError() {
   appError.set(null);
@@ -98,6 +107,12 @@ export function openConfirm(game) {
 }
 export function closeConfirm() {
   confirmDelete.set(null);
+}
+export function openShutdownConfirm() {
+  shutdownConfirm.set(true);
+}
+export function closeShutdownConfirm() {
+  shutdownConfirm.set(false);
 }
 export function openPopover(cfg) {
   popover.set(cfg);

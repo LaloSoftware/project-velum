@@ -1,5 +1,6 @@
 import { writable, get } from "svelte/store";
-import { loadAppConfig, patchAppConfig } from "./appConfig.js";
+import { loadAppConfig } from "./appConfig.js";
+import { activeProfileId, getActive, updateActive, initProfiles } from "./profiles.js";
 
 /*
  * Preferencias visuales de interfaz (persistentes):
@@ -26,6 +27,7 @@ function defaultGameView() {
 
 export const hideCardText = writable(false);
 export const hideLibraryButton = writable(false);
+export const hideFooter = writable(false);
 export const gameView = writable(defaultGameView());
 
 // Escala de interfaz: multiplicador continuo sobre el tamaño original de
@@ -60,10 +62,19 @@ export const HOME_TEXT_FIELDS = [
 ];
 
 function defaultHomeTexts() {
-  return Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, { hidden: false, text: "" }]));
+  return Object.fromEntries(
+    HOME_TEXT_FIELDS.map((f) => [f.key, { hidden: false, text: "", mode: "custom" }])
+  );
 }
 
 export const homeTexts = writable(defaultHomeTexts());
+
+// Modo de un texto de Inicio: "custom" (texto fijo editado por el usuario) o
+// "focus" (muestra en vivo el título del juego actualmente en foco en la tira).
+export const HOME_TEXT_MODES = [
+  { value: "custom", label: "Personalizado" },
+  { value: "focus", label: "Juego en foco" },
+];
 
 // Orientación de la tira "Reciente" de Inicio.
 export const HOME_ORIENTATION_OPTIONS = [
@@ -129,138 +140,214 @@ export const CLOCK_POSITION_OPTIONS = [
 ];
 export const clockPosition = writable("right");
 
-export async function initUiPrefs() {
-  const cfg = await loadAppConfig();
-  if (cfg && cfg.ui) {
-    if (typeof cfg.ui.hideCardText === "boolean") hideCardText.set(cfg.ui.hideCardText);
-    if (typeof cfg.ui.hideLibraryButton === "boolean")
-      hideLibraryButton.set(cfg.ui.hideLibraryButton);
-  }
-  if (cfg && cfg.gameView) gameView.set({ ...defaultGameView(), ...cfg.gameView });
-  if (cfg && cfg.uiScale != null) {
-    const raw = typeof cfg.uiScale === "string" ? LEGACY_UI_SCALE[cfg.uiScale] : cfg.uiScale;
-    if (Number.isFinite(raw)) {
-      uiScale.set(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, raw)));
-    }
-  }
-  if (cfg && Number.isFinite(cfg.homeCardCount)) {
-    homeCardCount.set(
-      Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, cfg.homeCardCount))
-    );
-  }
-  if (cfg && cfg.homeTexts) {
-    homeTexts.set({ ...defaultHomeTexts(), ...cfg.homeTexts });
-  }
-  if (cfg && HOME_ORIENTATION_OPTIONS.some((o) => o.value === cfg.homeOrientation)) {
-    homeOrientation.set(cfg.homeOrientation);
-  }
-  if (cfg && HOME_SCROLL_MODE_OPTIONS.some((o) => o.value === cfg.homeScrollMode)) {
-    homeScrollMode.set(cfg.homeScrollMode);
-  }
-  if (cfg && HOME_READING_OPTIONS.some((o) => o.value === cfg.homeReading)) {
-    homeReading.set(cfg.homeReading);
-  }
-  // homePosition: migra el formato legado (top/bottom) de instalaciones previas.
-  if (cfg && "homePosition" in cfg) {
-    const LEGACY_POSITION_MAP = { top: "start", bottom: "end", center: "center" };
-    const migrated = LEGACY_POSITION_MAP[cfg.homePosition] ?? cfg.homePosition;
-    if (HOME_POSITION_VALUES.includes(migrated)) {
-      homePosition.set(migrated);
-      if (migrated !== cfg.homePosition) await patchAppConfig({ homePosition: migrated });
-    }
-  }
-  if (cfg && HOME_POSITION_VALUES.includes(cfg.homeCardAlign)) {
-    homeCardAlign.set(cfg.homeCardAlign);
-  }
-  if (cfg && TABS_ALIGN_OPTIONS.some((o) => o.value === cfg.tabsAlign)) {
-    tabsAlign.set(cfg.tabsAlign);
-  }
-  if (cfg && CLOCK_POSITION_OPTIONS.some((o) => o.value === cfg.clockPosition)) {
-    clockPosition.set(cfg.clockPosition);
-  }
+// Cada campo de "Apariencia" se guarda en el perfil activo (ver profiles.js).
+// syncFromActiveProfile() aplica los campos del perfil activo a estos stores
+// (con sus defaults si el perfil todavía no los tiene) y se reejecuta sola
+// cada vez que cambia el perfil activo (setActive/createProfile/deleteProfile).
+let _syncedProfileId = null;
+
+function syncFromActiveProfile() {
+  const p = getActive();
+  if (!p) return;
+  _syncedProfileId = p.id;
+  hideCardText.set(p.hideCardText ?? false);
+  hideLibraryButton.set(p.hideLibraryButton ?? false);
+  hideFooter.set(p.hideFooter ?? false);
+  gameView.set(p.gameView ? { ...defaultGameView(), ...p.gameView } : defaultGameView());
+  uiScale.set(
+    Number.isFinite(p.uiScale)
+      ? Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, p.uiScale))
+      : UI_SCALE_DEFAULT
+  );
+  homeCardCount.set(
+    Number.isFinite(p.homeCardCount)
+      ? Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, p.homeCardCount))
+      : HOME_CARD_COUNT_DEFAULT
+  );
+  homeTexts.set(p.homeTexts ? { ...defaultHomeTexts(), ...p.homeTexts } : defaultHomeTexts());
+  homeOrientation.set(
+    HOME_ORIENTATION_OPTIONS.some((o) => o.value === p.homeOrientation)
+      ? p.homeOrientation
+      : "horizontal"
+  );
+  homeScrollMode.set(
+    HOME_SCROLL_MODE_OPTIONS.some((o) => o.value === p.homeScrollMode) ? p.homeScrollMode : "scroll"
+  );
+  homeReading.set(
+    HOME_READING_OPTIONS.some((o) => o.value === p.homeReading) ? p.homeReading : "natural"
+  );
+  homePosition.set(HOME_POSITION_VALUES.includes(p.homePosition) ? p.homePosition : "start");
+  homeCardAlign.set(HOME_POSITION_VALUES.includes(p.homeCardAlign) ? p.homeCardAlign : "start");
+  tabsAlign.set(TABS_ALIGN_OPTIONS.some((o) => o.value === p.tabsAlign) ? p.tabsAlign : "left");
+  clockPosition.set(
+    CLOCK_POSITION_OPTIONS.some((o) => o.value === p.clockPosition) ? p.clockPosition : "right"
+  );
 }
 
-async function persist() {
-  await patchAppConfig({
-    ui: { hideCardText: get(hideCardText), hideLibraryButton: get(hideLibraryButton) },
-  });
+activeProfileId.subscribe((id) => {
+  if (id && id !== _syncedProfileId) syncFromActiveProfile();
+});
+
+export async function initUiPrefs() {
+  await initProfiles();
+  const active = getActive();
+  const cfg = await loadAppConfig();
+
+  // Migración única: adopta claves legado top-level de appConfig (de antes de
+  // que "Apariencia" viviera en el perfil) al perfil activo, solo para los
+  // campos que el perfil todavía no tiene.
+  if (active && cfg) {
+    const migrate = {};
+    if (cfg.ui) {
+      if (active.hideCardText === undefined && typeof cfg.ui.hideCardText === "boolean")
+        migrate.hideCardText = cfg.ui.hideCardText;
+      if (active.hideLibraryButton === undefined && typeof cfg.ui.hideLibraryButton === "boolean")
+        migrate.hideLibraryButton = cfg.ui.hideLibraryButton;
+      if (active.hideFooter === undefined && typeof cfg.ui.hideFooter === "boolean")
+        migrate.hideFooter = cfg.ui.hideFooter;
+    }
+    if (active.gameView === undefined && cfg.gameView) migrate.gameView = cfg.gameView;
+    if (active.uiScale === undefined && cfg.uiScale != null) {
+      const raw = typeof cfg.uiScale === "string" ? LEGACY_UI_SCALE[cfg.uiScale] : cfg.uiScale;
+      if (Number.isFinite(raw)) migrate.uiScale = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, raw));
+    }
+    if (active.homeCardCount === undefined && Number.isFinite(cfg.homeCardCount)) {
+      migrate.homeCardCount = Math.min(
+        HOME_CARD_COUNT_MAX,
+        Math.max(HOME_CARD_COUNT_MIN, cfg.homeCardCount)
+      );
+    }
+    if (active.homeTexts === undefined && cfg.homeTexts) migrate.homeTexts = cfg.homeTexts;
+    if (
+      active.homeOrientation === undefined &&
+      HOME_ORIENTATION_OPTIONS.some((o) => o.value === cfg.homeOrientation)
+    ) {
+      migrate.homeOrientation = cfg.homeOrientation;
+    }
+    if (
+      active.homeScrollMode === undefined &&
+      HOME_SCROLL_MODE_OPTIONS.some((o) => o.value === cfg.homeScrollMode)
+    ) {
+      migrate.homeScrollMode = cfg.homeScrollMode;
+    }
+    if (
+      active.homeReading === undefined &&
+      HOME_READING_OPTIONS.some((o) => o.value === cfg.homeReading)
+    ) {
+      migrate.homeReading = cfg.homeReading;
+    }
+    // homePosition: migra también el formato legado (top/bottom) de instalaciones previas.
+    if (active.homePosition === undefined && "homePosition" in cfg) {
+      const LEGACY_POSITION_MAP = { top: "start", bottom: "end", center: "center" };
+      const migrated = LEGACY_POSITION_MAP[cfg.homePosition] ?? cfg.homePosition;
+      if (HOME_POSITION_VALUES.includes(migrated)) migrate.homePosition = migrated;
+    }
+    if (active.homeCardAlign === undefined && HOME_POSITION_VALUES.includes(cfg.homeCardAlign)) {
+      migrate.homeCardAlign = cfg.homeCardAlign;
+    }
+    if (active.tabsAlign === undefined && TABS_ALIGN_OPTIONS.some((o) => o.value === cfg.tabsAlign)) {
+      migrate.tabsAlign = cfg.tabsAlign;
+    }
+    if (
+      active.clockPosition === undefined &&
+      CLOCK_POSITION_OPTIONS.some((o) => o.value === cfg.clockPosition)
+    ) {
+      migrate.clockPosition = cfg.clockPosition;
+    }
+    if (Object.keys(migrate).length) await updateActive(migrate);
+  }
+
+  syncFromActiveProfile();
 }
 
 export async function setHideCardText(v) {
-  hideCardText.set(!!v);
-  await persist();
+  const val = !!v;
+  hideCardText.set(val);
+  await updateActive({ hideCardText: val });
 }
 export async function setHideLibraryButton(v) {
-  hideLibraryButton.set(!!v);
-  await persist();
+  const val = !!v;
+  hideLibraryButton.set(val);
+  await updateActive({ hideLibraryButton: val });
+}
+export async function setHideFooter(v) {
+  const val = !!v;
+  hideFooter.set(val);
+  await updateActive({ hideFooter: val });
 }
 
 export async function setGameViewField(key, v) {
   gameView.update((g) => ({ ...g, [key]: !!v }));
-  await patchAppConfig({ gameView: get(gameView) });
+  await updateActive({ gameView: get(gameView) });
 }
 
 export async function setUiScale(v) {
   const n = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, Number(v)));
   if (!Number.isFinite(n)) return;
   uiScale.set(n);
-  await patchAppConfig({ uiScale: n });
+  await updateActive({ uiScale: n });
 }
 
 export async function setHomeCardCount(n) {
   const v = Math.min(HOME_CARD_COUNT_MAX, Math.max(HOME_CARD_COUNT_MIN, Number(n) || HOME_CARD_COUNT_DEFAULT));
   homeCardCount.set(v);
-  await patchAppConfig({ homeCardCount: v });
+  await updateActive({ homeCardCount: v });
 }
 
 export async function setHomeTextHidden(key, v) {
   homeTexts.update((t) => ({ ...t, [key]: { ...t[key], hidden: !!v } }));
-  await patchAppConfig({ homeTexts: get(homeTexts) });
+  await updateActive({ homeTexts: get(homeTexts) });
 }
 
 export async function setHomeTextValue(key, v) {
   homeTexts.update((t) => ({ ...t, [key]: { ...t[key], text: v } }));
-  await patchAppConfig({ homeTexts: get(homeTexts) });
+  await updateActive({ homeTexts: get(homeTexts) });
+}
+
+export async function setHomeTextMode(key, mode) {
+  if (!HOME_TEXT_MODES.some((m) => m.value === mode)) return;
+  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], mode } }));
+  await updateActive({ homeTexts: get(homeTexts) });
 }
 
 export async function setHomeOrientation(v) {
   if (!HOME_ORIENTATION_OPTIONS.some((o) => o.value === v)) return;
   homeOrientation.set(v);
-  await patchAppConfig({ homeOrientation: v });
+  await updateActive({ homeOrientation: v });
 }
 
 export async function setHomeScrollMode(v) {
   if (!HOME_SCROLL_MODE_OPTIONS.some((o) => o.value === v)) return;
   homeScrollMode.set(v);
-  await patchAppConfig({ homeScrollMode: v });
+  await updateActive({ homeScrollMode: v });
 }
 
 export async function setHomeReading(v) {
   if (!HOME_READING_OPTIONS.some((o) => o.value === v)) return;
   homeReading.set(v);
-  await patchAppConfig({ homeReading: v });
+  await updateActive({ homeReading: v });
 }
 
 export async function setHomePosition(v) {
   if (!HOME_POSITION_VALUES.includes(v)) return;
   homePosition.set(v);
-  await patchAppConfig({ homePosition: v });
+  await updateActive({ homePosition: v });
 }
 
 export async function setHomeCardAlign(v) {
   if (!HOME_POSITION_VALUES.includes(v)) return;
   homeCardAlign.set(v);
-  await patchAppConfig({ homeCardAlign: v });
+  await updateActive({ homeCardAlign: v });
 }
 
 export async function setTabsAlign(v) {
   if (!TABS_ALIGN_OPTIONS.some((o) => o.value === v)) return;
   tabsAlign.set(v);
-  await patchAppConfig({ tabsAlign: v });
+  await updateActive({ tabsAlign: v });
 }
 
 export async function setClockPosition(v) {
   if (!CLOCK_POSITION_OPTIONS.some((o) => o.value === v)) return;
   clockPosition.set(v);
-  await patchAppConfig({ clockPosition: v });
+  await updateActive({ clockPosition: v });
 }
