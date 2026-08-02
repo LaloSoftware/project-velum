@@ -73,3 +73,20 @@ pub fn system_set_wifi(enabled: bool, state: State<SystemHandle>) {
 pub fn system_set_bluetooth(enabled: bool, state: State<SystemHandle>) {
     state.0.lock().unwrap().set_bluetooth(enabled);
 }
+
+/// Apaga el PC (botón "Apagar" de Configuración, tras confirmar en el modal).
+/// Acción disparar-y-olvidar sin estado — no pasa por `SystemControls`/`SystemHandle`,
+/// mismo criterio que `shortcuts::run_shortcut` o `launch::focus_window_under`.
+#[tauri::command]
+pub fn system_shutdown() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        std::process::Command::new("shutdown")
+            .args(["/s", "/t", "0"])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(windows))]
+    println!("[mock] system_shutdown");
+    Ok(())
+}

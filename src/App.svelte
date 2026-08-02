@@ -33,6 +33,8 @@
     DETAIL_SECTIONS,
     contextMenu,
     confirmDelete,
+    shutdownConfirm,
+    closeShutdownConfirm,
     popover,
     colorPicker,
     filtersModal,
@@ -68,6 +70,7 @@
   import GameDetail from "./lib/components/GameDetail.svelte";
   import CardContextMenu from "./lib/components/CardContextMenu.svelte";
   import ConfirmDelete from "./lib/components/ConfirmDelete.svelte";
+  import ShutdownConfirm from "./lib/components/ShutdownConfirm.svelte";
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
@@ -83,7 +86,16 @@
     { id: "apps", label: "Aplicaciones" },
   ];
 
-  let mainEl, overlayEl, detailEl, vkEl, contextEl, confirmEl, popoverEl, colorPickerEl, filtersEl;
+  let mainEl,
+    overlayEl,
+    detailEl,
+    vkEl,
+    contextEl,
+    confirmEl,
+    shutdownEl,
+    popoverEl,
+    colorPickerEl,
+    filtersEl;
   let now = new Date();
 
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
@@ -132,7 +144,8 @@
         return handleBack();
       case "north": // Y / Triángulo
         if ($vk.open) return vkType(" ");
-        return nav.secondary(); // abrir detalle en la tarjeta enfocada
+        playNavPrimary(); // abrir detalle en la tarjeta enfocada
+        return nav.secondary();
       case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
         if ($vk.open) return vkBackspace();
         if (
@@ -140,14 +153,26 @@
           $detailGame ||
           $contextMenu ||
           $confirmDelete ||
+          $shutdownConfirm ||
           $popover ||
           $colorPicker ||
           $filtersModal
         )
           return;
+        playNavPrimary();
         return nav.context();
       case "context": // menú contextual de tarjeta (atajo dedicado)
-        if ($vk.open || $overlay || $detailGame || $popover || $colorPicker || $filtersModal) return;
+        if (
+          $vk.open ||
+          $overlay ||
+          $detailGame ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
+          return;
+        playNavPrimary();
         return nav.context();
       case "filters": // R3: modal de filtros y orden (Juegos/Apps)
         if (
@@ -156,20 +181,42 @@
           $detailGame ||
           $contextMenu ||
           $confirmDelete ||
+          $shutdownConfirm ||
           $popover ||
           $colorPicker ||
           $filtersModal
         )
           return;
-        if ($view === "games" || $view === "apps") return openFilters($view);
+        if ($view === "games" || $view === "apps") {
+          playNavPrimary();
+          return openFilters($view);
+        }
         return;
       case "menu":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker || $filtersModal)
+        if (
+          $vk.open ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
           return;
+        playNavPrimary();
         return $overlay === "config" ? closeOverlay() : openOverlay("config");
       case "quick":
-        if ($vk.open || $contextMenu || $confirmDelete || $popover || $colorPicker || $filtersModal)
+        if (
+          $vk.open ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
           return;
+        playNavPrimary();
         return $overlay === "qam" ? closeOverlay() : openOverlay("qam");
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
@@ -201,6 +248,7 @@
       !$vk.open &&
       !$contextMenu &&
       !$confirmDelete &&
+      !$shutdownConfirm &&
       !$filtersModal
     );
   }
@@ -208,6 +256,7 @@
   function handleBack() {
     if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
+    if ($shutdownConfirm) return closeShutdownConfirm();
     if ($colorPicker) return closeColorPicker();
     if ($filtersModal) return closeFilters();
     if ($confirmDelete) return closeConfirm();
@@ -283,6 +332,7 @@
       $overlay ||
       $contextMenu ||
       $confirmDelete ||
+      $shutdownConfirm ||
       $popover ||
       $colorPicker ||
       $filtersModal
@@ -296,21 +346,23 @@
   // ------- Gestión del "scope" de navegación (capa activa) -------
   $: layerKey = $vk.open
     ? "vk"
-    : $colorPicker
-      ? "colorpicker"
-      : $filtersModal
-        ? "filters"
-      : $confirmDelete
-        ? "confirm"
-      : $popover
-        ? "popover"
-        : $contextMenu
-          ? "ctx:" + ($contextMenu.sub || "main")
-          : $detailGame
-            ? "detail"
-            : $overlay
-              ? "ov:" + $overlay
-              : "view:" + $view;
+    : $shutdownConfirm
+      ? "shutdown"
+      : $colorPicker
+        ? "colorpicker"
+        : $filtersModal
+          ? "filters"
+          : $confirmDelete
+            ? "confirm"
+            : $popover
+              ? "popover"
+              : $contextMenu
+                ? "ctx:" + ($contextMenu.sub || "main")
+                : $detailGame
+                  ? "detail"
+                  : $overlay
+                    ? "ov:" + $overlay
+                    : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -321,6 +373,7 @@
   async function scheduleScope() {
     await tick();
     if ($vk.open) nav.setScope(vkEl);
+    else if ($shutdownConfirm) nav.setScope(shutdownEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
     else if ($filtersModal) nav.setScope(filtersEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
@@ -497,6 +550,13 @@
   {#if $confirmDelete}
     <div bind:this={confirmEl}>
       <ConfirmDelete />
+    </div>
+  {/if}
+
+  <!-- Confirmación de apagar el sistema -->
+  {#if $shutdownConfirm}
+    <div bind:this={shutdownEl}>
+      <ShutdownConfirm />
     </div>
   {/if}
 

@@ -16,6 +16,7 @@
     closeApp,
   } from "../util/window.js";
   import { focusFirstIn } from "../input/navigation.js";
+  import { openShutdownConfirm } from "../stores/ui.js";
 
   let fullscreen = false;
   onMount(async () => {
@@ -111,6 +112,9 @@
     {/if}
     <button class="pbtn danger" data-focusable tabindex="-1" on:click={closeApp}>
       <span class="ico">⏻</span> Cerrar
+    </button>
+    <button class="pbtn danger" data-focusable tabindex="-1" on:click={openShutdownConfirm}>
+      <span class="ico">⏼</span> Apagar
     </button>
   </div>
 </div>

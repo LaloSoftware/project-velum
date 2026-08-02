@@ -23,6 +23,9 @@ export const detailSection = writable(0);
 export const contextMenu = writable(null);
 // Confirmación de eliminar/desinstalar: { game } (capa modal).
 export const confirmDelete = writable(null);
+
+// Confirmación de apagar el sistema (capa modal), desde Configuración.
+export const shutdownConfirm = writable(false);
 // Desplegable de un <Select>: { options, value, anchor, onSelect } (capa flotante).
 export const popover = writable(null);
 
@@ -100,6 +103,12 @@ export function openConfirm(game) {
 }
 export function closeConfirm() {
   confirmDelete.set(null);
+}
+export function openShutdownConfirm() {
+  shutdownConfirm.set(true);
+}
+export function closeShutdownConfirm() {
+  shutdownConfirm.set(false);
 }
 export function openPopover(cfg) {
   popover.set(cfg);

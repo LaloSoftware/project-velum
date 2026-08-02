@@ -34,6 +34,7 @@ fn main() {
             system::system_set_output_device,
             system::system_set_wifi,
             system::system_set_bluetooth,
+            system::system_shutdown,
             launch::launch_game,
             launch::focus_game,
             launch::uninstall_game,

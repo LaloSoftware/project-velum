@@ -164,6 +164,14 @@ export async function systemSetBluetooth(enabled) {
   }
 }
 
+export async function systemShutdown() {
+  try {
+    return await invoke("system_shutdown");
+  } catch {
+    console.info("[mock] system_shutdown");
+  }
+}
+
 // Ejecuta un atajo de teclado a nivel de sistema operativo (ver stores/customShortcuts.js).
 export async function runShortcut(modifiers, code) {
   try {
