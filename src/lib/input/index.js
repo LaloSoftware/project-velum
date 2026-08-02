@@ -48,7 +48,6 @@ const PAD_BUTTON_RAW = {
 let dispatchFn = () => {};
 let captureFn = null; // modo "pulsa un botón de mando" para remapear
 let keyCaptureFn = null; // modo "pulsa tecla o botón de mouse" para remapear teclado/mouse
-let comboCaptureFn = null; // modo "pulsa una combinación de teclas" (atajos de SO)
 
 export function setCapture(fn) {
   captureFn = fn;
@@ -62,25 +61,6 @@ export function setKeyCapture(fn) {
 export function clearKeyCapture() {
   keyCaptureFn = null;
 }
-export function setComboCapture(fn) {
-  comboCaptureFn = fn;
-}
-export function clearComboCapture() {
-  comboCaptureFn = null;
-}
-
-// Códigos de teclas modificadoras: se ignoran solas mientras se captura un
-// combo (se espera a la primera tecla NO modificadora para cerrar la captura).
-const MODIFIER_CODES = new Set([
-  "ControlLeft",
-  "ControlRight",
-  "AltLeft",
-  "AltRight",
-  "ShiftLeft",
-  "ShiftRight",
-  "MetaLeft",
-  "MetaRight",
-]);
 
 // Listeners de eventos CRUDOS de botón (press y release), independientes del
 // dispatch. Los usa la sesión de juego para el botón de "volver" (pulsar/mantener).
@@ -129,23 +109,6 @@ function initKeyboard() {
     inputSource.set("keymouse");
     const tag = e.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-    // Modo captura de combo (atajos de SO personalizados): junta los
-    // modificadores sostenidos + la primera tecla no-modificadora.
-    if (comboCaptureFn) {
-      e.preventDefault(); // también en modificadores sueltos (evita que Alt robe foco al SO)
-      if (MODIFIER_CODES.has(e.code)) return;
-      comboCaptureFn({
-        modifiers: [
-          ...(e.ctrlKey ? ["ctrl"] : []),
-          ...(e.altKey ? ["alt"] : []),
-          ...(e.shiftKey ? ["shift"] : []),
-          ...(e.metaKey ? ["meta"] : []),
-        ],
-        code: e.code,
-      });
-      return;
-    }
 
     // Modo remapeo de teclado/mouse: captura la tecla y no dispatch normal.
     if (keyCaptureFn) {
