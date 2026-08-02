@@ -72,6 +72,7 @@
   import Home from "./lib/components/Home.svelte";
   import GamesView from "./lib/components/GamesView.svelte";
   import AppsView from "./lib/components/AppsView.svelte";
+  import MultimediaView from "./lib/components/MultimediaView.svelte";
   import ConfigMenu from "./lib/components/ConfigMenu.svelte";
   import QuickAccessMenu from "./lib/components/QuickAccessMenu.svelte";
   import GameDetail from "./lib/components/GameDetail.svelte";
@@ -91,6 +92,7 @@
     { id: "home", label: "Inicio" },
     { id: "games", label: "Juegos" },
     { id: "apps", label: "Aplicaciones" },
+    { id: "multimedia", label: "Multimedia" },
   ];
 
   let mainEl,
@@ -513,6 +515,8 @@
         <GamesView />
       {:else if $view === "apps"}
         <AppsView />
+      {:else if $view === "multimedia"}
+        <MultimediaView />
       {/if}
     </main>
 

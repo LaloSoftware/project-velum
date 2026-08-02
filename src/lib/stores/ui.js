@@ -2,8 +2,8 @@ import { writable } from "svelte/store";
 import { playNotification } from "./sounds.js";
 
 // Vista principal (pestañas superiores).
-export const view = writable("home"); // home | games | apps
-export const VIEWS = ["home", "games", "apps"];
+export const view = writable("home"); // home | games | apps | multimedia
+export const VIEWS = ["home", "games", "apps", "multimedia"];
 
 // Overlay activo por encima de la vista (menús tipo consola).
 export const overlay = writable(null); // null | 'config' | 'qam'
