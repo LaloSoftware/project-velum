@@ -7,11 +7,19 @@
  */
 
 let scopeEl = null;
+let lastGroup = null; // último data-focus-group con foco real, para el fallback de abajo
+
+// Grupo de foco (región) al que pertenece un elemento, o null.
+function groupOf(el) {
+  return el.closest?.("[data-focus-group]") || null;
+}
 
 function focusEl(el) {
   if (!el) return;
   el.focus({ preventScroll: true });
   el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  const g = groupOf(el);
+  if (g) lastGroup = g;
 }
 
 function isVisible(el) {
@@ -43,13 +51,20 @@ export function focusFirst() {
   if (!list.length) return;
   const cur = current();
   if (cur && list.includes(cur)) return;
+  // Preferir el último grupo activo (si sigue presente) antes que el
+  // data-focus-default global — evita "rebotar" a la sidebar cuando se
+  // pierde el foco por un desmontaje ajeno (ej. cerrar el teclado virtual)
+  // estando ya dentro de una sección/panel específico.
+  if (lastGroup && document.contains(lastGroup)) {
+    const inLastGroup = list.filter((e) => groupOf(e) === lastGroup);
+    if (inLastGroup.length) {
+      const def = inLastGroup.find((e) => e.hasAttribute("data-focus-default")) || inLastGroup[0];
+      focusEl(def);
+      return;
+    }
+  }
   const def = list.find((e) => e.hasAttribute("data-focus-default")) || list[0];
   focusEl(def);
-}
-
-// Grupo de foco (región) al que pertenece un elemento, o null.
-function groupOf(el) {
-  return el.closest?.("[data-focus-group]") || null;
 }
 
 // Mejor candidato en la dirección `dir` dentro de una lista (por geometría).
