@@ -65,6 +65,7 @@
   import * as nav from "./lib/input/navigation.js";
   import { initPlaytimes } from "./lib/stores/playtimes.js";
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
+  import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
   import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
@@ -448,6 +449,7 @@
       initSounds(),
       initPlaytimes(),
       initArtOverrides(),
+      initSoundtrack(),
       initPlaySession(),
       initSorting(),
       initUiPrefs(),

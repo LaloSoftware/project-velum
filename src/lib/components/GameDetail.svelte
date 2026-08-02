@@ -7,6 +7,7 @@
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import { gameView, GAME_VIEW_FIELDS, setGameViewField } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
+  import SoundtrackEditor from "./SoundtrackEditor.svelte";
 
   export let game;
 
@@ -137,7 +138,7 @@
       <div class="menu-main">
         <!-- Indicador vertical de posición (arriba/abajo = otras secciones) -->
         <div class="section-dots" aria-hidden="true">
-          {#each ["Grupos", "Imágenes", "Vista de juego"] as _, i}
+          {#each ["Grupos", "Imágenes", "Soundtrack", "Vista de juego"] as _, i}
             <span class="dot" class:active={$detailSection === i}></span>
           {/each}
         </div>
@@ -167,6 +168,11 @@
             <section class="msection" data-focus-group="imagenes" data-detail-top>
               <h3>Imágenes</h3>
               <ArtEditor {game} />
+            </section>
+          {:else if $detailSection === 2}
+            <section class="msection" data-focus-group="soundtrack" data-detail-top>
+              <h3>Soundtrack</h3>
+              <SoundtrackEditor {game} />
             </section>
           {:else}
             <section class="msection" data-focus-group="vista-juego" data-detail-top>

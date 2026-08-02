@@ -16,7 +16,7 @@ export const detailAnchor = writable(null);
 // ¿El menú inferior del detalle está desplegado?
 export const detailExpanded = writable(false);
 // Sección visible del menú del detalle (paginado): índice en DETAIL_SECTIONS.
-export const DETAIL_SECTIONS = ["grupos", "imagenes", "vista"];
+export const DETAIL_SECTIONS = ["grupos", "imagenes", "soundtrack", "vista"];
 export const detailSection = writable(0);
 
 // Menú contextual de tarjeta: { game, rect, anchor } (capa flotante).
