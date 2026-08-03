@@ -163,7 +163,7 @@
     options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
     onChange={setActive}
   />
-  <div class="profile-actions">
+  <div class="profile-actions" data-focus-group="profile-actions" data-focus-wrap="horizontal">
     <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
     <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
   </div>
@@ -315,7 +315,7 @@
     </p>
     <div class="rows">
       {#each HOME_TEXT_FIELDS as f (f.key)}
-        <div class="row">
+        <div class="row" data-focus-group="home-text-{f.key}" data-focus-wrap="horizontal">
           <span class="rlabel">{f.label}</span>
           <button
             class="chip"
@@ -414,7 +414,7 @@
       Prueba de carga de CSS en runtime. En la app real cargarías un archivo .css;
       aquí se aplica un ejemplo que redefine tokens --gm-*.
     </p>
-    <div class="chips">
+    <div class="chips" data-focus-group="advanced-chips" data-focus-wrap="horizontal">
       <button class="chip" data-focusable tabindex="-1" on:click={loadExternalCss}>
         Aplicar CSS de ejemplo
       </button>
