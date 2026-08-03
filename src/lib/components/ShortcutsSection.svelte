@@ -131,14 +131,10 @@
     timer = setTimeout(stopListening, 6000);
   }
 
-  async function resetPad() {
+  async function reset() {
     await resetBindings();
-    showToast("Atajos de mando restaurados por defecto");
-  }
-
-  async function resetKm() {
     await resetKeyBindings();
-    showToast("Atajos de teclado/mouse restaurados por defecto");
+    showToast("Atajos restaurados por defecto");
   }
 
   // Botones (etiqueta) asignados a un combo, en el orden guardado.
@@ -208,43 +204,15 @@
 <section class="panel">
   <h1>Configuración de atajos</h1>
   <p class="dim">
-    Cada acción se asigna por separado en mando y en teclado/mouse — ambos atajos
-    conviven a la vez. Las direcciones (d-pad/stick/flechas) son fijas.
+    Asigna qué tecla/botón de mouse y qué botón de mando ejecutan cada acción — ambos
+    atajos conviven a la vez. Las direcciones (d-pad/stick/flechas) son fijas.
   </p>
 
-  <h2 class="subhead">Navegación (mando)</h2>
-  <div class="action-rows">
-    <div class="action-row head">
-      <span></span>
-      <span class="col-title">Control</span>
-    </div>
-    {#each ACTIONS as a}
-      <div class="action-row">
-        <span class="label">{a.label}</span>
-        <div
-          class="cell"
-          class:unset={labelFor(a.id) === "—"}
-          class:listening={listening?.action === a.id && listening?.mode === "pad"}
-          data-focusable
-          tabindex="-1"
-          role="button"
-          on:click={() => rebindPad(a.id)}
-          on:keydown={(e) => (e.key === "Enter" || e.key === " ") && rebindPad(a.id)}
-        >
-          {labelFor(a.id)}
-        </div>
-      </div>
-    {/each}
-  </div>
-  <button class="reset" data-focusable tabindex="-1" on:click={resetPad}>
-    Restaurar por defecto
-  </button>
-
-  <h2 class="subhead">Teclado y mouse</h2>
   <div class="action-rows">
     <div class="action-row head">
       <span></span>
       <span class="col-title">Teclado / Mouse</span>
+      <span class="col-title">Control</span>
     </div>
     {#each ACTIONS as a}
       <div class="action-row">
@@ -261,10 +229,23 @@
         >
           {kmLabelFor(a.id)}
         </div>
+        <div
+          class="cell"
+          class:unset={labelFor(a.id) === "—"}
+          class:listening={listening?.action === a.id && listening?.mode === "pad"}
+          data-focusable
+          tabindex="-1"
+          role="button"
+          on:click={() => rebindPad(a.id)}
+          on:keydown={(e) => (e.key === "Enter" || e.key === " ") && rebindPad(a.id)}
+        >
+          {labelFor(a.id)}
+        </div>
       </div>
     {/each}
   </div>
-  <button class="reset" data-focusable tabindex="-1" on:click={resetKm}>
+
+  <button class="reset" data-focusable tabindex="-1" on:click={reset}>
     Restaurar por defecto
   </button>
 
@@ -558,7 +539,7 @@
   }
   .action-row {
     display: grid;
-    grid-template-columns: 1fr 170px;
+    grid-template-columns: 1fr 170px 170px;
     align-items: center;
     gap: 14px;
     background: var(--gm-surface);
