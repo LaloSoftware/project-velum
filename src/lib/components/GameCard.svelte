@@ -188,7 +188,10 @@
     padding: 3px 8px;
     border-radius: 999px;
     background: rgba(8, 10, 14, 0.85);
-    color: var(--gm-text);
+    /* Fijo, no var(--gm-text): el chip flota sobre la carátula con fondo oscuro
+       fijo (no tematizado), así que su texto tampoco debe seguir el tema —
+       en temas claros --gm-text se vuelve oscuro y quedaría ilegible aquí. */
+    color: #fff;
   }
   .title {
     margin-top: 8px;
