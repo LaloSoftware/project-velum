@@ -85,6 +85,27 @@ elemento en el extremo opuesto del mismo eje (wrap), con prioridad sobre el cruc
 región. Lo usa la tira "Reciente" de Inicio cuando su modo de recorrido es "scroll
 infinito" (ver `stores/uiprefs.js` → `homeScrollMode`, `Home.svelte`).
 
+**Cuidado con anidar `data-focus-group`** dentro de otro grupo que ya cubre esa misma
+zona (p. ej. dentro del `panel` de Configuración): `groupOf()` usa `closest()`, así que
+solo ve el grupo *más cercano* al elemento enfocado. Un subgrupo nuevo hace que sus
+elementos queden fuera del `inGroup` del grupo exterior, y el fallback a `outGroup`
+trata *todo* lo que está fuera del subgrupo como una sola bolsa (mezclando otras
+regiones peer como `side`/`power`, no solo "el resto del panel"). Si un elemento
+concreto es difícil de alcanzar por geometría (un clúster de botones angosto entre dos
+controles de ancho completo, por ejemplo), es más seguro resolverlo con
+espaciado/layout (ver `.profile-block` en `Settings.svelte`) que con un grupo anidado.
+
+### Sliders (`<input type="range">`)
+
+A diferencia del resto de focosables, un slider necesita **entrar en modo edición**
+antes de que izquierda/derecha cambien su valor — así arriba/abajo pueden seguir
+recorriendo el resto del menú sin tocarlo por accidente. Aceptar sobre un slider
+enfocado activa el modo (anillo verde vía la clase `.range-editing`, ver `app.css`);
+mientras está activo, izquierda/derecha ajustan el valor y arriba/abajo no hacen nada.
+Aceptar de nuevo lo desactiva y el slider vuelve a navegar como cualquier otro
+focosable. Es una directiva global (`navigation.js`, funciones `move()`/`activate()`)
+que cubre todos los sliders de la app sin tocar cada componente.
+
 ## Teclado virtual
 
 `src/lib/components/VirtualKeyboard.svelte` + `stores/keyboard.js`. Se abre con
