@@ -108,7 +108,11 @@ function initKeyboard() {
   window.addEventListener("keydown", (e) => {
     inputSource.set("keymouse");
     const tag = e.target?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    // Los <input type="range"> son focosables de la navegación (ver
+    // navigation.js) y no aceptan texto — deben seguir el dispatch normal
+    // como cualquier otro control, no el bypass de "se está escribiendo".
+    const isRange = tag === "INPUT" && e.target.type === "range";
+    if ((tag === "INPUT" && !isRange) || tag === "TEXTAREA") return;
 
     // Modo remapeo de teclado/mouse: captura la tecla y no dispatch normal.
     if (keyCaptureFn) {

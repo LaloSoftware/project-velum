@@ -8,6 +8,12 @@
 
 let scopeEl = null;
 let lastGroup = null; // último data-focus-group con foco real, para el fallback de abajo
+let editingRange = null; // <input type="range"> en "modo edición" (ver activate())
+
+function stopEditingRange() {
+  if (editingRange) editingRange.classList.remove("range-editing");
+  editingRange = null;
+}
 
 // Grupo de foco (región) al que pertenece un elemento, o null.
 function groupOf(el) {
@@ -16,6 +22,7 @@ function groupOf(el) {
 
 function focusEl(el) {
   if (!el) return;
+  if (editingRange && editingRange !== el) stopEditingRange();
   el.focus({ preventScroll: true });
   el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   const g = groupOf(el);
@@ -42,6 +49,7 @@ function current() {
 }
 
 export function setScope(el) {
+  stopEditingRange();
   scopeEl = el || null;
   focusFirst();
 }
@@ -135,9 +143,13 @@ function adjustRange(el, dir) {
 }
 
 export function move(dir) {
-  const cur0 = current();
-  if (cur0?.tagName === "INPUT" && cur0.type === "range" && (dir === "left" || dir === "right")) {
-    return adjustRange(cur0, dir);
+  // Con un range en modo edición (ver activate()), izquierda/derecha ajustan
+  // su valor y arriba/abajo no hacen nada — la única salida es volver a
+  // pulsar Aceptar. Fuera de modo edición, un range navega como cualquier
+  // otro focosable (no se toca su valor al pasar por él).
+  if (editingRange) {
+    if (dir === "left" || dir === "right") adjustRange(editingRange, dir);
+    return;
   }
 
   const list = focusables();
@@ -175,7 +187,17 @@ export function move(dir) {
 
 export function activate() {
   const cur = current();
-  if (cur) cur.click();
+  if (!cur) return;
+  if (cur.tagName === "INPUT" && cur.type === "range") {
+    if (editingRange === cur) {
+      stopEditingRange();
+    } else {
+      editingRange = cur;
+      cur.classList.add("range-editing");
+    }
+    return;
+  }
+  cur.click();
 }
 
 // Acción secundaria (North / Y·Triángulo): dispara un evento custom `gmdetail`

@@ -116,6 +116,18 @@ body {
   box-shadow: var(--gm-focus-ring);
 }
 
+/* Modo edición de un <input type="range"> (ver navigation.js activate()):
+   Aceptar lo activa/desactiva; mientras está activo, izquierda/derecha
+   ajustan el valor. Anillo distinto del foco normal para que se note que
+   el mando ya no navega, sino que está ajustando el valor. Selector con
+   suficiente especificidad para ganarle al box-shadow :focus de cada
+   componente sin tener que tocarlos uno por uno. */
+input[type="range"].range-editing:focus {
+  box-shadow:
+    0 0 0 2px var(--gm-success),
+    0 0 16px 3px color-mix(in srgb, var(--gm-success) 55%, transparent);
+}
+
 button {
   font: inherit;
   color: inherit;
