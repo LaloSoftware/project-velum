@@ -158,14 +158,16 @@
   <h1>Ajustes · Apariencia</h1>
 
   <h2>Perfil activo</h2>
-  <Select
-    value={$activeProfileId}
-    options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
-    onChange={setActive}
-  />
-  <div class="profile-actions" data-focus-group="profile-actions" data-focus-wrap="horizontal">
-    <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
-    <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
+  <div class="profile-block">
+    <Select
+      value={$activeProfileId}
+      options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
+      onChange={setActive}
+    />
+    <div class="profile-actions">
+      <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
+      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
+    </div>
   </div>
 
   {#if active}
@@ -315,7 +317,7 @@
     </p>
     <div class="rows">
       {#each HOME_TEXT_FIELDS as f (f.key)}
-        <div class="row" data-focus-group="home-text-{f.key}" data-focus-wrap="horizontal">
+        <div class="row">
           <span class="rlabel">{f.label}</span>
           <button
             class="chip"
@@ -414,7 +416,7 @@
       Prueba de carga de CSS en runtime. En la app real cargarías un archivo .css;
       aquí se aplica un ejemplo que redefine tokens --gm-*.
     </p>
-    <div class="chips" data-focus-group="advanced-chips" data-focus-wrap="horizontal">
+    <div class="chips">
       <button class="chip" data-focusable tabindex="-1" on:click={loadExternalCss}>
         Aplicar CSS de ejemplo
       </button>
@@ -496,11 +498,22 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
+  .profile-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px;
+    /* Aire extra antes del siguiente control: sin esto, "abajo" desde el
+       Select de arriba compite en geometría contra el próximo Select (más
+       lejos pero perfectamente alineado en X) y se salta estos botones. */
+    margin-bottom: 64px;
+  }
   .profile-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 10px;
   }
   .colorfield {
     display: flex;
