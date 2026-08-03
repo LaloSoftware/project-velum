@@ -114,6 +114,13 @@ export function openShutdownConfirm() {
 export function closeShutdownConfirm() {
   shutdownConfirm.set(false);
 }
+
+// Menú rápido de sistema (combo de botones, ver stores/comboShortcuts.js).
+// Placeholder hasta que exista el modal (SystemQuickMenu.svelte, Fase 5) —
+// confirma que la detección del combo dispara la acción correcta.
+export function openSystemQuickMenu() {
+  showToast("Combo detectado: menú de sistema (próximamente)");
+}
 export function openPopover(cfg) {
   popover.set(cfg);
 }

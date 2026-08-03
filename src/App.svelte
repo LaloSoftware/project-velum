@@ -17,6 +17,7 @@
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
+  import { initComboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -456,6 +457,7 @@
       initSorting(),
       initUiPrefs(),
       initSystemActions(),
+      initComboShortcuts(),
     ]);
     await applyStartup();
     playStartupSound();

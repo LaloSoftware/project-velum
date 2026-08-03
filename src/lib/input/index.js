@@ -18,6 +18,8 @@ import { resolve } from "../stores/bindings.js";
 import { resolveKeyBinding } from "../stores/keyBindings.js";
 import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
+import { comboShortcuts } from "../stores/comboShortcuts.js";
+import { openSystemQuickMenu } from "../stores/ui.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
 // El resto de teclado/mouse vive en `stores/keyBindings.js` (configurable).
@@ -48,6 +50,37 @@ const PAD_BUTTON_RAW = {
 let dispatchFn = () => {};
 let captureFn = null; // modo "pulsa un botón de mando" para remapear
 let keyCaptureFn = null; // modo "pulsa tecla o botón de mouse" para remapear teclado/mouse
+
+// -------- Combos de botones (mantener varios a la vez) --------
+// Botones crudos actualmente sostenidos y combos ya disparados mientras se
+// mantienen (para no repetir el disparo en cada evento, solo al soltar y
+// volver a sostener). Ver stores/comboShortcuts.js.
+const heldButtons = new Set();
+const firedCombos = new Set();
+
+const COMBO_ACTIONS = {
+  openSystemMenu: openSystemQuickMenu,
+};
+
+function trackComboButton(name, pressed) {
+  if (pressed) {
+    heldButtons.add(name);
+    for (const combo of get(comboShortcuts)) {
+      if (!combo.enabled || firedCombos.has(combo.id) || !combo.buttons.length) continue;
+      if (combo.buttons.every((b) => heldButtons.has(b))) {
+        firedCombos.add(combo.id);
+        COMBO_ACTIONS[combo.action]?.();
+      }
+    }
+  } else {
+    heldButtons.delete(name);
+    // Libera los combos que incluían este botón para que puedan volver a
+    // dispararse la próxima vez que se sostengan de nuevo.
+    for (const combo of get(comboShortcuts)) {
+      if (combo.buttons.includes(name)) firedCombos.delete(combo.id);
+    }
+  }
+}
 
 export function setCapture(fn) {
   captureFn = fn;
@@ -88,6 +121,10 @@ function handleRaw(ev) {
   // Los listeners crudos reciben press Y release (para detectar "mantener").
   if (ev.type === "button") {
     for (const cb of rawListeners) cb(ev.name, ev.pressed);
+    // El tracking de combos también corre en modo captura (remapeo): así se
+    // libera bien el estado si el usuario suelta un botón a medio capturar.
+    // No dispara acciones ahí porque checkear combos no depende de captureFn.
+    trackComboButton(ev.name, ev.pressed);
   }
   // El resto de la lógica actúa solo en press.
   if (!ev.pressed) return;
