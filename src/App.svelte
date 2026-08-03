@@ -18,6 +18,7 @@
   import { initGroups } from "./lib/stores/groups.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
+  import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -576,13 +577,20 @@
         <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
         {#if systemMenuCombo?.enabled && systemMenuCombo.buttons.length === 2}
           <span>
-            <ButtonPrompt
-              token={COMBO_TOKEN[systemMenuCombo.buttons[0]] || systemMenuCombo.buttons[0]}
-              button={systemMenuCombo.buttons[0]}
-            />+<ButtonPrompt
-              token={COMBO_TOKEN[systemMenuCombo.buttons[1]] || systemMenuCombo.buttons[1]}
-              button={systemMenuCombo.buttons[1]}
-            /> Menú de sistema
+            {#if $inputSource === "keymouse"}
+              <!-- El combo es solo de mando; en teclado/mouse se muestra el
+                   atajo alterno configurable (ver ShortcutsSection > Funciones). -->
+              <ButtonPrompt action="openSystemMenu" />
+            {:else}
+              <ButtonPrompt
+                token={COMBO_TOKEN[systemMenuCombo.buttons[0]] || systemMenuCombo.buttons[0]}
+                button={systemMenuCombo.buttons[0]}
+              />+<ButtonPrompt
+                token={COMBO_TOKEN[systemMenuCombo.buttons[1]] || systemMenuCombo.buttons[1]}
+                button={systemMenuCombo.buttons[1]}
+              />
+            {/if}
+            Menú de sistema
           </span>
         {/if}
       </footer>
