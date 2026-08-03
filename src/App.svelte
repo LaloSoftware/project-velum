@@ -17,7 +17,7 @@
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
-  import { initComboShortcuts } from "./lib/stores/comboShortcuts.js";
+  import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -98,6 +98,26 @@
     { id: "apps", label: "Aplicaciones" },
     { id: "multimedia", label: "Multimedia" },
   ];
+
+  // Token corto por botón físico, para el hint del combo en el pie (footer).
+  // Los combos son de mando (no tienen atajo de teclado equivalente), así
+  // que su ButtonPrompt no recibe `action`.
+  const COMBO_TOKEN = {
+    south: "A",
+    east: "B",
+    north: "Y",
+    west: "X",
+    l1: "LB",
+    r1: "RB",
+    lt: "LT",
+    rt: "RT",
+    l3: "L3",
+    r3: "R3",
+    start: "Menú",
+    select: "Ver",
+    guide: "Home",
+  };
+  $: systemMenuCombo = $comboShortcuts.find((c) => c.id === "system-menu");
 
   let mainEl,
     overlayEl,
@@ -539,6 +559,17 @@
         <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
         <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
         <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
+        {#if systemMenuCombo?.enabled && systemMenuCombo.buttons.length === 2}
+          <span>
+            <ButtonPrompt
+              token={COMBO_TOKEN[systemMenuCombo.buttons[0]] || systemMenuCombo.buttons[0]}
+              button={systemMenuCombo.buttons[0]}
+            />+<ButtonPrompt
+              token={COMBO_TOKEN[systemMenuCombo.buttons[1]] || systemMenuCombo.buttons[1]}
+              button={systemMenuCombo.buttons[1]}
+            /> Menú de sistema
+          </span>
+        {/if}
       </footer>
     {/if}
   </div>
