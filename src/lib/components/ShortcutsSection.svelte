@@ -339,6 +339,26 @@
     Restaurar por defecto
   </button>
 
+  <div class="minihead">Menú de sistema (teclado/mouse)</div>
+  <p class="dim">
+    Atajo alterno para abrir el mismo menú sin mando — no hay botón "Guía" en
+    teclado, así que se asigna aparte del combo de arriba.
+  </p>
+  <div class="rows">
+    <div class="row">
+      <span class="label">Abrir menú de sistema</span>
+      <span class="btn">{kmLabelFor("openSystemMenu")}</span>
+      <button
+        class="rebind"
+        data-focusable
+        tabindex="-1"
+        on:click={() => rebindKeyMouse("openSystemMenu")}
+      >
+        Reasignar
+      </button>
+    </div>
+  </div>
+
   <h2 class="subhead">Atajos personalizados</h2>
   <p class="dim">
     Combinaciones de teclas del sistema operativo (ej. Alt+R para un overlay de
@@ -377,7 +397,9 @@
       <div class="dim">
         para «{capturingReturn
           ? "Volver al launcher"
-          : ACTIONS.find((a) => a.id === listening.action)?.label}»
+          : listening.action === "openSystemMenu"
+            ? "Menú de sistema"
+            : ACTIONS.find((a) => a.id === listening.action)?.label}»
       </div>
     </div>
   </div>

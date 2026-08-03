@@ -60,6 +60,7 @@
     closeColorPicker,
     openFilters,
     closeFilters,
+    openSystemQuickMenu,
   } from "./lib/stores/ui.js";
   import { vk, vkDone, vkType, vkBackspace, vkToggleShift } from "./lib/stores/keyboard.js";
 
@@ -259,6 +260,20 @@
         }
         playMenuOpen();
         return openOverlay("qam");
+      case "openSystemMenu":
+        // Atajo de teclado/mouse (configurable) equivalente al combo de mando
+        // (ver stores/comboShortcuts.js) — no hay botón "Guía" en teclado.
+        if (
+          $vk.open ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
+          return;
+        return openSystemQuickMenu();
       case "tabLeft":
         if ($vk.open) return vkToggleShift();
         playNavPrimary();
