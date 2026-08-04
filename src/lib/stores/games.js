@@ -52,3 +52,35 @@ export async function loadGames() {
   games.set(dedupeById(list));
   gamesLoaded.set(true);
 }
+
+// Mete en `games` los juegos de la biblioteca de Steam vinculada (Fase 9) que
+// NO están ya instalados localmente — mismo `id` que produce SteamSource
+// (`steam:{appid}`, ver src-tauri/src/library/steam.rs) para que, si el
+// usuario instala uno después y se vuelve a cargar la lista real, el
+// duplicado se resuelva solo (dedupeById se queda con la primera aparición).
+// `entries` = lo que devuelve steam_library (steamLibraryCache en ipc).
+export function mergeSteamGhosts(entries) {
+  games.update((list) => {
+    const existingIds = new Set(list.map((g) => g.id));
+    const ghosts = entries
+      .filter((e) => !existingIds.has(`steam:${e.appid}`))
+      .map((e) => ({
+        id: `steam:${e.appid}`,
+        title: e.name,
+        store: "steam",
+        kind: "game",
+        coverPath: null,
+        widePath: null,
+        heroPath: null,
+        logoPath: null,
+        installDir: null,
+        launchTarget: `steam://rungameid/${e.appid}`,
+        lastPlayed: null,
+        sizeBytes: null,
+        installed: false,
+      }));
+    if (!ghosts.length) return list;
+    console.log(`[gm:steam] ${ghosts.length} juego(s) de la cuenta sin instalar localmente`, ghosts);
+    return [...list, ...ghosts];
+  });
+}

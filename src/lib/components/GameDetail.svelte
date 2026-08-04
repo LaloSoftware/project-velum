@@ -8,10 +8,34 @@
   import { gameView, GAME_VIEW_FIELDS, setGameViewField } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
+  import { steamAccount, loadAchievements } from "../stores/steamAccount.js";
+  import { steamLibraryCache } from "../ipc/index.js";
 
   export let game;
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
+
+  // Logros/horas jugadas de la cuenta de Steam vinculada (Fase 9), solo si
+  // este juego es de Steam y hay una cuenta vinculada con datos cacheados.
+  $: steamAppid = game?.store === "steam" ? Number(game.id.split(":")[1]) : null;
+  let steamAchievementsList = [];
+  let steamPlaytimeMinutes = null;
+  let steamStatsFor = null;
+  $: if ($steamAccount && steamAppid && steamStatsFor !== `${$steamAccount.steamid}:${steamAppid}`) {
+    steamStatsFor = `${$steamAccount.steamid}:${steamAppid}`;
+    loadAchievements(steamAppid).then((list) => (steamAchievementsList = list));
+    steamLibraryCache($steamAccount.steamid)
+      .then((entries) => {
+        const entry = entries.find((e) => e.appid === steamAppid);
+        steamPlaytimeMinutes = entry?.playtimeForever ?? null;
+      })
+      .catch(() => {});
+  }
+  function formatPlaytime(minutes) {
+    if (!minutes) return "Sin horas registradas";
+    const hours = minutes / 60;
+    return hours >= 1 ? `${hours.toFixed(1)} h jugadas` : `${minutes} min jugados`;
+  }
 
   const inGroup = (g) => g.gameIds.includes(game.id);
   // Fondo = hero efectivo (override manual o el de la tienda).
@@ -193,6 +217,32 @@
                   </div>
                 {/each}
               </div>
+
+              {#if $steamAccount && steamAppid}
+                <h3 class="steam-h3">Steam</h3>
+                <p class="dim">{formatPlaytime(steamPlaytimeMinutes)}</p>
+                {#if steamAchievementsList.length}
+                  <div class="achievements">
+                    {#each steamAchievementsList as a (a.apiname)}
+                      <div class="ach" class:locked={!a.achieved}>
+                        {#if a.iconUrl}
+                          <img class="ach-icon" src={a.iconUrl} alt="" />
+                        {/if}
+                        <div class="ach-text">
+                          <div class="ach-name">{a.displayName || a.apiname}</div>
+                          {#if a.description}
+                            <div class="ach-desc dim">{a.description}</div>
+                          {/if}
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="dim">
+                    Sin logros sincronizados todavía — sincroniza desde Configuración → Cuentas.
+                  </p>
+                {/if}
+              {/if}
             </section>
           {/if}
         </div>
@@ -432,5 +482,44 @@
   }
   .toggle:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+
+  /* Logros/horas jugadas de Steam (Fase 9). */
+  .steam-h3 {
+    margin-top: 22px;
+  }
+  .dim {
+    color: var(--gm-text-dim);
+  }
+  .achievements {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .ach {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 8px 12px;
+  }
+  .ach.locked {
+    opacity: 0.5;
+  }
+  .ach-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .ach-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .ach-desc {
+    font-size: 0.8rem;
   }
 </style>

@@ -19,6 +19,7 @@
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { initVkBindings } from "./lib/stores/vkBindings.js";
+  import { initSteamAccount, mergeCachedSteamGhosts } from "./lib/stores/steamAccount.js";
   import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
@@ -94,6 +95,7 @@
   import ColorPicker from "./lib/components/ColorPicker.svelte";
   import FiltersModal from "./lib/components/FiltersModal.svelte";
   import Toast from "./lib/components/Toast.svelte";
+  import SteamSyncIndicator from "./lib/components/SteamSyncIndicator.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
   import ButtonPrompt from "./lib/components/ButtonPrompt.svelte";
@@ -522,7 +524,9 @@
       initSystemActions(),
       initComboShortcuts(),
       initVkBindings(),
+      initSteamAccount(),
     ]);
+    await mergeCachedSteamGhosts(); // necesita loadGames() ya resuelto (arriba)
     await applyStartup();
     playStartupSound();
     initSoundtrackPlayer();
@@ -700,6 +704,7 @@
   <Toast />
   <ErrorBanner />
   <PlayingOverlay />
+  <SteamSyncIndicator />
 </div>
 
 <!-- Menú contextual de tarjeta y desplegable de <Select>: fuera de .app para que

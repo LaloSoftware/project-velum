@@ -8,6 +8,7 @@
   import ButtonIconsSection from "./ButtonIconsSection.svelte";
   import SoundsSection from "./SoundsSection.svelte";
   import SystemActionsSection from "./SystemActionsSection.svelte";
+  import AccountsSection from "./AccountsSection.svelte";
   import { showPowerFooter } from "../stores/systemActions.js";
   import {
     minimizeWindow,
@@ -45,6 +46,7 @@
     { id: "filters", label: "Filtros de biblioteca" },
     { id: "hidden", label: "Ocultos" },
     { id: "system-actions", label: "Acciones del sistema" },
+    { id: "accounts", label: "Cuentas" },
   ];
   let section = "appearance";
   let contentEl;
@@ -94,6 +96,8 @@
         <SoundsSection />
       {:else if section === "system-actions"}
         <SystemActionsSection />
+      {:else if section === "accounts"}
+        <AccountsSection />
       {/if}
     </div>
   </div>

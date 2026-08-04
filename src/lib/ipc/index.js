@@ -198,3 +198,33 @@ export async function saveConfig(data) {
     localStorage.setItem("gm-config", JSON.stringify(data));
   }
 }
+
+// ------- Cuenta de Steam vinculada (Fase 9) -------
+// Sin equivalente mock: vincular cuenta/sincronizar habla con la Steam Web API
+// real y con el keyring del SO, así que no tiene sentido en modo navegador.
+// Cada wrapper deja pasar el error tal cual (la UI lo muestra con reportError).
+export async function steamLinkAccount(profileInput, apiKey) {
+  return invoke("steam_link_account", { profileInput, apiKey });
+}
+export async function steamUnlinkAccount(steamid) {
+  return invoke("steam_unlink_account", { steamid });
+}
+export async function steamHasKey(steamid) {
+  try {
+    return await invoke("steam_has_key", { steamid });
+  } catch {
+    return false;
+  }
+}
+export async function steamSyncLibrary(steamid) {
+  return invoke("steam_sync_library", { steamid });
+}
+export async function steamLibraryCache(steamid) {
+  return invoke("steam_library", { steamid });
+}
+export async function steamSyncAchievements(steamid, appids) {
+  return invoke("steam_sync_achievements", { steamid, appids });
+}
+export async function steamAchievements(steamid, appid) {
+  return invoke("steam_achievements", { steamid, appid });
+}

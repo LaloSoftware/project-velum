@@ -1,5 +1,5 @@
 <script>
-  import { openDetail, openContext, contextMenu, reportError } from "../stores/ui.js";
+  import { openDetail, openContext, contextMenu, reportError, showToast } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
@@ -20,6 +20,10 @@
   $: pinned = $contextMenu?.game === game;
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
+  // Juego de una cuenta vinculada (Fase 9) que no está instalado en esta PC —
+  // `installed` no existe en el resto de fuentes (Steam/GOG/EA/Ubisoft/Apps
+  // locales), así que por defecto se considera instalado.
+  $: notInstalled = game?.installed === false;
   $: title = game?.title || "";
   $: art = effectiveArt(game, $overrides);
 
@@ -73,7 +77,13 @@
   }
 
   // Aceptar (A/Cross) → lanzar directamente. North (Y/Triángulo) → abrir detalle.
+  // Un juego de una cuenta vinculada sin instalar localmente no se lanza —
+  // solo avisa dónde instalarlo (ver `notInstalled` arriba).
   async function play() {
+    if (notInstalled) {
+      showToast(`Instala "${title}" desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo`);
+      return;
+    }
     try {
       await startPlay(game);
     } catch (e) {
@@ -98,11 +108,13 @@
   class:hero-mode={expanded}
   class:no-grow={heroOnFocus}
   class:ctx-open={pinned}
+  class:not-installed={notInstalled}
   data-focusable
   data-focus-default={focusDefault ? "" : undefined}
   tabindex="-1"
   role="button"
   aria-label={title}
+  title={notInstalled ? `No instalado — instálalo desde ${STORE_LABEL[game.store] || game.store}` : undefined}
   on:click={play}
   on:gmdetail={detail}
   on:gmcontext={ctx}
@@ -192,6 +204,15 @@
        fijo (no tematizado), así que su texto tampoco debe seguir el tema —
        en temas claros --gm-text se vuelve oscuro y quedaría ilegible aquí. */
     color: #fff;
+  }
+  .not-installed .cover {
+    opacity: 0.55;
+  }
+  .not-installed .badge {
+    background: rgba(8, 10, 14, 0.85);
+  }
+  .not-installed .badge::after {
+    content: " · no instalado";
   }
   .title {
     margin-top: 8px;
