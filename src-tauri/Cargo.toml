@@ -19,6 +19,12 @@ gilrs = "0.11"
 sysinfo = "0.32"
 # Servir imágenes locales (carátulas) a la WebView como data URI.
 base64 = "0.22"
+# Cliente HTTP para la Steam Web API (bloqueante: los comandos Tauri no-async
+# ya corren en su propio hilo, no hace falta sumar un runtime async).
+ureq = { version = "2", features = ["json"] }
+# Guardar la API key de Steam en el almacén de credenciales del SO (Credential
+# Manager en Windows, Keychain en macOS) en vez de en config.json en texto plano.
+keyring = "3"
 
 # Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
 # traer al frente la ventana del juego en marcha (Win32), y simular atajos de

@@ -7,6 +7,7 @@ mod input;
 mod launch;
 mod library;
 mod shortcuts;
+mod steam_api;
 mod system;
 
 use std::sync::Mutex;
@@ -43,6 +44,9 @@ fn main() {
             config::load_config,
             config::save_config,
             shortcuts::run_shortcut,
+            steam_api::steam_link_account,
+            steam_api::steam_unlink_account,
+            steam_api::steam_has_key,
         ])
         .run(tauri::generate_context!())
         .expect("error al arrancar la aplicación Tauri");
