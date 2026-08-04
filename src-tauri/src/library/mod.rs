@@ -10,6 +10,7 @@ mod vdf;
 mod steam;
 mod gog;
 mod ea;
+mod ubisoft;
 #[cfg(windows)]
 mod apps;
 
@@ -48,8 +49,8 @@ pub trait LibrarySource {
 }
 
 /// Fuentes activas según la plataforma / configuración:
-/// - `GM_FIXTURES_DIR` (test): Steam/GOG leen de esa carpeta (cualquier SO).
-/// - Windows: fuentes reales (Steam, GOG, apps del Menú Inicio).
+/// - `GM_FIXTURES_DIR` (test): Steam/GOG/EA leen de esa carpeta (cualquier SO).
+/// - Windows: fuentes reales (Steam, GOG, EA, Ubisoft Connect, apps del Menú Inicio).
 /// - Otro (Mac sin fixtures): `MockSource` para desarrollar la UI.
 fn active_sources() -> Vec<Box<dyn LibrarySource>> {
     if let Ok(fx) = std::env::var("GM_FIXTURES_DIR") {
@@ -73,6 +74,7 @@ fn active_sources() -> Vec<Box<dyn LibrarySource>> {
         }
         v.push(Box::new(gog::GogSource::windows()));
         v.push(Box::new(ea::EaSource::windows()));
+        v.push(Box::new(ubisoft::UbisoftSource::new()));
         v.push(Box::new(apps::AppsSource::new()));
         return v;
     }
