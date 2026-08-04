@@ -9,6 +9,7 @@ mod mock;
 mod vdf;
 mod steam;
 mod gog;
+mod ea;
 #[cfg(windows)]
 mod apps;
 
@@ -56,6 +57,7 @@ fn active_sources() -> Vec<Box<dyn LibrarySource>> {
         return vec![
             Box::new(steam::SteamSource::new(p.join("steam"))),
             Box::new(gog::GogSource::from_roots(vec![p.join("gog")])),
+            Box::new(ea::EaSource::from_roots(vec![p.join("ea")])),
         ];
     }
 
@@ -70,6 +72,7 @@ fn active_sources() -> Vec<Box<dyn LibrarySource>> {
             None => println!("[library] Steam NO encontrado (registro ni rutas por defecto)"),
         }
         v.push(Box::new(gog::GogSource::windows()));
+        v.push(Box::new(ea::EaSource::windows()));
         v.push(Box::new(apps::AppsSource::new()));
         return v;
     }
