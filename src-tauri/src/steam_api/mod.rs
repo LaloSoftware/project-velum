@@ -10,11 +10,24 @@
 //! una sola key "del launcher" que sirva para todos. Ver GetOwnedGames en la
 //! documentación de Valve.
 
+pub mod achievements;
+mod cache;
+pub mod library;
+
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
 
 const KEYRING_SERVICE: &str = "gm-launcher-steam";
 const API_BASE: &str = "https://api.steampowered.com";
+
+/// La API key guardada de una cuenta ya vinculada, o un error legible si no
+/// hay ninguna (p. ej. si se llama a sincronizar sin haber vinculado antes).
+pub(crate) fn stored_key(steamid: &str) -> Result<String, String> {
+    Entry::new(KEYRING_SERVICE, steamid)
+        .and_then(|e| e.get_password())
+        .map_err(|_| "No hay una API key guardada para esta cuenta — vincúlala de nuevo".to_string())
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -116,19 +129,27 @@ pub fn steam_link_account(
     Entry::new(KEYRING_SERVICE, &info.steamid)
         .and_then(|e| e.set_password(api_key))
         .map_err(|e| format!("no se pudo guardar la API key de forma segura: {e}"))?;
+    println!(
+        "[steam] cuenta vinculada: steamid={} persona=\"{}\"",
+        info.steamid, info.persona_name
+    );
     Ok(info)
 }
 
-/// Quita la API key guardada de esa cuenta del keyring del SO. El caché local
-/// de biblioteca/logros (Fase 9b/9c) se limpia aparte, desde el frontend.
+/// Quita la API key guardada de esa cuenta del keyring del SO y limpia su
+/// caché local de biblioteca/logros (no toca `achievement_schema`/`schema_cache`,
+/// que son por-juego y sirven para cualquier otra cuenta que se vincule después).
 #[tauri::command]
-pub fn steam_unlink_account(steamid: String) -> Result<(), String> {
+pub fn steam_unlink_account(app: AppHandle, steamid: String) -> Result<(), String> {
     let entry = Entry::new(KEYRING_SERVICE, &steamid).map_err(|e| e.to_string())?;
     match entry.delete_credential() {
-        Ok(()) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()), // ya no está: el objetivo se cumple igual.
-        Err(e) => Err(e.to_string()),
+        Ok(()) => {}
+        Err(keyring::Error::NoEntry) => {} // ya no está: el objetivo se cumple igual.
+        Err(e) => return Err(e.to_string()),
     }
+    cache::clear_account(&app, &steamid)?;
+    println!("[steam] cuenta desvinculada: steamid={steamid}");
+    Ok(())
 }
 
 /// Para que la UI sepa, sin exponer la key en sí, si una cuenta sigue teniendo

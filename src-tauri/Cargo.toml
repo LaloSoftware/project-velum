@@ -25,13 +25,16 @@ ureq = { version = "2", features = ["json"] }
 # Guardar la API key de Steam en el almacén de credenciales del SO (Credential
 # Manager en Windows, Keychain en macOS) en vez de en config.json en texto plano.
 keyring = "3"
+# Caché local de biblioteca/logros de Steam (Fase 9b/9c). Multiplataforma (no
+# solo Windows como cuando era exclusivo de leer la BD de GOG Galaxy) porque el
+# caché en sí no depende del SO.
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 # Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
 # traer al frente la ventana del juego en marcha (Win32), y simular atajos de
 # teclado del sistema (ver src/shortcuts.rs).
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
-rusqlite = { version = "0.32", features = ["bundled"] }
 windows = { version = "0.58", features = [
   "Win32_Foundation",
   "Win32_UI_WindowsAndMessaging",

@@ -47,6 +47,10 @@ fn main() {
             steam_api::steam_link_account,
             steam_api::steam_unlink_account,
             steam_api::steam_has_key,
+            steam_api::library::steam_sync_library,
+            steam_api::library::steam_library,
+            steam_api::achievements::steam_sync_achievements,
+            steam_api::achievements::steam_achievements,
         ])
         .run(tauri::generate_context!())
         .expect("error al arrancar la aplicación Tauri");
