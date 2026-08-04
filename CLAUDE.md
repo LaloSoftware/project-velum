@@ -72,9 +72,12 @@ En macOS produces un binario mac; el binario de **Windows** se compila en/para W
 ## Controles
 
 Mando: **A** aceptar · **B** volver · **D-pad/stick** navegar · **LB/RB** pestañas ·
-**Start** biblioteca · **Select/Guide** menú de sistema (QAM).
+**Start** biblioteca · **Select/Guide** menú de sistema (QAM) · **Guide+Start** menú
+rápido de sistema (minimizar/maximizar/pantalla completa/cerrar/apagar).
 Teclado (equivalente, para dev): flechas, Enter, Esc, Tab (biblioteca), Q (sistema),
-E/R (pestañas). Ver `docs/input.md`.
+E/R (pestañas). Todos los atajos (mando, teclado/mouse, combos, teclado virtual) son
+reasignables desde Configuración → Configuración de atajos. Detalle completo en
+`docs/input.md`.
 
 ## Mapa del proyecto
 

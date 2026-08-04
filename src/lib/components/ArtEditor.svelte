@@ -166,7 +166,11 @@
   .art-editor {
     width: 100%;
     max-width: 820px;
-    background: var(--gm-bg-overlay);
+    /* --gm-bg-overlay es un scrim fijo y oscuro (para detrás de modales), no
+       tematizable por perfil/tema — dejaba esta sección oscura incluso con
+       temas claros. --gm-surface sí varía por tema; se usa translúcida para
+       conservar el efecto de vidrio esmerilado con el blur. */
+    background: color-mix(in srgb, var(--gm-surface) 82%, transparent);
     backdrop-filter: blur(6px);
     border-radius: var(--gm-radius-lg);
     padding: 16px;

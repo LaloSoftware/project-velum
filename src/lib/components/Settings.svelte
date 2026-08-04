@@ -8,7 +8,7 @@
     deleteProfile,
   } from "../stores/profiles.js";
   import { themeOptions } from "../theming/index.js";
-  import { EXAMPLE_EXTERNAL_CSS } from "../theming/themes.js";
+  import { BUILTIN_THEMES, EXAMPLE_EXTERNAL_CSS, FONT_OPTIONS } from "../theming/themes.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { showToast, openColorPicker } from "../stores/ui.js";
   import {
@@ -66,9 +66,15 @@
   $: cardW = parseInt(active?.tokenOverrides?.["--gm-card-w"]) || CARD_W_DEFAULT;
   $: cardWHome = parseInt(active?.tokenOverrides?.["--gm-card-w-home"]) || CARD_W_DEFAULT;
   $: accentColor = active?.tokenOverrides?.["--gm-accent"] || ACCENT_DEFAULT;
+  $: baseThemeTokens = BUILTIN_THEMES[active?.baseTheme]?.tokens || {};
+  $: textColor = active?.tokenOverrides?.["--gm-text"] || baseThemeTokens["--gm-text"] || "#e8edf3";
+  $: fontValue = active?.tokenOverrides?.["--gm-font"] || FONT_OPTIONS[0].value;
 
   function openAccentPicker() {
     openColorPicker({ value: accentColor, title: "Color de acento", onApply: pickAccent });
+  }
+  function openTextPicker() {
+    openColorPicker({ value: textColor, title: "Color de texto", onApply: pickText });
   }
 
   async function newProfile() {
@@ -80,11 +86,33 @@
   }
 
   async function pickTheme(id) {
-    await updateActive({ baseTheme: id });
+    // Al pasar de un tema oscuro a uno claro, se descarta un --gm-text
+    // personalizado previo (probablemente pensado para fondo oscuro) para que
+    // el texto no desaparezca — el tema claro ya trae su propio texto oscuro
+    // por defecto. El usuario puede volver a personalizarlo con el control de
+    // "Color de texto". No se toca si ya se estaba en un tema claro.
+    const prevKind = BUILTIN_THEMES[active.baseTheme]?.kind || "dark";
+    const nextKind = BUILTIN_THEMES[id]?.kind || "dark";
+    const patch = { baseTheme: id };
+    if (nextKind === "light" && prevKind !== "light" && active.tokenOverrides?.["--gm-text"]) {
+      const { "--gm-text": _drop, ...rest } = active.tokenOverrides;
+      patch.tokenOverrides = rest;
+    }
+    await updateActive(patch);
   }
   async function pickAccent(color) {
     await updateActive({
       tokenOverrides: { ...active.tokenOverrides, "--gm-accent": color },
+    });
+  }
+  async function pickText(color) {
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-text": color },
+    });
+  }
+  async function pickFont(value) {
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-font": value },
     });
   }
   async function pickCardSize(e) {
@@ -130,21 +158,23 @@
   <h1>Ajustes · Apariencia</h1>
 
   <h2>Perfil activo</h2>
-  <Select
-    value={$activeProfileId}
-    options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
-    onChange={setActive}
-  />
-  <div class="profile-actions">
-    <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
-    <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
+  <div class="profile-block">
+    <Select
+      value={$activeProfileId}
+      options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
+      onChange={setActive}
+    />
+    <div class="profile-actions">
+      <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
+      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
+    </div>
   </div>
 
   {#if active}
     <h2>Tema base del perfil «{active.name}»</h2>
     <Select
       value={active.baseTheme}
-      options={themes.map((t) => ({ value: t.id, label: t.name }))}
+      options={themes.map((t) => ({ value: t.id, label: t.name + (t.kind === "light" ? " (claro)" : "") }))}
       onChange={pickTheme}
     />
 
@@ -154,6 +184,24 @@
       <span class="cf-val">{accentColor.toUpperCase()}</span>
       <span class="cf-cta">Personalizar</span>
     </button>
+
+    <h2>Color de texto</h2>
+    <p class="dim">
+      Al cambiar a un tema de fondo claro, el texto se reinicia automáticamente a un
+      tono oscuro legible; puedes volver a personalizarlo aquí.
+    </p>
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openTextPicker}>
+      <span class="swatch-sm" style="background: {textColor}"></span>
+      <span class="cf-val">{textColor.toUpperCase()}</span>
+      <span class="cf-cta">Personalizar</span>
+    </button>
+
+    <h2>Tipografía</h2>
+    <Select
+      value={fontValue}
+      options={FONT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))}
+      onChange={pickFont}
+    />
 
     <h2>Escala de interfaz</h2>
     <div class="sizerow">
@@ -450,11 +498,22 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
+  .profile-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px;
+    /* Aire extra antes del siguiente control: sin esto, "abajo" desde el
+       Select de arriba compite en geometría contra el próximo Select (más
+       lejos pero perfectamente alineado en X) y se salta estos botones. */
+    margin-bottom: 64px;
+  }
   .profile-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 10px;
   }
   .colorfield {
     display: flex;

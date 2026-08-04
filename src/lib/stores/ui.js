@@ -30,6 +30,11 @@ export const confirmDelete = writable(null);
 
 // Confirmación de apagar el sistema (capa modal), desde Configuración.
 export const shutdownConfirm = writable(false);
+
+// Menú rápido de sistema: minimizar/maximizar/pantalla completa/cerrar/
+// apagar, accesible por combo de botones o atajo de teclado/mouse
+// configurable (ver stores/comboShortcuts.js).
+export const systemQuickMenu = writable(false);
 // Desplegable de un <Select>: { options, value, anchor, onSelect } (capa flotante).
 export const popover = writable(null);
 
@@ -113,6 +118,13 @@ export function openShutdownConfirm() {
 }
 export function closeShutdownConfirm() {
   shutdownConfirm.set(false);
+}
+
+export function openSystemQuickMenu() {
+  systemQuickMenu.set(true);
+}
+export function closeSystemQuickMenu() {
+  systemQuickMenu.set(false);
 }
 export function openPopover(cfg) {
   popover.set(cfg);

@@ -18,6 +18,8 @@ import { resolve } from "../stores/bindings.js";
 import { resolveKeyBinding } from "../stores/keyBindings.js";
 import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
+import { comboShortcuts } from "../stores/comboShortcuts.js";
+import { resolveVk } from "../stores/vkBindings.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
 // El resto de teclado/mouse vive en `stores/keyBindings.js` (configurable).
@@ -48,6 +50,36 @@ const PAD_BUTTON_RAW = {
 let dispatchFn = () => {};
 let captureFn = null; // modo "pulsa un botón de mando" para remapear
 let keyCaptureFn = null; // modo "pulsa tecla o botón de mouse" para remapear teclado/mouse
+
+// -------- Combos de botones (mantener varios a la vez) --------
+// Botones crudos actualmente sostenidos y combos ya disparados mientras se
+// mantienen (para no repetir el disparo en cada evento, solo al soltar y
+// volver a sostener). Ver stores/comboShortcuts.js.
+const heldButtons = new Set();
+const firedCombos = new Set();
+
+function trackComboButton(name, pressed) {
+  if (pressed) {
+    heldButtons.add(name);
+    for (const combo of get(comboShortcuts)) {
+      if (!combo.enabled || firedCombos.has(combo.id) || !combo.buttons.length) continue;
+      if (combo.buttons.every((b) => heldButtons.has(b))) {
+        firedCombos.add(combo.id);
+        // combo.action es un id de acción normal (ver App.svelte -> dispatch),
+        // así que pasa por los mismos guards que cualquier otro atajo (no
+        // abre el menú si ya hay otro modal encima, etc.).
+        dispatchFn(combo.action);
+      }
+    }
+  } else {
+    heldButtons.delete(name);
+    // Libera los combos que incluían este botón para que puedan volver a
+    // dispararse la próxima vez que se sostengan de nuevo.
+    for (const combo of get(comboShortcuts)) {
+      if (combo.buttons.includes(name)) firedCombos.delete(combo.id);
+    }
+  }
+}
 
 export function setCapture(fn) {
   captureFn = fn;
@@ -88,6 +120,10 @@ function handleRaw(ev) {
   // Los listeners crudos reciben press Y release (para detectar "mantener").
   if (ev.type === "button") {
     for (const cb of rawListeners) cb(ev.name, ev.pressed);
+    // El tracking de combos también corre en modo captura (remapeo): así se
+    // libera bien el estado si el usuario suelta un botón a medio capturar.
+    // No dispara acciones ahí porque checkear combos no depende de captureFn.
+    trackComboButton(ev.name, ev.pressed);
   }
   // El resto de la lógica actúa solo en press.
   if (!ev.pressed) return;
@@ -97,6 +133,15 @@ function handleRaw(ev) {
     if (captureFn) {
       captureFn(ev.name); // remapeo: capturar el botón crudo
       return;
+    }
+    // Con el teclado virtual abierto, un botón puede tener una acción propia
+    // de teclado virtual (espacio/borrar/mayús/cancelar/confirmar, ver
+    // stores/vkBindings.js) independiente de su acción normal. Si no tiene
+    // (ej. Aceptar, que ya escribe la tecla enfocada genéricamente al
+    // activarla), cae al mapeo normal sin cambios.
+    if (get(vk).open) {
+      const vkAction = resolveVk(ev.name);
+      if (vkAction) return dispatchFn(vkAction);
     }
     const action = resolve(ev.name);
     if (action) dispatchFn(action);
@@ -108,7 +153,11 @@ function initKeyboard() {
   window.addEventListener("keydown", (e) => {
     inputSource.set("keymouse");
     const tag = e.target?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    // Los <input type="range"> son focosables de la navegación (ver
+    // navigation.js) y no aceptan texto — deben seguir el dispatch normal
+    // como cualquier otro control, no el bypass de "se está escribiendo".
+    const isRange = tag === "INPUT" && e.target.type === "range";
+    if ((tag === "INPUT" && !isRange) || tag === "TEXTAREA") return;
 
     // Modo remapeo de teclado/mouse: captura la tecla y no dispatch normal.
     if (keyCaptureFn) {

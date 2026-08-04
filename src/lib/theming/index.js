@@ -23,7 +23,7 @@ function ensureStyle(id) {
 }
 
 export function themeOptions() {
-  return Object.entries(BUILTIN_THEMES).map(([id, t]) => ({ id, name: t.name }));
+  return Object.entries(BUILTIN_THEMES).map(([id, t]) => ({ id, name: t.name, kind: t.kind || "dark" }));
 }
 
 export function applyProfile(profile) {

@@ -16,6 +16,10 @@
     hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { initSystemActions } from "./lib/stores/systemActions.js";
+  import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
+  import { initVkBindings } from "./lib/stores/vkBindings.js";
+  import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
@@ -42,6 +46,8 @@
     confirmDelete,
     shutdownConfirm,
     closeShutdownConfirm,
+    systemQuickMenu,
+    closeSystemQuickMenu,
     popover,
     colorPicker,
     filtersModal,
@@ -58,6 +64,7 @@
     closeColorPicker,
     openFilters,
     closeFilters,
+    openSystemQuickMenu,
   } from "./lib/stores/ui.js";
   import { vk, vkDone, vkType, vkBackspace, vkToggleShift } from "./lib/stores/keyboard.js";
 
@@ -81,6 +88,7 @@
   import CardContextMenu from "./lib/components/CardContextMenu.svelte";
   import ConfirmDelete from "./lib/components/ConfirmDelete.svelte";
   import ShutdownConfirm from "./lib/components/ShutdownConfirm.svelte";
+  import SystemQuickMenu from "./lib/components/SystemQuickMenu.svelte";
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
@@ -97,6 +105,26 @@
     { id: "multimedia", label: "Multimedia" },
   ];
 
+  // Token corto por botón físico, para el hint del combo en el pie (footer).
+  // Los combos son de mando (no tienen atajo de teclado equivalente), así
+  // que su ButtonPrompt no recibe `action`.
+  const COMBO_TOKEN = {
+    south: "A",
+    east: "B",
+    north: "Y",
+    west: "X",
+    l1: "LB",
+    r1: "RB",
+    lt: "LT",
+    rt: "RT",
+    l3: "L3",
+    r3: "R3",
+    start: "Menú",
+    select: "Ver",
+    guide: "Home",
+  };
+  $: systemMenuCombo = $comboShortcuts.find((c) => c.id === "system-menu");
+
   let mainEl,
     overlayEl,
     detailEl,
@@ -104,6 +132,7 @@
     contextEl,
     confirmEl,
     shutdownEl,
+    sysQuickEl,
     popoverEl,
     colorPickerEl,
     filtersEl;
@@ -154,17 +183,17 @@
         playNavBack();
         return handleBack();
       case "north": // Y / Triángulo
-        if ($vk.open) return vkType(" ");
         playNavPrimary(); // abrir detalle en la tarjeta enfocada
         return nav.secondary();
-      case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
-        if ($vk.open) return vkBackspace();
+      case "west": // X / Cuadrado: menú de tarjeta
         if (
+          $vk.open ||
           $overlay ||
           $detailGame ||
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -178,6 +207,7 @@
           $overlay ||
           $detailGame ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -193,6 +223,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -209,6 +240,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -226,6 +258,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -237,24 +270,51 @@
         }
         playMenuOpen();
         return openOverlay("qam");
+      case "openSystemMenu":
+        // Atajo de teclado/mouse (configurable) equivalente al combo de mando
+        // (ver stores/comboShortcuts.js) — no hay botón "Guía" en teclado.
+        if (
+          $vk.open ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $systemQuickMenu ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal
+        )
+          return;
+        return openSystemQuickMenu();
       case "tabLeft":
-        if ($vk.open) return vkToggleShift();
+        if ($vk.open) return; // sin match propio de teclado virtual: no-op
         playNavPrimary();
         return cycleTab(-1);
       case "tabRight":
-        if ($vk.open) return vkToggleShift();
+        if ($vk.open) return;
         playNavPrimary();
         return cycleTab(1);
       case "search":
+        if ($vk.open) return;
         if (inGames()) return runSearch();
         return;
       case "filterPrev":
+        if ($vk.open) return;
         if (inGames()) return cycleFilter(-1);
         return;
       case "filterNext":
-        if ($vk.open) return vkDone(false);
+        if ($vk.open) return;
         if (inGames()) return cycleFilter(1);
         return;
+      case "vkSpace":
+        return vkType(" ");
+      case "vkBackspace":
+        return vkBackspace();
+      case "vkShift":
+        return vkToggleShift();
+      case "vkCancel":
+        return vkDone(true);
+      case "vkConfirm":
+        return vkDone(false);
     }
   }
 
@@ -268,6 +328,7 @@
       !$contextMenu &&
       !$confirmDelete &&
       !$shutdownConfirm &&
+      !$systemQuickMenu &&
       !$filtersModal
     );
   }
@@ -276,6 +337,7 @@
     if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
     if ($shutdownConfirm) return closeShutdownConfirm();
+    if ($systemQuickMenu) return closeSystemQuickMenu();
     if ($colorPicker) return closeColorPicker();
     if ($filtersModal) return closeFilters();
     if ($confirmDelete) return closeConfirm();
@@ -367,21 +429,23 @@
     ? "vk"
     : $shutdownConfirm
       ? "shutdown"
-      : $colorPicker
-        ? "colorpicker"
-        : $filtersModal
-          ? "filters"
-          : $confirmDelete
-            ? "confirm"
-            : $popover
-              ? "popover"
-              : $contextMenu
-                ? "ctx:" + ($contextMenu.sub || "main")
-                : $detailGame
-                  ? "detail"
-                  : $overlay
-                    ? "ov:" + $overlay
-                    : "view:" + $view;
+      : $systemQuickMenu
+        ? "sysquick"
+        : $colorPicker
+          ? "colorpicker"
+          : $filtersModal
+            ? "filters"
+            : $confirmDelete
+              ? "confirm"
+              : $popover
+                ? "popover"
+                : $contextMenu
+                  ? "ctx:" + ($contextMenu.sub || "main")
+                  : $detailGame
+                    ? "detail"
+                    : $overlay
+                      ? "ov:" + $overlay
+                      : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -393,6 +457,7 @@
     await tick();
     if ($vk.open) nav.setScope(vkEl);
     else if ($shutdownConfirm) nav.setScope(shutdownEl);
+    else if ($systemQuickMenu) nav.setScope(sysQuickEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
     else if ($filtersModal) nav.setScope(filtersEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
@@ -454,6 +519,9 @@
       initPlaySession(),
       initSorting(),
       initUiPrefs(),
+      initSystemActions(),
+      initComboShortcuts(),
+      initVkBindings(),
     ]);
     await applyStartup();
     playStartupSound();
@@ -535,6 +603,24 @@
         <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
         <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
         <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
+        {#if systemMenuCombo?.enabled && systemMenuCombo.buttons.length === 2}
+          <span>
+            {#if $inputSource === "keymouse"}
+              <!-- El combo es solo de mando; en teclado/mouse se muestra el
+                   atajo alterno configurable (ver ShortcutsSection > Funciones). -->
+              <ButtonPrompt action="openSystemMenu" />
+            {:else}
+              <ButtonPrompt
+                token={COMBO_TOKEN[systemMenuCombo.buttons[0]] || systemMenuCombo.buttons[0]}
+                button={systemMenuCombo.buttons[0]}
+              />+<ButtonPrompt
+                token={COMBO_TOKEN[systemMenuCombo.buttons[1]] || systemMenuCombo.buttons[1]}
+                button={systemMenuCombo.buttons[1]}
+              />
+            {/if}
+            Menú de sistema
+          </span>
+        {/if}
       </footer>
     {/if}
   </div>
@@ -580,6 +666,13 @@
   {#if $shutdownConfirm}
     <div bind:this={shutdownEl}>
       <ShutdownConfirm />
+    </div>
+  {/if}
+
+  <!-- Menú rápido de sistema (combo de botones o atajo configurable) -->
+  {#if $systemQuickMenu}
+    <div bind:this={sysQuickEl}>
+      <SystemQuickMenu />
     </div>
   {/if}
 

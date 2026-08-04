@@ -7,6 +7,8 @@
   import HiddenSection from "./HiddenSection.svelte";
   import ButtonIconsSection from "./ButtonIconsSection.svelte";
   import SoundsSection from "./SoundsSection.svelte";
+  import SystemActionsSection from "./SystemActionsSection.svelte";
+  import { showPowerFooter } from "../stores/systemActions.js";
   import {
     minimizeWindow,
     enterFullscreen,
@@ -42,6 +44,7 @@
     { id: "buttonicons", label: "Iconos de botones" },
     { id: "filters", label: "Filtros de biblioteca" },
     { id: "hidden", label: "Ocultos" },
+    { id: "system-actions", label: "Acciones del sistema" },
   ];
   let section = "appearance";
   let contentEl;
@@ -89,11 +92,15 @@
         <ButtonIconsSection />
       {:else if section === "sounds"}
         <SoundsSection />
+      {:else if section === "system-actions"}
+        <SystemActionsSection />
       {/if}
     </div>
   </div>
 
-  <!-- Controles de ventana / energía (fijos) -->
+  <!-- Controles de ventana / energía (fijos). Ocultos por defecto — ver
+       "Acciones del sistema"; el combo de botones da acceso equivalente. -->
+  {#if $showPowerFooter}
   <div class="power" data-focus-group="power">
     <button class="pbtn" data-focusable tabindex="-1" on:click={minimizeWindow}>
       <span class="ico">🗕</span> Minimizar
@@ -117,6 +124,7 @@
       <span class="ico">⏼</span> Apagar
     </button>
   </div>
+  {/if}
 </div>
 
 <style>

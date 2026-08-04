@@ -54,6 +54,16 @@ export async function toggleMaximize() {
   }
 }
 
+// Acción fija (no alterna según estado) — la usa el menú rápido de sistema,
+// donde "Maximizar" siempre debe maximizar sin importar el tamaño actual.
+export async function maximizeWindow() {
+  try {
+    await (await win()).maximize();
+  } catch {
+    /* modo web */
+  }
+}
+
 export async function isFullscreen() {
   try {
     return await (await win()).isFullscreen();

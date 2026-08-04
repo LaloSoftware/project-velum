@@ -30,12 +30,21 @@
     createCustomShortcut,
     deleteCustomShortcut,
   } from "../stores/customShortcuts.js";
+  import {
+    comboShortcuts,
+    setComboButtons,
+    setComboEnabled,
+    resetCombos,
+  } from "../stores/comboShortcuts.js";
+  import { VK_ACTIONS, vkBindings, assignVkAction, resetVkBindings } from "../stores/vkBindings.js";
   import Select from "./Select.svelte";
 
-  // listening: { action, mode: "km" | "pad" } | null
+  // listening: { action, mode: "km" | "pad" | "vk" } | null
   let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
+  let listeningCombo = null; // id del combo en captura, o null
+  let capturedCombo = []; // botones ya capturados del combo en curso
 
   // Atajo personalizado en edición: { name, mods: {ctrl,alt,shift,meta}, code } | null.
   // Selector manual en vez de "pulsa la combinación en vivo": Windows no deja
@@ -92,6 +101,13 @@
     return labelForToken(tokenForAction(action));
   };
 
+  // Botón de mando (etiqueta) asignado a una acción de teclado virtual,
+  // reactivo a $vkBindings.
+  $: vkLabelFor = (action) => {
+    const btn = Object.keys($vkBindings).find((b) => $vkBindings[b] === action);
+    return btn ? BUTTON_LABELS[btn] : "—";
+  };
+
   function stopListening() {
     listening = null;
     capturingReturn = false;
@@ -123,10 +139,55 @@
     timer = setTimeout(stopListening, 6000);
   }
 
+  function rebindVk(action) {
+    listening = { action, mode: "vk" };
+    setCapture((rawButton) => {
+      assignVkAction(action, rawButton);
+      stopListening();
+      showToast("Atajo de teclado virtual asignado");
+    });
+    clearTimeout(timer);
+    timer = setTimeout(stopListening, 6000);
+  }
+
+  async function resetVk() {
+    await resetVkBindings();
+    showToast("Atajos de teclado virtual restaurados por defecto");
+  }
+
   async function reset() {
     await resetBindings();
     await resetKeyBindings();
     showToast("Atajos restaurados por defecto");
+  }
+
+  // Botones (etiqueta) asignados a un combo, en el orden guardado.
+  function comboLabel(combo) {
+    if (!combo.buttons.length) return "—";
+    return combo.buttons.map((b) => BUTTON_LABELS[b] || b).join(" + ");
+  }
+
+  function stopListeningCombo() {
+    listeningCombo = null;
+    capturedCombo = [];
+    clearCapture();
+    clearTimeout(timer);
+  }
+
+  function rebindCombo(combo) {
+    listeningCombo = combo.id;
+    capturedCombo = [];
+    setCapture((rawButton) => {
+      if (capturedCombo.includes(rawButton)) return; // ignora repetir el mismo botón
+      capturedCombo = [...capturedCombo, rawButton];
+      if (capturedCombo.length >= 2) {
+        setComboButtons(combo.id, capturedCombo);
+        stopListeningCombo();
+        showToast("Combo actualizado");
+      }
+    });
+    clearTimeout(timer);
+    timer = setTimeout(stopListeningCombo, 8000);
   }
 
   async function addCustomShortcut() {
@@ -159,6 +220,7 @@
 
   onDestroy(() => {
     stopListening();
+    stopListeningCombo();
     newShortcut = null;
   });
 </script>
@@ -211,7 +273,30 @@
     Restaurar por defecto
   </button>
 
-  <h2 class="subhead">Volver al launcher (en juego)</h2>
+  <h2 class="subhead">Teclado virtual (mando)</h2>
+  <p class="dim">
+    Botones de mando para escribir en el teclado en pantalla — independientes del
+    resto: el mismo botón físico puede servir para otra cosa fuera del teclado
+    virtual. Con teclado físico ya se escribe directo (Enter confirma, Esc cancela).
+  </p>
+  <div class="rows">
+    {#each VK_ACTIONS as a (a.id)}
+      <div class="row">
+        <span class="label">{a.label}</span>
+        <span class="btn">{vkLabelFor(a.id)}</span>
+        <button class="rebind" data-focusable tabindex="-1" on:click={() => rebindVk(a.id)}>
+          Reasignar
+        </button>
+      </div>
+    {/each}
+  </div>
+  <button class="reset" data-focusable tabindex="-1" on:click={resetVk}>
+    Restaurar por defecto
+  </button>
+
+  <h2 class="subhead">Funciones</h2>
+
+  <div class="minihead">Volver al launcher (en juego)</div>
   <p class="dim">
     Mientras un juego está en marcha, este botón restaura el launcher. Elige si actúa al
     pulsarlo o al mantenerlo pulsado.
@@ -251,6 +336,55 @@
     {/if}
   </div>
 
+  <div class="minihead">Combo de botones</div>
+  <p class="dim">
+    Mantén varios botones a la vez para disparar una acción, sin navegar hasta el
+    menú correspondiente. El combo por defecto abre el menú rápido de sistema.
+  </p>
+  <div class="rows">
+    {#each $comboShortcuts as c (c.id)}
+      <div class="row">
+        <span class="label">{c.label}</span>
+        <span class="btn">{comboLabel(c)}</span>
+        <button class="rebind" data-focusable tabindex="-1" on:click={() => rebindCombo(c)}>
+          Reasignar
+        </button>
+        <button
+          class="toggle"
+          class:on={c.enabled}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setComboEnabled(c.id, !c.enabled)}
+        >
+          {c.enabled ? "ON" : "OFF"}
+        </button>
+      </div>
+    {/each}
+  </div>
+  <button class="reset" data-focusable tabindex="-1" on:click={resetCombos}>
+    Restaurar por defecto
+  </button>
+
+  <div class="minihead">Menú de sistema (teclado/mouse)</div>
+  <p class="dim">
+    Atajo alterno para abrir el mismo menú sin mando — no hay botón "Guía" en
+    teclado, así que se asigna aparte del combo de arriba.
+  </p>
+  <div class="rows">
+    <div class="row">
+      <span class="label">Abrir menú de sistema</span>
+      <span class="btn">{kmLabelFor("openSystemMenu")}</span>
+      <button
+        class="rebind"
+        data-focusable
+        tabindex="-1"
+        on:click={() => rebindKeyMouse("openSystemMenu")}
+      >
+        Reasignar
+      </button>
+    </div>
+  </div>
+
   <h2 class="subhead">Atajos personalizados</h2>
   <p class="dim">
     Combinaciones de teclas del sistema operativo (ej. Alt+R para un overlay de
@@ -282,14 +416,33 @@
   <div class="capture">
     <div class="box">
       <div class="big">
-        {capturingReturn || listening.mode === "pad"
+        {capturingReturn || listening.mode === "pad" || listening.mode === "vk"
           ? "Pulsa un botón del mando…"
           : "Pulsa una tecla o botón del mouse…"}
       </div>
       <div class="dim">
         para «{capturingReturn
           ? "Volver al launcher"
-          : ACTIONS.find((a) => a.id === listening.action)?.label}»
+          : listening.action === "openSystemMenu"
+            ? "Menú de sistema"
+            : listening.mode === "vk"
+              ? VK_ACTIONS.find((a) => a.id === listening.action)?.label
+              : ACTIONS.find((a) => a.id === listening.action)?.label}»
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if listeningCombo}
+  <div class="capture">
+    <div class="box">
+      <div class="big">
+        {capturedCombo.length === 0
+          ? "Pulsa el primer botón del combo…"
+          : "Pulsa el segundo botón (distinto del primero)…"}
+      </div>
+      <div class="dim">
+        para «{$comboShortcuts.find((c) => c.id === listeningCombo)?.label}»
       </div>
     </div>
   </div>
@@ -352,6 +505,10 @@
     font-size: 1.1rem;
     margin: 30px 0 10px;
   }
+  .minihead {
+    font-weight: 700;
+    margin: 18px 0 8px;
+  }
   .ctrl {
     min-width: 180px;
   }
@@ -391,6 +548,22 @@
   }
   .rebind.danger {
     color: var(--gm-danger);
+  }
+  .toggle {
+    cursor: pointer;
+    min-width: 66px;
+    padding: 8px 0;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 800;
+  }
+  .toggle.on {
+    background: var(--gm-success);
+    color: #04140d;
+  }
+  .toggle:focus {
+    box-shadow: var(--gm-focus-ring);
   }
   .add {
     cursor: pointer;

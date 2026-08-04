@@ -8,45 +8,91 @@ físico (hay teclado virtual en pantalla para escribir).
 Las fuentes de **mando** emiten eventos **crudos** `{ type: "dir"|"button", name, pressed }`;
 el mapeo `botón→acción` se hace en el frontend (bindings configurables). Las acciones que
 interpreta `App.svelte` son: `up | down | left | right | accept | back | north | west |
-menu | quick | tabLeft | tabRight`.
+context | filters | menu | quick | openSystemMenu | tabLeft | tabRight | search |
+filterPrev | filterNext | vkSpace | vkBackspace | vkShift | vkCancel | vkConfirm`.
 
 1. **Mando vía Rust/`gilrs`** (app real) — `src-tauri/src/input.rs`. Un hilo lee los
    mandos y emite el evento Tauri `gm://input`. Direcciones (d-pad/stick) → `type:"dir"`;
    botones de acción → `type:"button"` con id crudo. Cubre **Xbox/XInput, DualSense y
    genéricos** con mapeos SDL, en Windows y macOS. **Varios mandos** controlan el mismo
    foco (cualquiera dispara).
-2. **Teclado físico** (siempre) — mapea directo a acciones (`KEY_MAP`), sin pasar por los
-   bindings. Es la **red de seguridad** si el usuario se bloquea remapeando.
+2. **Teclado y mouse** (siempre) — mapean a acciones vía `src/lib/stores/keyBindings.js`,
+   un store **independiente y configurable** en paralelo al de mando (mismo mecanismo de
+   swap al reasignar). Las flechas son la única excepción: navegación fija, no remapeable
+   (igual que el d-pad). Sin default asignado, un input físico no dispara nada — no hay
+   "red de seguridad" hardcodeada aparte de esto.
 3. **Gamepad API del navegador** (fallback) — solo fuera de Tauri (`npm run dev`), misma
    forma de evento crudo. `src/lib/input/index.js`.
 
-## Atajos configurables (bindings)
+## Atajos configurables
 
-`src/lib/stores/bindings.js` guarda el mapa `botón crudo → acción` (persistido en la
-config). Las **direcciones son fijas** (navegación); solo se remapean los botones de
-acción. La sección **Configuración de atajos** (`ShortcutsSection.svelte`) reasigna con
-captura: "Pulsa un botón…" → el siguiente botón crudo se asigna a la acción (con *swap*
-si ya estaba usado). "Restaurar por defecto" vuelve al mapa base.
+Dos mapas **independientes y simultáneos**, cada uno con su propia UI de reasignación
+(captura: "Pulsa un botón/tecla…", con *swap* si ya estaba usado) en **Configuración de
+atajos** (`ShortcutsSection.svelte`):
+
+- **Mando** — `src/lib/stores/bindings.js`, mapa `botón crudo → acción`.
+- **Teclado y mouse** — `src/lib/stores/keyBindings.js`, mapa `key:<code>|mouse:<botón> →
+  acción`.
+
+`App.svelte -> dispatch` interpreta cada acción según el contexto (p. ej. `north` =
+detalle en una tarjeta, espacio con el teclado abierto). El modo captura lo exponen
+`setCapture()/clearCapture()` (mando) y `setKeyCapture()/clearKeyCapture()`
+(teclado/mouse) en `input/index.js`. "Restaurar por defecto" en cada tabla vuelve a su
+mapa base.
 
 Defaults e ids crudos de botón:
 
-| Botón (id crudo) | Acción por defecto | Teclado |
-|------------------|--------------------|---------|
-| `south` (A / Cross) | accept (aceptar / **jugar** en tarjeta) | Enter |
-| `north` (Y / Triángulo) | north (**detalle** en tarjeta; espacio en teclado) | i |
-| `east` (B / Circle) | back (volver / cancelar) | Esc / Backspace |
-| `west` (X / Cuadrado) | west (borrar en teclado) | x |
-| `l1` (LB) / `r1` (RB) | tabLeft / tabRight (pestañas; Mayús en teclado) | e / r |
+| Botón (id crudo) | Acción por defecto | Teclado/mouse por defecto |
+|------------------|--------------------|---------------------------|
+| `south` (A / Cross) | accept (aceptar / **jugar** en tarjeta) | Enter / Espacio |
+| `north` (Y / Triángulo) | north (**detalle** en tarjeta; espacio en teclado) | I |
+| `east` (B / Circle) | back (volver / cancelar) | Esc / Retroceso |
+| `west` (X / Cuadrado) | west (borrar en teclado) | X |
+| `l1` (LB) / `r1` (RB) | tabLeft / tabRight (pestañas) | E / R |
 | `lt` (LT/L2) / `rt` (RT/R2) | filterPrev / filterNext (filtro de tienda en **Juegos**) | — |
-| `l3` (clic stick izq.) | search (abrir **búsqueda** en Juegos) | — |
-| `r3` (clic stick der.) | context (**menú contextual** de tarjeta) | c |
+| `l3` (clic stick izq.) | search (abrir **búsqueda** en Juegos) | S |
+| `r3` (clic stick der.) | context (**menú contextual** de tarjeta) | C |
 | `start` | menu (menú **Configuración**) | Tab |
-| `select` / `guide` | quick (menú Sistema / QAM) | q |
-| d-pad / stick izq. | up/down/left/right (**fijo**) | Flechas |
+| `select` / `guide` | quick (menú Sistema / QAM) | Q |
+| — | filters (filtros y orden, Juegos/Apps) | F |
+| — | openSystemMenu (**menú rápido de sistema** — ver abajo) | sin default |
+| d-pad / stick izq. | up/down/left/right (**fijo**) | Flechas (fijo) |
 
-`App.svelte -> dispatch` interpreta cada acción según el contexto (p. ej. `north` =
-detalle en una tarjeta, espacio con el teclado abierto). El **modo captura** para el
-remapeo lo exponen `setCapture()/clearCapture()` en `input/index.js`.
+## "Funciones": combos y menú rápido de sistema
+
+Sección propia dentro de **Configuración de atajos**, separada de las dos tablas de
+arriba porque agrupa atajos que no son "una tecla → una acción" simple:
+
+- **Volver al launcher (en juego)** — botón + modo *pulsar*/*mantener* con duración
+  (ver "Modo en juego" abajo).
+- **Combos de botones** — `src/lib/stores/comboShortcuts.js`: lista de
+  `{ id, buttons: string[], action, enabled }`. Se disparan cuando **todos** los botones
+  del combo están presionados **a la vez** (no una secuencia). Detección en
+  `input/index.js` (`trackComboButton`): un `Set` de botones crudos sostenidos +
+  un `Set` de combos ya disparados mientras se mantienen (para no repetir el disparo,
+  liberado al soltar cualquiera de sus botones). El combo por defecto,
+  `system-menu` (**Guide + Start → openSystemMenu**), es reasignable con el mismo modo
+  captura que el resto; el modelo admite más combos a futuro pero la UI actual solo
+  administra este.
+- **Menú de sistema (teclado/mouse)** — el equivalente de un solo input físico al combo
+  de arriba, para quien no tiene mando: reasignable como cualquier fila de la tabla de
+  teclado/mouse (acción `openSystemMenu`, sin default — ver tabla arriba).
+
+### Menú rápido de sistema (`SystemQuickMenu.svelte`)
+
+Se abre con el combo de mando o el atajo de teclado/mouse de "Funciones" (acción
+`openSystemMenu`, guardas contra abrir si ya hay otro modal encima). Muestra **siempre
+las 6 acciones** de ventana/energía (a diferencia del pie de Configuración, que alterna
+Maximizar/Restaurar según estado): Minimizar, Maximizar, Entrar/Salir de pantalla
+completa, Cerrar la aplicación, Apagar el sistema (reusa el flujo de confirmación
+existente — el menú queda abierto detrás mientras se confirma). Orden editable desde
+**Configuración → Acciones del sistema** (mover arriba/abajo), persistido en
+`stores/systemActions.js` → `quickMenuOrder`. B/Esc cierra el menú.
+
+El **pie de botones de ventana/energía al final de Configuración está oculto por
+defecto** (`showPowerFooter` en `stores/systemActions.js`) — el menú rápido de arriba
+es el acceso pensado para el día a día; el pie sigue disponible si se reactiva desde
+la misma sección "Acciones del sistema".
 
 ## Modo "en juego" (sesión)
 
@@ -85,6 +131,27 @@ elemento en el extremo opuesto del mismo eje (wrap), con prioridad sobre el cruc
 región. Lo usa la tira "Reciente" de Inicio cuando su modo de recorrido es "scroll
 infinito" (ver `stores/uiprefs.js` → `homeScrollMode`, `Home.svelte`).
 
+**Cuidado con anidar `data-focus-group`** dentro de otro grupo que ya cubre esa misma
+zona (p. ej. dentro del `panel` de Configuración): `groupOf()` usa `closest()`, así que
+solo ve el grupo *más cercano* al elemento enfocado. Un subgrupo nuevo hace que sus
+elementos queden fuera del `inGroup` del grupo exterior, y el fallback a `outGroup`
+trata *todo* lo que está fuera del subgrupo como una sola bolsa (mezclando otras
+regiones peer como `side`/`power`, no solo "el resto del panel"). Si un elemento
+concreto es difícil de alcanzar por geometría (un clúster de botones angosto entre dos
+controles de ancho completo, por ejemplo), es más seguro resolverlo con
+espaciado/layout (ver `.profile-block` en `Settings.svelte`) que con un grupo anidado.
+
+### Sliders (`<input type="range">`)
+
+A diferencia del resto de focosables, un slider necesita **entrar en modo edición**
+antes de que izquierda/derecha cambien su valor — así arriba/abajo pueden seguir
+recorriendo el resto del menú sin tocarlo por accidente. Aceptar sobre un slider
+enfocado activa el modo (anillo verde vía la clase `.range-editing`, ver `app.css`);
+mientras está activo, izquierda/derecha ajustan el valor y arriba/abajo no hacen nada.
+Aceptar de nuevo lo desactiva y el slider vuelve a navegar como cualquier otro
+focosable. Es una directiva global (`navigation.js`, funciones `move()`/`activate()`)
+que cubre todos los sliders de la app sin tocar cada componente.
+
 ## Teclado virtual
 
 `src/lib/components/VirtualKeyboard.svelte` + `stores/keyboard.js`. Se abre con
@@ -95,10 +162,22 @@ Atajos de mando para escribir rápido (se muestran en una barra de pistas dentro
 teclado): **A** escribir la tecla enfocada · **Y/△** espacio · **X/□** borrar ·
 **LB/RB** alternar Mayús · **B** cancelar.
 
+Estos botones de mando son **reasignables e independientes** del resto de atajos —
+`src/lib/stores/vkBindings.js`, mapa propio `botón crudo → acción de teclado virtual`
+(`vkSpace | vkBackspace | vkShift | vkCancel | vkConfirm`), con su propia tabla
+"Teclado virtual (mando)" en Configuración de atajos y el mismo mecanismo de swap.
+Se resuelve **antes** que el mapa normal de mando mientras el teclado virtual está
+abierto (`resolveVk()` en `input/index.js`, revisado antes de `resolve()`), así que un
+mismo botón físico puede tener una acción normal y una de teclado virtual sin chocar.
+Es **solo de mando**: teclado/mouse no necesita reasignación aquí porque ya tiene un
+comportamiento fijo razonable (ver siguiente párrafo) y no comparte botones entre dos
+funciones como sí le pasa a un botón físico de mando.
+
 Si hay un **teclado físico**, con el teclado virtual abierto también se puede escribir
-directamente: caracteres → texto, Backspace → borrar, Enter → aceptar, Esc → cancelar
-(las flechas siguen navegando las teclas en pantalla). Ver `input/index.js`
-(`handlePhysicalTyping`).
+directamente: caracteres → texto, Backspace → borrar, Enter → aceptar (resuelve
+`openKeyboard()` con el texto escrito, sea para buscar, nombrar un perfil, etc.), Esc →
+cancelar (las flechas siguen navegando las teclas en pantalla). Fijo, no configurable.
+Ver `input/index.js` (`handlePhysicalTyping`).
 
 ## Notas / futuro
 
