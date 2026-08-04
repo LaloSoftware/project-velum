@@ -19,7 +19,7 @@
   // no perder la animación ni desplazar el ancla que usa el menú para ubicarse.
   $: pinned = $contextMenu?.game === game;
 
-  const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
+  const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
   $: title = game?.title || "";
   $: art = effectiveArt(game, $overrides);
 

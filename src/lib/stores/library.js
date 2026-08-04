@@ -13,10 +13,18 @@ export const STORE_DEFS = [
   { id: "steam", label: "Steam" },
   { id: "gog", label: "GOG" },
   { id: "epic", label: "Epic" },
+  { id: "ea", label: "EA" },
+  { id: "ubisoft", label: "Ubisoft" },
 ];
 
 // Filtros de tienda habilitados (persistente).
-export const enabledStores = writable({ steam: true, gog: true, epic: true });
+export const enabledStores = writable({
+  steam: true,
+  gog: true,
+  epic: true,
+  ea: true,
+  ubisoft: true,
+});
 
 // Alineación de la barra de filtros: left | center | right (persistente).
 export const filterAlign = writable("left");
@@ -28,7 +36,14 @@ export const cardAlign = writable("center");
 export async function initLibrary() {
   const cfg = await loadAppConfig();
   if (cfg && cfg.enabledStores) {
-    enabledStores.set({ steam: true, gog: true, epic: true, ...cfg.enabledStores });
+    enabledStores.set({
+      steam: true,
+      gog: true,
+      epic: true,
+      ea: true,
+      ubisoft: true,
+      ...cfg.enabledStores,
+    });
   }
   if (cfg && cfg.filterAlign) filterAlign.set(cfg.filterAlign);
   if (cfg && cfg.cardAlign) cardAlign.set(cfg.cardAlign);

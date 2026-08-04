@@ -11,7 +11,7 @@
 
   export let game;
 
-  const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
+  const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
 
   const inGroup = (g) => g.gameIds.includes(game.id);
   // Fondo = hero efectivo (override manual o el de la tienda).

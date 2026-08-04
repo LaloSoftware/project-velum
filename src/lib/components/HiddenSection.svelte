@@ -4,7 +4,7 @@
   import { showToast } from "../stores/ui.js";
   import Select from "./Select.svelte";
 
-  const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", other: "App" };
+  const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
   const KIND_OPTIONS = [
     { value: "all", label: "Todos" },
     { value: "game", label: "Juegos" },
