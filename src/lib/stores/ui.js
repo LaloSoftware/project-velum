@@ -30,6 +30,11 @@ export const confirmDelete = writable(null);
 
 // Confirmación de apagar el sistema (capa modal), desde Configuración.
 export const shutdownConfirm = writable(false);
+
+// Menú rápido de sistema: minimizar/maximizar/pantalla completa/cerrar/
+// apagar, accesible por combo de botones o atajo de teclado/mouse
+// configurable (ver stores/comboShortcuts.js).
+export const systemQuickMenu = writable(false);
 // Desplegable de un <Select>: { options, value, anchor, onSelect } (capa flotante).
 export const popover = writable(null);
 
@@ -115,11 +120,11 @@ export function closeShutdownConfirm() {
   shutdownConfirm.set(false);
 }
 
-// Menú rápido de sistema (combo de botones, ver stores/comboShortcuts.js).
-// Placeholder hasta que exista el modal (SystemQuickMenu.svelte, Fase 5) —
-// confirma que la detección del combo dispara la acción correcta.
 export function openSystemQuickMenu() {
-  showToast("Combo detectado: menú de sistema (próximamente)");
+  systemQuickMenu.set(true);
+}
+export function closeSystemQuickMenu() {
+  systemQuickMenu.set(false);
 }
 export function openPopover(cfg) {
   popover.set(cfg);

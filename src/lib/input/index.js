@@ -19,7 +19,6 @@ import { resolveKeyBinding } from "../stores/keyBindings.js";
 import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 import { comboShortcuts } from "../stores/comboShortcuts.js";
-import { openSystemQuickMenu } from "../stores/ui.js";
 import { resolveVk } from "../stores/vkBindings.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
@@ -59,10 +58,6 @@ let keyCaptureFn = null; // modo "pulsa tecla o botón de mouse" para remapear t
 const heldButtons = new Set();
 const firedCombos = new Set();
 
-const COMBO_ACTIONS = {
-  openSystemMenu: openSystemQuickMenu,
-};
-
 function trackComboButton(name, pressed) {
   if (pressed) {
     heldButtons.add(name);
@@ -70,7 +65,10 @@ function trackComboButton(name, pressed) {
       if (!combo.enabled || firedCombos.has(combo.id) || !combo.buttons.length) continue;
       if (combo.buttons.every((b) => heldButtons.has(b))) {
         firedCombos.add(combo.id);
-        COMBO_ACTIONS[combo.action]?.();
+        // combo.action es un id de acción normal (ver App.svelte -> dispatch),
+        // así que pasa por los mismos guards que cualquier otro atajo (no
+        // abre el menú si ya hay otro modal encima, etc.).
+        dispatchFn(combo.action);
       }
     }
   } else {

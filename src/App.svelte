@@ -46,6 +46,8 @@
     confirmDelete,
     shutdownConfirm,
     closeShutdownConfirm,
+    systemQuickMenu,
+    closeSystemQuickMenu,
     popover,
     colorPicker,
     filtersModal,
@@ -86,6 +88,7 @@
   import CardContextMenu from "./lib/components/CardContextMenu.svelte";
   import ConfirmDelete from "./lib/components/ConfirmDelete.svelte";
   import ShutdownConfirm from "./lib/components/ShutdownConfirm.svelte";
+  import SystemQuickMenu from "./lib/components/SystemQuickMenu.svelte";
   import SelectPopover from "./lib/components/SelectPopover.svelte";
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
@@ -129,6 +132,7 @@
     contextEl,
     confirmEl,
     shutdownEl,
+    sysQuickEl,
     popoverEl,
     colorPickerEl,
     filtersEl;
@@ -189,6 +193,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -202,6 +207,7 @@
           $overlay ||
           $detailGame ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -217,6 +223,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -233,6 +240,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -250,6 +258,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -269,6 +278,7 @@
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
+          $systemQuickMenu ||
           $popover ||
           $colorPicker ||
           $filtersModal
@@ -318,6 +328,7 @@
       !$contextMenu &&
       !$confirmDelete &&
       !$shutdownConfirm &&
+      !$systemQuickMenu &&
       !$filtersModal
     );
   }
@@ -326,6 +337,7 @@
     if ($appError) return clearAppError();
     if ($vk.open) return vkDone(true);
     if ($shutdownConfirm) return closeShutdownConfirm();
+    if ($systemQuickMenu) return closeSystemQuickMenu();
     if ($colorPicker) return closeColorPicker();
     if ($filtersModal) return closeFilters();
     if ($confirmDelete) return closeConfirm();
@@ -417,21 +429,23 @@
     ? "vk"
     : $shutdownConfirm
       ? "shutdown"
-      : $colorPicker
-        ? "colorpicker"
-        : $filtersModal
-          ? "filters"
-          : $confirmDelete
-            ? "confirm"
-            : $popover
-              ? "popover"
-              : $contextMenu
-                ? "ctx:" + ($contextMenu.sub || "main")
-                : $detailGame
-                  ? "detail"
-                  : $overlay
-                    ? "ov:" + $overlay
-                    : "view:" + $view;
+      : $systemQuickMenu
+        ? "sysquick"
+        : $colorPicker
+          ? "colorpicker"
+          : $filtersModal
+            ? "filters"
+            : $confirmDelete
+              ? "confirm"
+              : $popover
+                ? "popover"
+                : $contextMenu
+                  ? "ctx:" + ($contextMenu.sub || "main")
+                  : $detailGame
+                    ? "detail"
+                    : $overlay
+                      ? "ov:" + $overlay
+                      : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -443,6 +457,7 @@
     await tick();
     if ($vk.open) nav.setScope(vkEl);
     else if ($shutdownConfirm) nav.setScope(shutdownEl);
+    else if ($systemQuickMenu) nav.setScope(sysQuickEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
     else if ($filtersModal) nav.setScope(filtersEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
@@ -651,6 +666,13 @@
   {#if $shutdownConfirm}
     <div bind:this={shutdownEl}>
       <ShutdownConfirm />
+    </div>
+  {/if}
+
+  <!-- Menú rápido de sistema (combo de botones o atajo configurable) -->
+  {#if $systemQuickMenu}
+    <div bind:this={sysQuickEl}>
+      <SystemQuickMenu />
     </div>
   {/if}
 
