@@ -108,10 +108,18 @@ Crear `library/<tienda>.rs` con un `struct` que implemente `LibrarySource`, y re
 en `active_sources()` (bajo `#[cfg(windows)]` si es específico de Windows). `launchTarget`
 debe ser algo que sepa abrir `launch.rs`.
 
+## Cuenta de Steam vinculada
+
+Además del listado local de esta página, `docs/accounts.md` documenta la Fase 9:
+vincular la cuenta de Steam de una persona para traer su biblioteca **completa**
+(instalados y no instalados) + logros/horas jugadas. El cruce instalado/no-instalado
+usa el mismo `Game.id` (`steam:{appid}`) que produce `SteamSource` arriba.
+
 ## Pendiente
 
 - **Epic** (`.item` en `…/Epic/EpicGamesLauncher/Data/Manifests`), **vincular-cuenta**
-  (Steam Web API para biblioteca completa), iconos de apps, `lastPlayed` de GOG/EA/Ubisoft.
+  de GOG (ver `docs/accounts.md`, Steam ya implementado), iconos de apps, `lastPlayed`
+  de GOG/EA/Ubisoft.
 - Arte de GOG **offline** (hoy sus carátulas son URLs remotas de Galaxy) y arte de
   Apps/EA/Ubisoft (ninguna de las tres trae carátula/hero propios todavía).
 - **Xbox / MS Store (Game Pass PC)**: diferido — los juegos son paquetes Appx/MSIX en
