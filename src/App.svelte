@@ -18,6 +18,7 @@
   import { initGroups } from "./lib/stores/groups.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
+  import { initVkBindings } from "./lib/stores/vkBindings.js";
   import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
@@ -178,12 +179,11 @@
         playNavBack();
         return handleBack();
       case "north": // Y / Triángulo
-        if ($vk.open) return vkType(" ");
         playNavPrimary(); // abrir detalle en la tarjeta enfocada
         return nav.secondary();
-      case "west": // X / Cuadrado: borrar en el teclado, o menú de tarjeta
-        if ($vk.open) return vkBackspace();
+      case "west": // X / Cuadrado: menú de tarjeta
         if (
+          $vk.open ||
           $overlay ||
           $detailGame ||
           $contextMenu ||
@@ -276,23 +276,35 @@
           return;
         return openSystemQuickMenu();
       case "tabLeft":
-        if ($vk.open) return vkToggleShift();
+        if ($vk.open) return; // sin match propio de teclado virtual: no-op
         playNavPrimary();
         return cycleTab(-1);
       case "tabRight":
-        if ($vk.open) return vkToggleShift();
+        if ($vk.open) return;
         playNavPrimary();
         return cycleTab(1);
       case "search":
+        if ($vk.open) return;
         if (inGames()) return runSearch();
         return;
       case "filterPrev":
+        if ($vk.open) return;
         if (inGames()) return cycleFilter(-1);
         return;
       case "filterNext":
-        if ($vk.open) return vkDone(false);
+        if ($vk.open) return;
         if (inGames()) return cycleFilter(1);
         return;
+      case "vkSpace":
+        return vkType(" ");
+      case "vkBackspace":
+        return vkBackspace();
+      case "vkShift":
+        return vkToggleShift();
+      case "vkCancel":
+        return vkDone(true);
+      case "vkConfirm":
+        return vkDone(false);
     }
   }
 
@@ -494,6 +506,7 @@
       initUiPrefs(),
       initSystemActions(),
       initComboShortcuts(),
+      initVkBindings(),
     ]);
     await applyStartup();
     playStartupSound();

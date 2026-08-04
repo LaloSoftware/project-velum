@@ -36,9 +36,10 @@
     setComboEnabled,
     resetCombos,
   } from "../stores/comboShortcuts.js";
+  import { VK_ACTIONS, vkBindings, assignVkAction, resetVkBindings } from "../stores/vkBindings.js";
   import Select from "./Select.svelte";
 
-  // listening: { action, mode: "km" | "pad" } | null
+  // listening: { action, mode: "km" | "pad" | "vk" } | null
   let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
@@ -100,6 +101,13 @@
     return labelForToken(tokenForAction(action));
   };
 
+  // Botón de mando (etiqueta) asignado a una acción de teclado virtual,
+  // reactivo a $vkBindings.
+  $: vkLabelFor = (action) => {
+    const btn = Object.keys($vkBindings).find((b) => $vkBindings[b] === action);
+    return btn ? BUTTON_LABELS[btn] : "—";
+  };
+
   function stopListening() {
     listening = null;
     capturingReturn = false;
@@ -129,6 +137,22 @@
     });
     clearTimeout(timer);
     timer = setTimeout(stopListening, 6000);
+  }
+
+  function rebindVk(action) {
+    listening = { action, mode: "vk" };
+    setCapture((rawButton) => {
+      assignVkAction(action, rawButton);
+      stopListening();
+      showToast("Atajo de teclado virtual asignado");
+    });
+    clearTimeout(timer);
+    timer = setTimeout(stopListening, 6000);
+  }
+
+  async function resetVk() {
+    await resetVkBindings();
+    showToast("Atajos de teclado virtual restaurados por defecto");
   }
 
   async function reset() {
@@ -246,6 +270,27 @@
   </div>
 
   <button class="reset" data-focusable tabindex="-1" on:click={reset}>
+    Restaurar por defecto
+  </button>
+
+  <h2 class="subhead">Teclado virtual (mando)</h2>
+  <p class="dim">
+    Botones de mando para escribir en el teclado en pantalla — independientes del
+    resto: el mismo botón físico puede servir para otra cosa fuera del teclado
+    virtual. Con teclado físico ya se escribe directo (Enter confirma, Esc cancela).
+  </p>
+  <div class="rows">
+    {#each VK_ACTIONS as a (a.id)}
+      <div class="row">
+        <span class="label">{a.label}</span>
+        <span class="btn">{vkLabelFor(a.id)}</span>
+        <button class="rebind" data-focusable tabindex="-1" on:click={() => rebindVk(a.id)}>
+          Reasignar
+        </button>
+      </div>
+    {/each}
+  </div>
+  <button class="reset" data-focusable tabindex="-1" on:click={resetVk}>
     Restaurar por defecto
   </button>
 
@@ -371,7 +416,7 @@
   <div class="capture">
     <div class="box">
       <div class="big">
-        {capturingReturn || listening.mode === "pad"
+        {capturingReturn || listening.mode === "pad" || listening.mode === "vk"
           ? "Pulsa un botón del mando…"
           : "Pulsa una tecla o botón del mouse…"}
       </div>
@@ -380,7 +425,9 @@
           ? "Volver al launcher"
           : listening.action === "openSystemMenu"
             ? "Menú de sistema"
-            : ACTIONS.find((a) => a.id === listening.action)?.label}»
+            : listening.mode === "vk"
+              ? VK_ACTIONS.find((a) => a.id === listening.action)?.label
+              : ACTIONS.find((a) => a.id === listening.action)?.label}»
       </div>
     </div>
   </div>

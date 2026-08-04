@@ -20,6 +20,7 @@ import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 import { comboShortcuts } from "../stores/comboShortcuts.js";
 import { openSystemQuickMenu } from "../stores/ui.js";
+import { resolveVk } from "../stores/vkBindings.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
 // El resto de teclado/mouse vive en `stores/keyBindings.js` (configurable).
@@ -134,6 +135,15 @@ function handleRaw(ev) {
     if (captureFn) {
       captureFn(ev.name); // remapeo: capturar el botón crudo
       return;
+    }
+    // Con el teclado virtual abierto, un botón puede tener una acción propia
+    // de teclado virtual (espacio/borrar/mayús/cancelar/confirmar, ver
+    // stores/vkBindings.js) independiente de su acción normal. Si no tiene
+    // (ej. Aceptar, que ya escribe la tecla enfocada genéricamente al
+    // activarla), cae al mapeo normal sin cambios.
+    if (get(vk).open) {
+      const vkAction = resolveVk(ev.name);
+      if (vkAction) return dispatchFn(vkAction);
     }
     const action = resolve(ev.name);
     if (action) dispatchFn(action);
