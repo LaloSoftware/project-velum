@@ -154,10 +154,14 @@ fijo en la esquina inferior derecha del Detalle (campo togglable
 `achievements`): ícono + nombre del último logro obtenido (o, si aún no hay
 ninguno, el próximo por desbloquear — desempate determinista por
 `s.rowid` de `achievement_schema`, ver `steam_api/achievements.rs`) + progreso
-`X/Y` y %. Al activarlo (click/Aceptar) abre `AchievementsModal.svelte`, un
-modal centrado con el listado completo — solo la lista scrollea, título y
-botones quedan fijos. Ahí mismo, "Ver % global" pide (bajo demanda, no en cada
-sync) el % de jugadores que tiene cada logro.
+`X/Y` y %. El título "Logros de {plataforma}" (p. ej. "Logros de Steam") deja
+claro de qué se trata el badge. Al activarlo (click/Aceptar) abre
+`AchievementsModal.svelte`, un modal centrado con el listado completo — solo la
+lista scrollea, título y botones quedan fijos; cada logro es `data-focusable`
+(se navega con arriba/abajo, no solo entre "Ver % global"/"Listo"). Ahí mismo,
+"Ver % global" pide (bajo demanda, no en cada sync) el % de jugadores que tiene
+cada logro — si no se pudo obtener nada, se avisa explícitamente en vez de no
+mostrar nada (antes quedaba en blanco, indistinguible de "cargando").
 
 ## Idioma
 
@@ -194,6 +198,28 @@ WebView, incluso en un build empaquetado) registran cada paso: cuenta
 vinculada/desvinculada, resumen de cada sincronización, qué `appid` se
 re-sincronizaron y por qué, logros recibidos por juego.
 
+## Resiliencia a errores + resumen de sincronización
+
+Antes, un error de red/HTTP en UN juego (`steam_sync_achievements`) abortaba
+la sincronización completa de logros a mitad de biblioteca, dejando el resto
+sin procesar sin ningún aviso claro más que un error genérico. Ahora
+`sync_one_game` (`steam_api/achievements.rs`) aísla el trabajo de un solo
+juego; si falla, se registra en `AchievementsSyncSummary.errors` (`{ appid,
+message }`) y el `for` **sigue** con el resto — un juego problemático ya no
+tumba la sincronización de los demás.
+
+`steam_sync_achievements` devuelve ese resumen (`total`, `scanned`,
+`newSchemasTotal`/`newSchemasScanned`, `withAchievementsTotal`/
+`achievementsSynced`, `errors`) en vez de solo un número. El frontend lo
+muestra en `SteamSyncSummaryBadge.svelte` — un badge flotante (misma esquina
+que `SteamSyncIndicator`, se turnan porque uno es mientras sincroniza y el
+otro después) con las 4 métricas de un vistazo y un temporizador de auto-cierre
+(20s, `stores/steamAccount.js::showSyncSummary`); al hacer click se expande el
+detalle con el log de errores (appid + mensaje) y pausa el auto-cierre
+mientras se lee. **Solo click por ahora** — no participa del sistema de
+navegación por mando (no es un modal que bloquee el resto de la app);
+pendiente asignar un atajo de mando más adelante.
+
 ## Desvincular
 
 Botón "Desvincular" en Cuentas pide confirmación (`ConfirmUnlinkSteam.svelte`,
@@ -213,8 +239,13 @@ el caché local (`steam_unlink_account`/`cache::clear_account`, sin cambios ahí
 - **Rate limits**: la Steam Web API permite ~100 000 llamadas/día por key, muy
   por encima de lo que necesita una sola cuenta de una sala.
 - Validado con cuenta real: vinculación, sincronización de biblioteca y logros
-  funcionan. **Sin verificar todavía con cuenta/red real**: porcentajes
-  globales de logros (firma exacta de `GetGlobalAchievementPercentagesForGame`
-  — ver nota en `steam_api/global_achievements.rs`), el fallback de idioma en
-  un juego sin traducción a `latam`, y las carátulas del CDN para no
-  instalados.
+  funcionan; badge/modal de logros, carátulas de fantasmas, y resiliencia a
+  errores probados en una segunda ronda. **Sin verificar todavía con cuenta/red
+  real**: porcentajes globales de logros (firma exacta de
+  `GetGlobalAchievementPercentagesForGame` — ver nota en
+  `steam_api/global_achievements.rs`; el botón "Ver % global" no mostraba nada
+  visible en la última prueba, pendiente reverificar con el nuevo estado de
+  error explícito) y el fallback de idioma en un juego sin traducción a `latam`.
+- **Atajo de mando para el badge de resumen de sync**: `SteamSyncSummaryBadge.svelte`
+  hoy solo se abre con click/mouse — pendiente asignar un atajo de mando
+  (mismo patrón que el resto de atajos configurables) más adelante.

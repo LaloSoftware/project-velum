@@ -29,6 +29,35 @@ export const steamAccount = writable(null); // { steamid, personaName, avatarUrl
 export const steamSyncing = writable(false);
 export const steamSyncProgress = writable(null); // { done, total, appid } | null
 
+// Resumen simplificado de la última sincronización de logros — badge flotante
+// (SteamSyncSummaryBadge.svelte), NO un modal: se cierra clickeando (todavía
+// sin atajo de mando — pendiente asignar uno más adelante) o solo, con
+// temporizador, para no acumular. Se llena en syncNow() cuando de verdad se
+// sincronizaron logros de al menos un juego (silenciosa o no).
+export const steamSyncSummary = writable(null); // AchievementsSyncSummary | null
+const SYNC_SUMMARY_AUTOCLOSE_MS = 20000;
+let summaryTimer = null;
+export function dismissSyncSummary() {
+  clearTimeout(summaryTimer);
+  steamSyncSummary.set(null);
+}
+function showSyncSummary(summary) {
+  clearTimeout(summaryTimer);
+  steamSyncSummary.set(summary);
+  summaryTimer = setTimeout(() => steamSyncSummary.set(null), SYNC_SUMMARY_AUTOCLOSE_MS);
+}
+// Pausa/reanuda el auto-cierre mientras el jugador tiene abierto el detalle
+// (el log de errores) — no tiene sentido que se cierre solo mientras lo lee.
+export function holdSyncSummary() {
+  clearTimeout(summaryTimer);
+}
+export function resumeSyncSummaryTimer() {
+  clearTimeout(summaryTimer);
+  if (get(steamSyncSummary)) {
+    summaryTimer = setTimeout(() => steamSyncSummary.set(null), SYNC_SUMMARY_AUTOCLOSE_MS);
+  }
+}
+
 // Opciones de sincronización (Configuración → Cuentas → "Opciones de
 // sincronización"), globales igual que la cuenta misma — no por perfil.
 export const GLOBAL_PCT_INTERVALS = [
@@ -156,10 +185,15 @@ export async function syncNow({ silent = false, full = false } = {}) {
         appidsToSync
       );
       await listenSteamProgress();
-      const synced = await steamSyncAchievements(acc.steamid, appidsToSync);
+      const achSummary = await steamSyncAchievements(acc.steamid, appidsToSync);
       progressUnlisten?.();
-      console.log(`[gm:steam] logros sincronizados en ${synced} juego(s) (de ${appidsToSync.length})`);
-      if (!silent) showToast(`Logros actualizados en ${synced} juego(s)`);
+      console.log("[gm:steam] resumen de logros:", achSummary);
+      if (!silent) showToast(`Logros actualizados en ${achSummary.achievementsSynced} juego(s)`);
+      // Un error de UN juego (red, HTTP, etc.) ya no aborta el resto de la
+      // sincronización — se registra en achSummary.errors y sigue. El badge
+      // flotante avisa del resumen (y de los errores, si hubo) sin
+      // interrumpir con un toast/error modal disruptivo.
+      showSyncSummary(achSummary);
     } else {
       console.log("[gm:steam] sin juegos nuevos/con cambios de playtime — se omite sincronizar logros");
     }

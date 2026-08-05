@@ -102,6 +102,7 @@
   import ConfirmUnlinkSteam from "./lib/components/ConfirmUnlinkSteam.svelte";
   import Toast from "./lib/components/Toast.svelte";
   import SteamSyncIndicator from "./lib/components/SteamSyncIndicator.svelte";
+  import SteamSyncSummaryBadge from "./lib/components/SteamSyncSummaryBadge.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
   import ButtonPrompt from "./lib/components/ButtonPrompt.svelte";
@@ -163,6 +164,24 @@
   // refleja en <body> y no en .app para cubrirlos también.
   $: document.body.classList.toggle("cursor-hidden", hideCursor);
 
+  // ¿Hay algo por ENCIMA del Detalle (teclado virtual, color picker del editor
+  // de imágenes, el modal de logros, etc.)? Antes, "arriba"/"abajo" con
+  // $detailGame true siempre llamaban a detailUp()/detailDown() sin importar
+  // si un modal estaba abierto encima — p. ej. abrir el teclado virtual para
+  // nombrar un grupo, o el modal de logros, dejaba que abajo/arriba manipulara
+  // el menú del Detalle por detrás en vez de navegar dentro del modal.
+  $: modalOverDetail =
+    $vk.open ||
+    $contextMenu ||
+    $confirmDelete ||
+    $shutdownConfirm ||
+    $systemQuickMenu ||
+    $popover ||
+    $colorPicker ||
+    $filtersModal ||
+    $achievementsModal ||
+    $confirmUnlinkSteam;
+
   // ------- Interpretación de acciones de input según el contexto -------
   function dispatch(action) {
     cursorHidden = true;
@@ -176,11 +195,11 @@
     switch (action) {
       case "up":
         playNavPrimary();
-        if ($detailGame) return detailUp();
+        if ($detailGame && !modalOverDetail) return detailUp();
         return nav.move("up");
       case "down":
         playNavPrimary();
-        if ($detailGame) return detailDown();
+        if ($detailGame && !modalOverDetail) return detailDown();
         return nav.move("down");
       case "left":
       case "right":
@@ -253,6 +272,7 @@
       case "menu":
         if (
           $vk.open ||
+          $detailGame ||
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
@@ -273,6 +293,7 @@
       case "quick":
         if (
           $vk.open ||
+          $detailGame ||
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
@@ -295,6 +316,7 @@
         // (ver stores/comboShortcuts.js) — no hay botón "Guía" en teclado.
         if (
           $vk.open ||
+          $detailGame ||
           $contextMenu ||
           $confirmDelete ||
           $shutdownConfirm ||
@@ -754,6 +776,7 @@
   <ErrorBanner />
   <PlayingOverlay />
   <SteamSyncIndicator />
+  <SteamSyncSummaryBadge />
 </div>
 
 <!-- Menú contextual de tarjeta y desplegable de <Select>: fuera de .app para que

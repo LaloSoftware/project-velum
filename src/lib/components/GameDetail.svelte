@@ -8,7 +8,7 @@
   import { gameView, GAME_VIEW_FIELDS, setGameViewField } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
-  import { steamAccount, steamSyncing, loadAchievements } from "../stores/steamAccount.js";
+  import { steamAccount, steamSyncing, steamSyncSummary, loadAchievements } from "../stores/steamAccount.js";
   import { steamLibraryCache } from "../ipc/index.js";
 
   export let game;
@@ -174,13 +174,14 @@
   {#if $gameView.achievements && $steamAccount && steamAppid && steamAchievementsList.length}
     <button
       class="ach-badge"
-      class:raised={$steamSyncing}
+      class:raised={$steamSyncing || !!$steamSyncSummary}
       data-focusable
       tabindex="-1"
       on:click={() => openAchievements(steamAppid, game.title)}
     >
       {#if badgeAchievement?.iconUrl}<img class="ach-badge-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
       <div class="ach-badge-text">
+        <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
         <div class="ach-badge-name">{badgeAchievement?.displayName || badgeAchievement?.apiname}</div>
         <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
       </div>
@@ -526,6 +527,13 @@
   .ach-badge-text {
     min-width: 0;
     text-align: left;
+  }
+  .ach-badge-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--gm-accent-2);
   }
   .ach-badge-name {
     font-weight: 700;

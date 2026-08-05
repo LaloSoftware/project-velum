@@ -49,7 +49,7 @@
 
     <div class="body">
       {#each list as a (a.apiname)}
-        <div class="ach" class:locked={!a.achieved}>
+        <button class="ach" class:locked={!a.achieved} data-focusable tabindex="-1">
           {#if a.iconUrl}<img class="ach-icon" src={a.iconUrl} alt="" />{/if}
           <div class="ach-text">
             <div class="ach-name">{a.displayName || a.apiname}</div>
@@ -60,11 +60,13 @@
                   cargando %…
                 {:else if globalPct[a.apiname] != null}
                   {globalPct[a.apiname].toFixed(1)}% de los jugadores lo tienen
+                {:else}
+                  no se pudo obtener el % global
                 {/if}
               </div>
             {/if}
           </div>
-        </div>
+        </button>
       {:else}
         <p class="dim">Sin logros sincronizados todavía — sincroniza desde Configuración → Cuentas.</p>
       {/each}
@@ -165,12 +167,20 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
+    text-align: left;
+    cursor: default;
     background: var(--gm-surface);
+    color: var(--gm-text);
     border-radius: var(--gm-radius);
     padding: 8px 12px;
+    flex-shrink: 0;
   }
   .ach.locked {
     opacity: 0.5;
+  }
+  .ach:focus {
+    box-shadow: var(--gm-focus-ring);
   }
   .ach-icon {
     width: 32px;

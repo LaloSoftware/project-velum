@@ -116,6 +116,24 @@ Usa el foco nativo del DOM, así que el estilo del foco vive en CSS
 - `App.svelte` recalcula el scope cuando cambia la capa activa
   (vista → overlay → detalle → menú contextual → confirmación → teclado virtual).
 
+**Arriba/abajo con el Detalle abierto**: `dispatch()` tiene un atajo especial
+(`detailUp()`/`detailDown()`) para navegar el menú inferior del Detalle
+(Grupos/Imágenes/Soundtrack/Vista de juego) con arriba/abajo en vez del `nav.move()`
+genérico. Ese atajo solo debe activarse si el Detalle es la capa **de verdad** activa —
+si hay algo abierto ENCIMA (teclado virtual al nombrar un grupo, el color picker del
+editor de imágenes, el modal de logros, etc.), arriba/abajo debe navegar DENTRO de esa
+capa, no manipular el Detalle por detrás. `modalOverDetail` (`App.svelte`) es la lista de
+capas que cuentan como "encima" — bug real encontrado en la Fase 9g: faltaba este
+chequeo, así que abrir el modal de logros y presionar abajo expandía "Vista de juego"
+del Detalle por debajo en vez de navegar el modal.
+
+**Abrir Config/QAM con el Detalle abierto**: por el mismo motivo, `openOverlay("config")`/
+`openOverlay("qam")`/`openSystemQuickMenu()` (acciones `menu`/`quick`/`openSystemMenu`)
+ahora también se bloquean si `$detailGame` está activo — antes solo `west`/`context`/
+`filters` lo hacían, así que Start/Select/Guide+Start sí abrían esos menús con el
+Detalle abierto (renderizando invisibles por detrás, ya que la capa "detail" tiene
+prioridad de scope pero no de render/z-index).
+
 ### Regiones (focus groups)
 
 `move(dir)` es **consciente de regiones**: si el elemento enfocado está dentro de un
