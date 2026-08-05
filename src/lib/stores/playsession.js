@@ -2,6 +2,7 @@ import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { loadGames } from "./games.js";
 import { recordPlay } from "./playtimes.js";
+import { syncNow } from "./steamAccount.js";
 import { launchGame, focusGame, isTauri } from "../ipc/index.js";
 import { onRawButton } from "../input/index.js";
 import { showToast, reportError } from "./ui.js";
@@ -85,7 +86,8 @@ export async function startPlay(game) {
 }
 
 export async function endPlay() {
-  if (!get(session)) return;
+  const s = get(session);
+  if (!s) return;
   clearTimeout(holdTimer);
   holdTimer = null;
   session.set(null);
@@ -94,6 +96,10 @@ export async function endPlay() {
   // Al volver del juego, refrescar la biblioteca para reflejar el nuevo
   // "última vez jugado" (Steam actualiza el ACF al cerrar) → Inicio se reordena.
   loadGames().catch((e) => reportError(e, "playsession:reload"));
+  // Si se jugó un juego de Steam, sincronizar logros en segundo plano por si
+  // se desbloqueó alguno — silenciosa (sin toasts) y sin `await`: syncNow()
+  // ya atrapa sus propios errores, no debe demorar la restauración de arriba.
+  if (s.game?.store === "steam") syncNow({ silent: true });
 }
 
 export async function updatePlayConfig(patch) {

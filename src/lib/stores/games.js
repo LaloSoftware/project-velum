@@ -59,6 +59,21 @@ export async function loadGames() {
 // usuario instala uno después y se vuelve a cargar la lista real, el
 // duplicado se resuelva solo (dedupeById se queda con la primera aparición).
 // `entries` = lo que devuelve steam_library (steamLibraryCache en ipc).
+// Carátulas por CDN público de Steam (sin descargar nada del lado Rust: son
+// URLs deterministas por appid, e imageUrl() ya pasa directo cualquier string
+// http(s):). Se pintan como background-image (GameCard/GameDetail), así que
+// un 404 (no todos los juegos tienen los 4 assets) cae solo al degradado de
+// color de siempre, sin romper nada.
+const STEAM_CDN = "https://cdn.akamai.steamstatic.com/steam/apps";
+function steamGhostArt(appid) {
+  return {
+    coverPath: `${STEAM_CDN}/${appid}/library_600x900.jpg`,
+    widePath: `${STEAM_CDN}/${appid}/header.jpg`,
+    heroPath: `${STEAM_CDN}/${appid}/library_hero.jpg`,
+    logoPath: `${STEAM_CDN}/${appid}/logo.png`,
+  };
+}
+
 export function mergeSteamGhosts(entries) {
   games.update((list) => {
     const existingIds = new Set(list.map((g) => g.id));
@@ -69,10 +84,7 @@ export function mergeSteamGhosts(entries) {
         title: e.name,
         store: "steam",
         kind: "game",
-        coverPath: null,
-        widePath: null,
-        heroPath: null,
-        logoPath: null,
+        ...steamGhostArt(e.appid),
         installDir: null,
         launchTarget: `steam://rungameid/${e.appid}`,
         lastPlayed: null,

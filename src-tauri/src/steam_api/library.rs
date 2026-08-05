@@ -3,8 +3,8 @@
 //! lo hace el frontend comparando estos `appid` contra los que ya reporta
 //! `list_games()` (mismo formato `steam:{appid}` que usa `library/steam.rs`).
 
-use super::{cache, stored_key, API_BASE};
-use rusqlite::params;
+use super::{cache, stored_key, API_BASE, PRIMARY_LANG};
+use rusqlite::{params, ToSql};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -57,14 +57,18 @@ fn icon_url(appid: i64, img_icon_url: &str) -> Option<String> {
     }
 }
 
-fn fetch_owned_games(api_key: &str, steamid: &str) -> Result<Vec<OwnedGame>, String> {
+fn fetch_owned_games(
+    api_key: &str,
+    steamid: &str,
+    include_played_free_games: bool,
+) -> Result<Vec<OwnedGame>, String> {
     let resp: OwnedGamesResponse =
         ureq::get(&format!("{API_BASE}/IPlayerService/GetOwnedGames/v1/"))
             .query("key", api_key)
             .query("steamid", steamid)
             .query("include_appinfo", "1")
-            .query("include_played_free_games", "1")
-            .query("l", "latam")
+            .query("include_played_free_games", if include_played_free_games { "1" } else { "0" })
+            .query("l", PRIMARY_LANG)
             .call()
             .map_err(|e| format!("GetOwnedGames falló: {e}"))?
             .into_json()
@@ -76,13 +80,46 @@ fn fetch_owned_games(api_key: &str, steamid: &str) -> Result<Vec<OwnedGame>, Str
     Ok(resp.response.games)
 }
 
+/// Borra del caché los `appid` que ya no vienen en la respuesta actual de
+/// `GetOwnedGames` — cubre tanto "se desmarcó incluir juegos gratuitos" como
+/// el caso general de un juego que deja de estar en la cuenta (reembolso,
+/// etc.). No toca `achievements` (queda huérfano pero inofensivo; si el juego
+/// vuelve a aparecer, se re-sincroniza solo).
+fn prune_missing_games(
+    conn: &rusqlite::Connection,
+    steamid: &str,
+    current_appids: &[i64],
+) -> Result<(), String> {
+    if current_appids.is_empty() {
+        conn.execute("DELETE FROM games WHERE steamid = ?1", params![steamid])
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    let placeholders = vec!["?"; current_appids.len()].join(",");
+    let sql = format!("DELETE FROM games WHERE steamid = ? AND appid NOT IN ({placeholders})");
+    let mut bound: Vec<&dyn ToSql> = Vec::with_capacity(1 + current_appids.len());
+    bound.push(&steamid);
+    for id in current_appids {
+        bound.push(id);
+    }
+    conn.execute(&sql, bound.as_slice()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Trae la biblioteca completa (`GetOwnedGames`) y actualiza el caché local.
 /// Devuelve qué `appid` cambiaron de horas jugadas desde la última vez (o son
 /// nuevos) — la heurística barata de "qué logros vale la pena releer".
+/// `include_played_free_games` lo decide el usuario desde Configuración →
+/// Cuentas (por defecto `true`, mismo comportamiento que antes de ser
+/// configurable).
 #[tauri::command]
-pub fn steam_sync_library(app: AppHandle, steamid: String) -> Result<SyncSummary, String> {
+pub fn steam_sync_library(
+    app: AppHandle,
+    steamid: String,
+    include_played_free_games: bool,
+) -> Result<SyncSummary, String> {
     let api_key = stored_key(&steamid)?;
-    let games = fetch_owned_games(&api_key, &steamid)?;
+    let games = fetch_owned_games(&api_key, &steamid, include_played_free_games)?;
     println!("[steam] sync biblioteca de {steamid}: {} juego(s) recibidos", games.len());
 
     let conn = cache::open(&app)?;
@@ -118,6 +155,8 @@ pub fn steam_sync_library(app: AppHandle, steamid: String) -> Result<SyncSummary
         )
         .map_err(|e| e.to_string())?;
     }
+    let current_appids: Vec<i64> = games.iter().map(|g| g.appid).collect();
+    prune_missing_games(&conn, &steamid, &current_appids)?;
     println!(
         "[steam] {} juego(s) con playtime nuevo/distinto desde la última sync (se re-sincronizarán logros): {:?}",
         changed.len(),

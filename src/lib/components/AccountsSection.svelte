@@ -1,14 +1,17 @@
 <script>
   import { openKeyboard } from "../stores/keyboard.js";
-  import { showToast, reportError } from "../stores/ui.js";
+  import { showToast, reportError, openConfirmUnlinkSteam } from "../stores/ui.js";
   import {
     steamAccount,
     steamSyncing,
     steamSyncProgress,
+    steamSyncOptions,
+    GLOBAL_PCT_INTERVALS,
+    setSteamSyncOption,
     linkAccount,
-    unlinkAccount,
     syncNow,
   } from "../stores/steamAccount.js";
+  import Select from "./Select.svelte";
 
   let profileInput = "";
   let apiKey = "";
@@ -40,12 +43,11 @@
     }
   }
 
-  async function doUnlink() {
-    try {
-      await unlinkAccount();
-    } catch (e) {
-      reportError(e, "AccountsSection:unlink");
-    }
+  function toggleIncludeFreeGames() {
+    setSteamSyncOption("includePlayedFreeGames", !$steamSyncOptions.includePlayedFreeGames);
+  }
+  function pickGlobalPctInterval(value) {
+    setSteamSyncOption("globalPctInterval", value);
   }
 </script>
 
@@ -80,17 +82,41 @@
       </p>
     {/if}
 
+    <h2>Opciones de sincronización</h2>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel wide">Incluir juegos gratuitos jugados</span>
+        <button
+          class="toggle"
+          class:on={$steamSyncOptions.includePlayedFreeGames}
+          data-focusable
+          tabindex="-1"
+          on:click={toggleIncludeFreeGames}
+        >
+          {$steamSyncOptions.includePlayedFreeGames ? "ON" : "OFF"}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel wide">Actualizar % global de logros</span>
+        <Select
+          value={$steamSyncOptions.globalPctInterval}
+          options={GLOBAL_PCT_INTERVALS}
+          onChange={pickGlobalPctInterval}
+        />
+      </div>
+    </div>
+
     <div class="actions">
       <button
         class="btn"
         data-focusable
         tabindex="-1"
         disabled={$steamSyncing}
-        on:click={syncNow}
+        on:click={() => syncNow({ full: true })}
       >
         {$steamSyncing ? "Sincronizando…" : "Sincronizar ahora"}
       </button>
-      <button class="btn danger" data-focusable tabindex="-1" on:click={doUnlink}>
+      <button class="btn danger" data-focusable tabindex="-1" on:click={openConfirmUnlinkSteam}>
         Desvincular
       </button>
     </div>
@@ -152,6 +178,26 @@
   .rlabel {
     flex: 0 0 90px;
     font-weight: 600;
+  }
+  .rlabel.wide {
+    flex: 1;
+  }
+  /* Toggle ON/OFF (mismo patrón que GameDetail > Vista de juego / Ajustes). */
+  .toggle {
+    cursor: pointer;
+    min-width: 66px;
+    padding: 10px 0;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 800;
+  }
+  .toggle.on {
+    background: var(--gm-success);
+    color: #04140d;
+  }
+  .toggle:focus {
+    box-shadow: var(--gm-focus-ring);
   }
   .field {
     flex: 1;

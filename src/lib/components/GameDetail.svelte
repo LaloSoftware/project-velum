@@ -1,5 +1,5 @@
 <script>
-  import { closeDetail, detailAnchor, showToast, detailExpanded, detailSection } from "../stores/ui.js";
+  import { closeDetail, detailAnchor, showToast, detailExpanded, detailSection, openAchievements } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
@@ -8,7 +8,7 @@
   import { gameView, GAME_VIEW_FIELDS, setGameViewField } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
-  import { steamAccount, loadAchievements } from "../stores/steamAccount.js";
+  import { steamAccount, steamSyncing, loadAchievements } from "../stores/steamAccount.js";
   import { steamLibraryCache } from "../ipc/index.js";
 
   export let game;
@@ -36,6 +36,18 @@
     const hours = minutes / 60;
     return hours >= 1 ? `${hours.toFixed(1)} h jugadas` : `${minutes} min jugados`;
   }
+
+  // Badge de logros (esquina inferior derecha): último obtenido, o si aún no
+  // hay ninguno, el próximo por desbloquear (steamAchievementsList ya viene
+  // ordenado achieved DESC, unlock_time DESC, con desempate determinista por
+  // orden de esquema — ver steam_api/achievements.rs).
+  $: unlockedCount = steamAchievementsList.filter((a) => a.achieved).length;
+  $: badgeAchievement = unlockedCount > 0
+    ? steamAchievementsList[0]
+    : steamAchievementsList.find((a) => !a.achieved) || null;
+  $: badgePct = steamAchievementsList.length
+    ? Math.round((unlockedCount / steamAchievementsList.length) * 100)
+    : 0;
 
   const inGroup = (g) => g.gameIds.includes(game.id);
   // Fondo = hero efectivo (override manual o el de la tienda).
@@ -124,7 +136,7 @@
     ></div>
     {#if logoUrl}
       <div class="hero-logo" style="align-items:{logoAlignItems}; justify-content:{logoJustify}">
-        <img src={logoUrl} alt="" />
+        <img src={logoUrl} alt="" on:error={() => (logoUrl = null)} />
       </div>
     {/if}
     <div class="content">
@@ -132,6 +144,7 @@
       {#if $gameView.title}<h1>{game.title}</h1>{/if}
       {#if $gameView.lastPlayed}<p class="meta">{fmtLast(game.lastPlayed)}</p>{/if}
       {#if $gameView.installDir && game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
+      {#if $gameView.playtime && steamAppid && $steamAccount}<p class="meta dim">{formatPlaytime(steamPlaytimeMinutes)}</p>{/if}
 
       <div class="actions">
         <button
@@ -154,6 +167,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Badge de logros (esquina inferior derecha): último obtenido o próximo a
+       desbloquear + progreso. Sube si hay una sync en curso para no solaparse
+       con SteamSyncIndicator (misma esquina, fixed a nivel de toda la app). -->
+  {#if $gameView.achievements && $steamAccount && steamAppid && steamAchievementsList.length}
+    <button
+      class="ach-badge"
+      class:raised={$steamSyncing}
+      data-focusable
+      tabindex="-1"
+      on:click={() => openAchievements(steamAppid, game.title)}
+    >
+      {#if badgeAchievement?.iconUrl}<img class="ach-badge-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
+      <div class="ach-badge-text">
+        <div class="ach-badge-name">{badgeAchievement?.displayName || badgeAchievement?.apiname}</div>
+        <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
+      </div>
+    </button>
+  {/if}
 
   <!-- Menú inferior (aparece al pulsar abajo): una sección a la vez (paginado) -->
   {#if $detailExpanded}
@@ -217,32 +249,6 @@
                   </div>
                 {/each}
               </div>
-
-              {#if $steamAccount && steamAppid}
-                <h3 class="steam-h3">Steam</h3>
-                <p class="dim">{formatPlaytime(steamPlaytimeMinutes)}</p>
-                {#if steamAchievementsList.length}
-                  <div class="achievements">
-                    {#each steamAchievementsList as a (a.apiname)}
-                      <div class="ach" class:locked={!a.achieved}>
-                        {#if a.iconUrl}
-                          <img class="ach-icon" src={a.iconUrl} alt="" />
-                        {/if}
-                        <div class="ach-text">
-                          <div class="ach-name">{a.displayName || a.apiname}</div>
-                          {#if a.description}
-                            <div class="ach-desc dim">{a.description}</div>
-                          {/if}
-                        </div>
-                      </div>
-                    {/each}
-                  </div>
-                {:else}
-                  <p class="dim">
-                    Sin logros sincronizados todavía — sincroniza desde Configuración → Cuentas.
-                  </p>
-                {/if}
-              {/if}
             </section>
           {/if}
         </div>
@@ -484,42 +490,53 @@
     box-shadow: var(--gm-focus-ring);
   }
 
-  /* Logros/horas jugadas de Steam (Fase 9). */
-  .steam-h3 {
-    margin-top: 22px;
-  }
-  .dim {
-    color: var(--gm-text-dim);
-  }
-  .achievements {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 220px;
-    overflow-y: auto;
-  }
-  .ach {
+  /* Badge de logros (Fase 9f): esquina inferior derecha del Detalle, mismo
+     estilo "chip" que el resto de la app. Sube (.raised) si hay una sync en
+     curso, para no solaparse con SteamSyncIndicator (misma esquina, pero
+     fixed a nivel de toda la app, z-index 90). */
+  .ach-badge {
+    position: absolute;
+    right: var(--gm-pad);
+    bottom: 18px;
+    z-index: 5;
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--gm-surface);
-    border-radius: var(--gm-radius);
-    padding: 8px 12px;
+    max-width: 320px;
+    cursor: pointer;
+    background: var(--gm-bg-elev);
+    border-radius: var(--gm-radius-lg);
+    padding: 10px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    /* transform, no "bottom": anima solo compositing (sin layout thrash). */
+    transition: transform 0.2s ease;
   }
-  .ach.locked {
-    opacity: 0.5;
+  .ach-badge.raised {
+    transform: translateY(-52px);
   }
-  .ach-icon {
-    width: 32px;
-    height: 32px;
+  .ach-badge:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .ach-badge-icon {
+    width: 36px;
+    height: 36px;
     border-radius: 6px;
     flex-shrink: 0;
   }
-  .ach-name {
-    font-weight: 600;
-    font-size: 0.9rem;
+  .ach-badge-text {
+    min-width: 0;
+    text-align: left;
   }
-  .ach-desc {
-    font-size: 0.8rem;
+  .ach-badge-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--gm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ach-badge-progress {
+    font-size: 0.78rem;
+    color: var(--gm-text-dim);
   }
 </style>

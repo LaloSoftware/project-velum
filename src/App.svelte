@@ -19,7 +19,7 @@
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { initVkBindings } from "./lib/stores/vkBindings.js";
-  import { initSteamAccount, mergeCachedSteamGhosts } from "./lib/stores/steamAccount.js";
+  import { initSteamAccount, mergeCachedSteamGhosts, syncNow } from "./lib/stores/steamAccount.js";
   import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
@@ -52,6 +52,10 @@
     popover,
     colorPicker,
     filtersModal,
+    achievementsModal,
+    closeAchievements,
+    confirmUnlinkSteam,
+    closeConfirmUnlinkSteam,
     appError,
     clearAppError,
     goto,
@@ -94,6 +98,8 @@
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
   import FiltersModal from "./lib/components/FiltersModal.svelte";
+  import AchievementsModal from "./lib/components/AchievementsModal.svelte";
+  import ConfirmUnlinkSteam from "./lib/components/ConfirmUnlinkSteam.svelte";
   import Toast from "./lib/components/Toast.svelte";
   import SteamSyncIndicator from "./lib/components/SteamSyncIndicator.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
@@ -137,7 +143,9 @@
     sysQuickEl,
     popoverEl,
     colorPickerEl,
-    filtersEl;
+    filtersEl,
+    achievementsEl,
+    confirmUnlinkSteamEl;
   let now = new Date();
 
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
@@ -198,7 +206,9 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
-          $filtersModal
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam
         )
           return;
         playNavPrimary();
@@ -212,7 +222,9 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
-          $filtersModal
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam
         )
           return;
         playNavPrimary();
@@ -228,7 +240,9 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
-          $filtersModal
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam
         )
           return;
         if ($view === "games" || $view === "apps") {
@@ -245,7 +259,9 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
-          $filtersModal
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam
         )
           return;
         if ($overlay === "config") {
@@ -263,7 +279,9 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
-          $filtersModal
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam
         )
           return;
         if ($overlay === "qam") {
@@ -283,7 +301,9 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
-          $filtersModal
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam
         )
           return;
         return openSystemQuickMenu();
@@ -331,7 +351,9 @@
       !$confirmDelete &&
       !$shutdownConfirm &&
       !$systemQuickMenu &&
-      !$filtersModal
+      !$filtersModal &&
+      !$achievementsModal &&
+      !$confirmUnlinkSteam
     );
   }
 
@@ -342,6 +364,7 @@
     if ($systemQuickMenu) return closeSystemQuickMenu();
     if ($colorPicker) return closeColorPicker();
     if ($filtersModal) return closeFilters();
+    if ($confirmUnlinkSteam) return closeConfirmUnlinkSteam();
     if ($confirmDelete) return closeConfirm();
     if ($popover) {
       const a = $popover.anchor;
@@ -354,6 +377,7 @@
       closeContext();
       return a?.focus({ preventScroll: true });
     }
+    if ($achievementsModal) return closeAchievements();
     if ($detailGame) {
       // Si el menú inferior está desplegado, B lo pliega primero; si no, cierra
       // y devuelve el foco a la tarjeta que abrió el detalle.
@@ -418,7 +442,9 @@
       $shutdownConfirm ||
       $popover ||
       $colorPicker ||
-      $filtersModal
+      $filtersModal ||
+      $achievementsModal ||
+      $confirmUnlinkSteam
     )
       return;
     const idx = TABS.findIndex((t) => t.id === $view);
@@ -437,17 +463,21 @@
           ? "colorpicker"
           : $filtersModal
             ? "filters"
-            : $confirmDelete
-              ? "confirm"
-              : $popover
-                ? "popover"
-                : $contextMenu
-                  ? "ctx:" + ($contextMenu.sub || "main")
-                  : $detailGame
-                    ? "detail"
-                    : $overlay
-                      ? "ov:" + $overlay
-                      : "view:" + $view;
+            : $confirmUnlinkSteam
+              ? "confirm-unlink-steam"
+              : $confirmDelete
+                ? "confirm"
+                : $popover
+                  ? "popover"
+                  : $contextMenu
+                    ? "ctx:" + ($contextMenu.sub || "main")
+                    : $achievementsModal
+                      ? "achievements"
+                      : $detailGame
+                        ? "detail"
+                        : $overlay
+                          ? "ov:" + $overlay
+                          : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -462,9 +492,11 @@
     else if ($systemQuickMenu) nav.setScope(sysQuickEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
     else if ($filtersModal) nav.setScope(filtersEl);
+    else if ($confirmUnlinkSteam) nav.setScope(confirmUnlinkSteamEl);
     else if ($confirmDelete) nav.setScope(confirmEl);
     else if ($popover) nav.setScope(popoverEl);
     else if ($contextMenu) nav.setScope(contextEl);
+    else if ($achievementsModal) nav.setScope(achievementsEl);
     else if ($detailGame) {
       if ($detailExpanded) nav.setScope(detailEl?.querySelector("[data-detail-top]") || detailEl);
       else nav.setScope(detailEl);
@@ -527,6 +559,9 @@
       initSteamAccount(),
     ]);
     await mergeCachedSteamGhosts(); // necesita loadGames() ya resuelto (arriba)
+    // Sync silenciosa de fondo al abrir (sin `await`: no debe demorar el
+    // primer pintado; syncNow() ya atrapa sus propios errores).
+    syncNow({ silent: true });
     await applyStartup();
     playStartupSound();
     initSoundtrackPlayer();
@@ -659,10 +694,24 @@
     </div>
   {/if}
 
+  <!-- Modal de logros completos (se abre desde el badge del Detalle) -->
+  {#if $achievementsModal}
+    <div bind:this={achievementsEl}>
+      <AchievementsModal />
+    </div>
+  {/if}
+
   <!-- Confirmación de eliminar -->
   {#if $confirmDelete}
     <div bind:this={confirmEl}>
       <ConfirmDelete />
+    </div>
+  {/if}
+
+  <!-- Confirmación de desvincular cuenta de Steam -->
+  {#if $confirmUnlinkSteam}
+    <div bind:this={confirmUnlinkSteamEl}>
+      <ConfirmUnlinkSteam />
     </div>
   {/if}
 

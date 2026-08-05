@@ -58,6 +58,18 @@ pub fn open(app: &AppHandle) -> Result<Connection, String> {
             fetched_at INTEGER NOT NULL,
             has_achievements INTEGER NOT NULL
         );
+        -- % global de jugadores que tienen cada logro (GetGlobalAchievementPercentagesForGame).
+        -- Público, por-appid (no por-cuenta). A diferencia de achievement_schema,
+        -- SÍ se refresca (fetched_at) porque el usuario puede configurar cada
+        -- cuánto revisarlo (diario/semanal/mensual, ver steam_sync_options en el
+        -- frontend) en vez de cachearlo para siempre.
+        CREATE TABLE IF NOT EXISTS achievement_global_pct (
+            appid INTEGER NOT NULL,
+            apiname TEXT NOT NULL,
+            percent REAL NOT NULL,
+            fetched_at INTEGER NOT NULL,
+            PRIMARY KEY (appid, apiname)
+        );
         ",
     )
     .map_err(|e| e.to_string())?;

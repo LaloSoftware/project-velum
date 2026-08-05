@@ -19,6 +19,8 @@ export const GAME_VIEW_FIELDS = [
   { key: "platform", label: "Plataforma" },
   { key: "lastPlayed", label: "Última vez jugado" },
   { key: "installDir", label: "Ruta de instalación" },
+  { key: "playtime", label: "Horas jugadas (Steam)" },
+  { key: "achievements", label: "Logros (Steam)" },
 ];
 
 function defaultGameView() {

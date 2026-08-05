@@ -12,6 +12,7 @@
 
 pub mod achievements;
 mod cache;
+pub mod global_achievements;
 pub mod library;
 
 use keyring::Entry;
@@ -20,6 +21,15 @@ use tauri::AppHandle;
 
 const KEYRING_SERVICE: &str = "gm-launcher-steam";
 const API_BASE: &str = "https://api.steampowered.com";
+
+// Idioma usado en las llamadas a la Web API (nombres/descripciones de logros).
+// Hoy fijo — cuando exista un selector de idioma real (pendiente, ver
+// docs/accounts.md) PRIMARY_LANG pasa a resolverse desde la config en vez de
+// ser una constante. FALLBACK_LANG se usa cuando un juego no tiene traducción
+// a PRIMARY_LANG (Steam devuelve texto vacío, no cae solo a inglés) — ver
+// `achievements::fetch_schema_with_fallback`.
+pub(crate) const PRIMARY_LANG: &str = "latam";
+pub(crate) const FALLBACK_LANG: &str = "english";
 
 /// La API key guardada de una cuenta ya vinculada, o un error legible si no
 /// hay ninguna (p. ej. si se llama a sincronizar sin haber vinculado antes).

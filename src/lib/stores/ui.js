@@ -44,6 +44,13 @@ export const colorPicker = writable(null);
 // Modal de filtros/orden (Juegos/Apps): { scope: 'games' | 'apps' } | null.
 export const filtersModal = writable(null);
 
+// Modal de logros completos de un juego de Steam (capa modal, se abre desde
+// el badge fijo del Detalle): { appid, title } | null.
+export const achievementsModal = writable(null);
+
+// Confirmación de desvincular la cuenta de Steam (capa modal, desde Cuentas).
+export const confirmUnlinkSteam = writable(false);
+
 // Mensajes efímeros (toasts).
 export const toast = writable(null);
 let toastTimer = null;
@@ -143,4 +150,16 @@ export function openFilters(scope) {
 }
 export function closeFilters() {
   filtersModal.set(null);
+}
+export function openAchievements(appid, title) {
+  achievementsModal.set({ appid, title });
+}
+export function closeAchievements() {
+  achievementsModal.set(null);
+}
+export function openConfirmUnlinkSteam() {
+  confirmUnlinkSteam.set(true);
+}
+export function closeConfirmUnlinkSteam() {
+  confirmUnlinkSteam.set(false);
 }

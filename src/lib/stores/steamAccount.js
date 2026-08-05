@@ -29,8 +29,38 @@ export const steamAccount = writable(null); // { steamid, personaName, avatarUrl
 export const steamSyncing = writable(false);
 export const steamSyncProgress = writable(null); // { done, total, appid } | null
 
+// Opciones de sincronización (Configuración → Cuentas → "Opciones de
+// sincronización"), globales igual que la cuenta misma — no por perfil.
+export const GLOBAL_PCT_INTERVALS = [
+  { value: "daily", label: "Cada día", secs: 24 * 3600 },
+  { value: "weekly", label: "Cada semana", secs: 7 * 24 * 3600 },
+  { value: "monthly", label: "Cada mes", secs: 30 * 24 * 3600 },
+];
+const DEFAULT_SYNC_OPTIONS = { includePlayedFreeGames: true, globalPctInterval: "monthly" };
+export const steamSyncOptions = writable({ ...DEFAULT_SYNC_OPTIONS });
+
+export function globalPctMaxAgeSecs() {
+  const interval = get(steamSyncOptions).globalPctInterval;
+  const fallback = GLOBAL_PCT_INTERVALS.find((i) => i.value === DEFAULT_SYNC_OPTIONS.globalPctInterval).secs;
+  return GLOBAL_PCT_INTERVALS.find((i) => i.value === interval)?.secs ?? fallback;
+}
+
+// Cambiar qué se incluye en la sync (a diferencia del intervalo de % global,
+// que solo afecta la próxima lectura) no se aplica solo — hace falta volver a
+// sincronizar para que la biblioteca refleje el cambio, así que se avisa.
+export async function setSteamSyncOption(key, value) {
+  steamSyncOptions.update((o) => ({ ...o, [key]: value }));
+  await patchAppConfig({ steamSyncOptions: get(steamSyncOptions) });
+  if (key === "includePlayedFreeGames") {
+    showToast("Vuelve a sincronizar para aplicar el cambio");
+  }
+}
+
 export async function initSteamAccount() {
   const cfg = await loadAppConfig();
+  if (cfg?.steamSyncOptions) {
+    steamSyncOptions.set({ ...DEFAULT_SYNC_OPTIONS, ...cfg.steamSyncOptions });
+  }
   if (!cfg || !cfg.steamAccount) return;
   // La identidad (nombre/avatar) vive en config.json, pero la API key vive
   // solo en el keyring del SO (nunca aquí) — si desapareció por fuera (o la
@@ -96,30 +126,40 @@ async function listenSteamProgress() {
   });
 }
 
-export async function syncNow() {
+// `silent`: sin toasts de resumen (sync automática — fin de partida/arranque);
+// progreso (steamSyncing/steamSyncProgress) y logs de consola igual siempre.
+// `full`: re-verifica logros de TODA la biblioteca, ignorando el atajo de
+// "solo lo que cambió de playtime" — la sync manual ("Sincronizar ahora") lo
+// usa para una revisión completa; las automáticas se quedan con el atajo
+// liviano (importa cuando hay cientos de juegos).
+export async function syncNow({ silent = false, full = false } = {}) {
   const acc = get(steamAccount);
   if (!acc || get(steamSyncing)) return;
   steamSyncing.set(true);
   steamSyncProgress.set(null);
   try {
     console.log(`[gm:steam] sincronizando biblioteca de ${acc.steamid}...`);
-    const summary = await steamSyncLibrary(acc.steamid);
+    const { includePlayedFreeGames } = get(steamSyncOptions);
+    const summary = await steamSyncLibrary(acc.steamid, includePlayedFreeGames);
     console.log("[gm:steam] resumen de biblioteca:", summary);
-    showToast(`Biblioteca sincronizada: ${summary.totalGames} juego(s)`);
+    if (!silent) showToast(`Biblioteca sincronizada: ${summary.totalGames} juego(s)`);
 
     const entries = await steamLibraryCache(acc.steamid);
     mergeSteamGhosts(entries);
 
-    if (summary.changedAppids.length) {
+    const appidsToSync = full ? entries.map((e) => e.appid) : summary.changedAppids;
+    if (appidsToSync.length) {
       console.log(
-        `[gm:steam] sincronizando logros de ${summary.changedAppids.length} juego(s) con playtime nuevo/distinto:`,
-        summary.changedAppids
+        `[gm:steam] sincronizando logros de ${appidsToSync.length} juego(s)` +
+          (full ? " (revisión completa)" : " con playtime nuevo/distinto") +
+          ":",
+        appidsToSync
       );
       await listenSteamProgress();
-      const synced = await steamSyncAchievements(acc.steamid, summary.changedAppids);
+      const synced = await steamSyncAchievements(acc.steamid, appidsToSync);
       progressUnlisten?.();
-      console.log(`[gm:steam] logros sincronizados en ${synced} juego(s) (de ${summary.changedAppids.length})`);
-      showToast(`Logros actualizados en ${synced} juego(s)`);
+      console.log(`[gm:steam] logros sincronizados en ${synced} juego(s) (de ${appidsToSync.length})`);
+      if (!silent) showToast(`Logros actualizados en ${synced} juego(s)`);
     } else {
       console.log("[gm:steam] sin juegos nuevos/con cambios de playtime — se omite sincronizar logros");
     }

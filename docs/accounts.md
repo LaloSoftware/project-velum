@@ -64,6 +64,12 @@ SO, así que declarar ambas es seguro en dev-macOS y producción-Windows).
   DINÁMICO por jugador (de `GetPlayerAchievements`).
 - `schema_cache(appid, fetched_at, has_achievements)` — para no volver a pedir
   el esquema de un juego ya visto, ni sus logros si no tiene ninguno.
+- `achievement_global_pct(appid, apiname, percent, fetched_at)` — % de
+  jugadores que tienen cada logro (`GetGlobalAchievementPercentagesForGame`,
+  público, no requiere `key`/`steamid`). A diferencia de `achievement_schema`,
+  SÍ se refresca (con el intervalo configurable en Cuentas → Opciones de
+  sincronización, ver más abajo) — solo se pide cuando el jugador abre "Ver %
+  global" en el modal de logros, no en cada sync.
 
 ## Sincronización incremental
 
@@ -83,6 +89,40 @@ Dentro de `steam_sync_achievements`, por cada `appid`:
 2. Si no tiene logros (`has_achievements = 0`), se omite por completo.
 3. Si tiene logros, se pide `GetPlayerAchievements` y se actualiza el estado.
 
+**Manual vs. automática**: `syncNow({ full })` (`stores/steamAccount.js`) tiene
+dos modos. El botón "Sincronizar ahora" de Cuentas llama `syncNow({ full: true
+})` — re-verifica logros de **toda** la biblioteca, ignorando el atajo de
+playtime (una revisión completa, deliberada). Las sincronizaciones automáticas
+(ver más abajo) llaman `syncNow({ silent: true })` — `full` queda en `false`,
+así que se quedan con el atajo liviano de "solo lo que cambió".
+
+## Sincronización automática (en segundo plano, silenciosa)
+
+Dos disparadores, ambos vía `syncNow({ silent: true })` (sin toasts de resumen
+— solo el indicador de progreso ya existente, si aplica; logs de consola
+iguales siempre):
+- **Al terminar de jugar** un juego de Steam (`stores/playsession.js::endPlay`,
+  evento `gm://game-ended`) — por si se desbloqueó algún logro nuevo.
+- **Al abrir la app**, si ya hay cuenta vinculada (`App.svelte` `onMount`,
+  después de `mergeCachedSteamGhosts()`) — sin `await`, no demora el primer
+  pintado.
+
+## Opciones de sincronización
+
+Configuración → Cuentas → "Opciones de sincronización"
+(`stores/steamAccount.js::steamSyncOptions`, persistido en `config.json` igual
+que el resto):
+- **Incluir juegos gratuitos jugados** (`includePlayedFreeGames`, default
+  `true`) — pasa a `GetOwnedGames?include_played_free_games=`. Al desmarcarla
+  se avisa que hace falta volver a sincronizar para que la biblioteca refleje
+  el cambio (no se dispara sola). `steam_sync_library` borra del caché los
+  `appid` que ya no vienen en la respuesta (`prune_missing_games` en
+  `steam_api/library.rs`) — cubre este caso y, en general, cualquier juego que
+  deje de estar en la cuenta (reembolso, etc.).
+- **Actualizar % global de logros** (`globalPctInterval`: diario/semanal/
+  mensual, default mensual) — el umbral que usa `steam_global_achievement_percentages`
+  para decidir si refresca o sirve lo cacheado.
+
 ## Instalado vs. no instalado
 
 `GetOwnedGames` no tiene concepto de "instalado" — eso es 100% local. El
@@ -96,11 +136,45 @@ instala después, la siguiente carga real de `list_games()` trae el mismo id y
 el "fantasma" queda descartado por `dedupeById` (se queda con la primera
 aparición).
 
+**Carátulas de los fantasmas**: se resuelven en el frontend con URLs
+deterministas del CDN público de Steam por `appid`
+(`cdn.akamai.steamstatic.com/steam/apps/{appid}/{library_600x900.jpg |
+header.jpg | library_hero.jpg | logo.png}`, ver `stores/games.js::steamGhostArt`)
+— sin tocar Rust ni IPC, `imageUrl()` ya pasa directo cualquier URL `http(s):`.
+Cover/wide/hero se pintan como `background-image` (un 404 cae solo al
+degradado de color de siempre); el logo es el único `<img>` real de la cadena,
+blindado con `on:error` porque no todos los juegos tienen ese asset en el CDN.
+
+## Detalle de un juego: horas, logros
+
+Las horas jugadas de Steam aparecen en línea con el resto de la metadata del
+hero (título, plataforma, ruta de instalación) — campo togglable `playtime` en
+`GAME_VIEW_FIELDS` (`stores/uiprefs.js`). Los logros se condensan en un badge
+fijo en la esquina inferior derecha del Detalle (campo togglable
+`achievements`): ícono + nombre del último logro obtenido (o, si aún no hay
+ninguno, el próximo por desbloquear — desempate determinista por
+`s.rowid` de `achievement_schema`, ver `steam_api/achievements.rs`) + progreso
+`X/Y` y %. Al activarlo (click/Aceptar) abre `AchievementsModal.svelte`, un
+modal centrado con el listado completo — solo la lista scrollea, título y
+botones quedan fijos. Ahí mismo, "Ver % global" pide (bajo demanda, no en cada
+sync) el % de jugadores que tiene cada logro.
+
 ## Idioma
 
 Fijo en `l=latam` (español Latinoamérica — Steam distingue este código del
-`spanish` de España) para nombres/descripciones de logros. No hay selector de
-idioma real todavía; cuando exista, este valor pasa a ser configurable.
+`spanish` de España) para nombres/descripciones de logros y biblioteca (
+`steam_api::PRIMARY_LANG`). No hay selector de idioma real todavía; cuando
+exista, `PRIMARY_LANG` pasa a resolverse desde config en vez de ser constante.
+
+**Fallback a inglés por juego sin traducción**: `GetSchemaForGame` no cae solo
+a inglés cuando un juego no tiene traducción a `latam` — devuelve
+`displayName`/`description` vacíos. `fetch_schema_with_fallback`
+(`steam_api/achievements.rs`) detecta esto (`schema_needs_fallback`: esquema
+vacío, o algún logro con `displayName` vacío) y reintenta UNA vez con
+`PRIMARY_LANG` → `FALLBACK_LANG` (`"english"`). Un fallo de red no cuenta como
+"idioma incorrecto" — no dispara el reintento. Acotado a logros (única fuente
+de texto localizado que lee esta app); `GetOwnedGames` no tiene una señal
+equivalente para detectar "idioma incorrecto" en el nombre del juego.
 
 ## Progreso de sincronización
 
@@ -120,11 +194,27 @@ WebView, incluso en un build empaquetado) registran cada paso: cuenta
 vinculada/desvinculada, resumen de cada sincronización, qué `appid` se
 re-sincronizaron y por qué, logros recibidos por juego.
 
+## Desvincular
+
+Botón "Desvincular" en Cuentas pide confirmación (`ConfirmUnlinkSteam.svelte`,
+mismo patrón que `ConfirmDelete.svelte`) antes de borrar la key del keyring y
+el caché local (`steam_unlink_account`/`cache::clear_account`, sin cambios ahí
+— ya limpiaba los datos, solo faltaba la confirmación en la UI).
+
 ## Pendiente
 
 - **GOG**: mismo patrón, fase separada — no empezado.
+- **Biblioteca familiar de Steam ("Family Sharing")**: pedido por el usuario,
+  diferido — no hay un endpoint público/documentado de la Steam Web API para
+  esto (el mecanismo que usa el cliente/sitio de Steam requiere sesión de
+  navegador, no la API key que usa esta app). Mismo criterio que Xbox/MS Store
+  en `docs/stores.md`: se documenta como pendiente en vez de adivinar una
+  implementación no verificada.
 - **Rate limits**: la Steam Web API permite ~100 000 llamadas/día por key, muy
   por encima de lo que necesita una sola cuenta de una sala.
-- Sin probar con red/API key real todavía — la vinculación, sincronización y
-  logros reales quedan pendientes de verificar en una sesión con una cuenta de
-  Steam de verdad.
+- Validado con cuenta real: vinculación, sincronización de biblioteca y logros
+  funcionan. **Sin verificar todavía con cuenta/red real**: porcentajes
+  globales de logros (firma exacta de `GetGlobalAchievementPercentagesForGame`
+  — ver nota en `steam_api/global_achievements.rs`), el fallback de idioma en
+  un juego sin traducción a `latam`, y las carátulas del CDN para no
+  instalados.

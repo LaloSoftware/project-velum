@@ -3,7 +3,7 @@
 //! nunca sincronizados; releer logros de TODA la biblioteca en cada
 //! sincronización sería carísimo para cuentas con cientos de juegos.
 
-use super::{cache, stored_key, API_BASE};
+use super::{cache, stored_key, API_BASE, FALLBACK_LANG, PRIMARY_LANG};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
@@ -70,11 +70,11 @@ struct SyncProgress {
     appid: i64,
 }
 
-fn fetch_schema(api_key: &str, appid: i64) -> Result<Vec<SchemaAchievement>, String> {
+fn fetch_schema(api_key: &str, appid: i64, lang: &str) -> Result<Vec<SchemaAchievement>, String> {
     let resp: SchemaResponse = ureq::get(&format!("{API_BASE}/ISteamUserStats/GetSchemaForGame/v2/"))
         .query("key", api_key)
         .query("appid", &appid.to_string())
-        .query("l", "latam")
+        .query("l", lang)
         .call()
         .map_err(|e| format!("GetSchemaForGame({appid}) falló: {e}"))?
         .into_json()
@@ -84,6 +84,33 @@ fn fetch_schema(api_key: &str, appid: i64) -> Result<Vec<SchemaAchievement>, Str
         .and_then(|g| g.available_game_stats)
         .map(|s| s.achievements)
         .unwrap_or_default())
+}
+
+/// `true` si el esquema no trae texto usable en el idioma pedido: vino vacío,
+/// o algún logro llegó con `displayName` vacío (Steam no cae solo a inglés
+/// cuando un juego no tiene traducción a `PRIMARY_LANG` — devuelve el campo
+/// vacío) — señal de que conviene reintentar con `FALLBACK_LANG`.
+fn schema_needs_fallback(schema: &[SchemaAchievement]) -> bool {
+    schema.is_empty() || schema.iter().any(|a| a.display_name.trim().is_empty())
+}
+
+/// Pide el esquema de logros en `PRIMARY_LANG`; si el juego no tiene
+/// traducción (`schema_needs_fallback`), reintenta UNA vez con `FALLBACK_LANG`.
+/// Un fallo de red/HTTP en el primer intento se propaga tal cual — no es una
+/// señal de "idioma incorrecto", así que no amerita reintento.
+fn fetch_schema_with_fallback(api_key: &str, appid: i64) -> Result<Vec<SchemaAchievement>, String> {
+    let schema = fetch_schema(api_key, appid, PRIMARY_LANG)?;
+    if schema_needs_fallback(&schema) {
+        println!(
+            "[steam] appid {appid}: esquema sin traducción a '{PRIMARY_LANG}', reintentando con '{FALLBACK_LANG}'"
+        );
+        match fetch_schema(api_key, appid, FALLBACK_LANG) {
+            Ok(fallback) if !fallback.is_empty() => return Ok(fallback),
+            Ok(_) => {} // tampoco hay nada en inglés — se sirve lo que había (posiblemente vacío).
+            Err(e) => println!("[steam] appid {appid}: fallback a '{FALLBACK_LANG}' también falló: {e}"),
+        }
+    }
+    Ok(schema)
 }
 
 fn fetch_player_achievements(
@@ -96,7 +123,7 @@ fn fetch_player_achievements(
             .query("key", api_key)
             .query("steamid", steamid)
             .query("appid", &appid.to_string())
-            .query("l", "latam")
+            .query("l", PRIMARY_LANG)
             .call()
         {
             Ok(r) => r.into_json().map_err(|e| e.to_string())?,
@@ -142,7 +169,7 @@ pub fn steam_sync_achievements(
         let has_achievements = match cached_flag {
             Some(flag) => flag != 0,
             None => {
-                let schema = fetch_schema(&api_key, appid)?;
+                let schema = fetch_schema_with_fallback(&api_key, appid)?;
                 let has = !schema.is_empty();
                 for a in &schema {
                     conn.execute(
@@ -220,7 +247,14 @@ pub fn steam_achievements(
              FROM achievements a
              LEFT JOIN achievement_schema s ON s.appid = a.appid AND s.apiname = a.apiname
              WHERE a.steamid = ?1 AND a.appid = ?2
-             ORDER BY a.achieved DESC, a.unlock_time DESC",
+             -- Desempate s.rowid ASC: entre los NO desbloqueados (sin unlock_time
+             -- que los ordene), el rowid de achievement_schema refleja el orden en
+             -- que GetSchemaForGame devolvió los logros la primera vez que se
+             -- cacheó el juego (orden de progresión del propio juego) — los syncs
+             -- posteriores solo hacen UPDATE, no reinsertan, así que es estable.
+             -- Esto es lo que hace determinista \"el próximo logro a desbloquear\"
+             -- en vez de un orden arbitrario de SQLite.
+             ORDER BY a.achieved DESC, a.unlock_time DESC, s.rowid ASC",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
@@ -311,5 +345,33 @@ mod tests {
             serde_json::from_str(PLAYER_ACHIEVEMENTS_PRIVATE).unwrap();
         assert!(!resp.playerstats.success);
         assert!(resp.playerstats.achievements.is_empty());
+    }
+
+    #[test]
+    fn schema_needs_fallback_when_empty() {
+        assert!(schema_needs_fallback(&[]));
+    }
+
+    #[test]
+    fn schema_needs_fallback_when_display_name_blank() {
+        let resp: SchemaResponse = serde_json::from_str(SCHEMA_SAMPLE).unwrap();
+        let mut achievements = resp
+            .game
+            .and_then(|g| g.available_game_stats)
+            .map(|s| s.achievements)
+            .unwrap_or_default();
+        achievements[0].display_name = "  ".to_string(); // juego sin traducción a PRIMARY_LANG
+        assert!(schema_needs_fallback(&achievements));
+    }
+
+    #[test]
+    fn schema_does_not_need_fallback_when_fully_translated() {
+        let resp: SchemaResponse = serde_json::from_str(SCHEMA_SAMPLE).unwrap();
+        let achievements = resp
+            .game
+            .and_then(|g| g.available_game_stats)
+            .map(|s| s.achievements)
+            .unwrap_or_default();
+        assert!(!schema_needs_fallback(&achievements));
     }
 }
