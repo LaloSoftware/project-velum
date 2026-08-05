@@ -8,6 +8,8 @@
     steamSyncOptions,
     GLOBAL_PCT_INTERVALS,
     setSteamSyncOption,
+    showSteamId,
+    setShowSteamId,
     linkAccount,
     syncNow,
   } from "../stores/steamAccount.js";
@@ -69,8 +71,22 @@
       {/if}
       <div class="account-info">
         <div class="name">{$steamAccount.personaName}</div>
-        <div class="steamid dim">{$steamAccount.steamid}</div>
+        <div class="steamid dim">
+          {$showSteamId ? $steamAccount.steamid : "•".repeat($steamAccount.steamid.length)}
+        </div>
       </div>
+    </div>
+    <div class="row show-steamid-row">
+      <span class="rlabel wide">Mostrar Steam ID</span>
+      <button
+        class="toggle"
+        class:on={$showSteamId}
+        data-focusable
+        tabindex="-1"
+        on:click={() => setShowSteamId(!$showSteamId)}
+      >
+        {$showSteamId ? "ON" : "OFF"}
+      </button>
     </div>
 
     {#if $steamSyncing}
@@ -249,6 +265,9 @@
     background: var(--gm-surface);
     border-radius: var(--gm-radius);
     padding: 12px 16px;
+  }
+  .show-steamid-row {
+    margin-top: 8px;
   }
   .avatar {
     width: 48px;

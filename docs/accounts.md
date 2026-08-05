@@ -322,6 +322,14 @@ mismo patrón que `ConfirmDelete.svelte`) antes de borrar la key del keyring y
 el caché local (`steam_unlink_account`/`cache::clear_account`, sin cambios ahí
 — ya limpiaba los datos, solo faltaba la confirmación en la UI).
 
+## Visibilidad del Steam ID
+
+Solo frontend, sin tocar backend. El SteamID64 se muestra oculto por defecto
+bajo el nombre/avatar (`stores/steamAccount.js::showSteamId`, default
+`false`, persistido en `config.json` como el resto de preferencias) — se
+enmascara con `"•".repeat(steamid.length)`, mismo criterio ya usado para la
+API key al editarla. Un toggle "Mostrar Steam ID" justo debajo lo revela.
+
 ## Pendiente
 
 - **GOG**: mismo patrón, fase separada — no empezado.

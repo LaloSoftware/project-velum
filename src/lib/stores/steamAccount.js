@@ -85,11 +85,22 @@ export async function setSteamSyncOption(key, value) {
   }
 }
 
+// Visibilidad del SteamID en Cuentas — oculto por defecto (dato semi-privado),
+// el jugador lo activa a propósito si quiere verlo. Preferencia persistida
+// como el resto (config.json), no vive en steamAccount porque no es parte de
+// la identidad en sí, solo de cómo se muestra.
+export const showSteamId = writable(false);
+export async function setShowSteamId(v) {
+  showSteamId.set(!!v);
+  await patchAppConfig({ showSteamId: !!v });
+}
+
 export async function initSteamAccount() {
   const cfg = await loadAppConfig();
   if (cfg?.steamSyncOptions) {
     steamSyncOptions.set({ ...DEFAULT_SYNC_OPTIONS, ...cfg.steamSyncOptions });
   }
+  showSteamId.set(!!cfg?.showSteamId);
   if (!cfg || !cfg.steamAccount) return;
   // La identidad (nombre/avatar) vive en config.json, pero la API key vive
   // solo en el keyring del SO (nunca aquí) — si desapareció por fuera (o la
