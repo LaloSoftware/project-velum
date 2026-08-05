@@ -15,6 +15,7 @@
     "core:window:allow-set-focus",
     "core:window:allow-close",
     "shell:allow-open",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "clipboard-manager:allow-read-text"
   ]
 }

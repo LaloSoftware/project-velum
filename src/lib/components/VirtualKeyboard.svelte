@@ -2,15 +2,28 @@
   import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
-  const ROWS = [
-    "1234567890".split(""),
+  // Fila de dígitos: se comparte entre ambos modos (letras/símbolos), solo
+  // cambian las 3 filas de abajo — así el layout no "salta" al alternar.
+  const DIGIT_ROW = "1234567890".split("");
+  const LETTER_ROWS = [
     "qwertyuiop".split(""),
     "asdfghjkl".split(""),
     "zxcvbnm".split(""),
   ];
+  const SYMBOL_ROWS = [
+    "!@#$%^&*()".split(""),
+    "-_=+[]{}\\|".split(""),
+    ";:'\",.<>/?".split(""),
+  ];
+
+  let symbols = false;
+  $: rows = [DIGIT_ROW, ...(symbols ? SYMBOL_ROWS : LETTER_ROWS)];
 
   function press(ch) {
     vkType($vk.shift ? ch.toUpperCase() : ch);
+  }
+  function toggleSymbols() {
+    symbols = !symbols;
   }
 </script>
 
@@ -22,17 +35,28 @@
     </div>
 
     <div class="kb-main">
-      <button
-        class="key side"
-        class:on={$vk.shift}
-        data-focusable
-        tabindex="-1"
-        on:click={vkToggleShift}
-      >
-        ⇧<br />Mayús
-      </button>
+      <div class="side-col">
+        <button
+          class="key side"
+          class:on={$vk.shift}
+          data-focusable
+          tabindex="-1"
+          on:click={vkToggleShift}
+        >
+          ⇧<br />Mayús
+        </button>
+        <button
+          class="key side"
+          class:on={symbols}
+          data-focusable
+          tabindex="-1"
+          on:click={toggleSymbols}
+        >
+          {symbols ? "ABC" : "?123"}
+        </button>
+      </div>
       <div class="kb-grid">
-        {#each ROWS as row}
+        {#each rows as row}
           <div class="krow">
             {#each row as ch}
               <button class="key" data-focusable tabindex="-1" on:click={() => press(ch)}>
@@ -113,6 +137,17 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex: 1;
+  }
+  /* Columna izquierda: Mayús y el alternador ?123/ABC, apilados (mismo ancho
+     fijo que antes ocupaba solo Mayús). */
+  .side-col {
+    flex: 0 0 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .side-col > .key.side {
     flex: 1;
   }
   .krow {

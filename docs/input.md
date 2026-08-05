@@ -176,8 +176,15 @@ funciones como sí le pasa a un botón físico de mando.
 Si hay un **teclado físico**, con el teclado virtual abierto también se puede escribir
 directamente: caracteres → texto, Backspace → borrar, Enter → aceptar (resuelve
 `openKeyboard()` con el texto escrito, sea para buscar, nombrar un perfil, etc.), Esc →
-cancelar (las flechas siguen navegando las teclas en pantalla). Fijo, no configurable.
-Ver `input/index.js` (`handlePhysicalTyping`).
+cancelar (las flechas siguen navegando las teclas en pantalla), Ctrl+V/Cmd+V → pega el
+portapapeles completo de una vez (vía `@tauri-apps/plugin-clipboard-manager` en la app,
+`navigator.clipboard` en modo web). Fijo, no configurable. Ver `input/index.js`
+(`handlePhysicalTyping`).
+
+El botón **?123/ABC** (junto a Mayús) alterna las 3 filas de letras por símbolos
+(`!@#$%^&*()`, etc.) — la fila de dígitos es fija en ambos modos. Es un `data-focusable`
+más, sin atajo de mando dedicado: se llega por navegación normal + Aceptar, igual que
+cualquier otra tecla del grid.
 
 ## Notas / futuro
 

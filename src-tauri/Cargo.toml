@@ -29,6 +29,7 @@ keyring = "3"
 # solo Windows como cuando era exclusivo de leer la BD de GOG Galaxy) porque el
 # caché en sí no depende del SO.
 rusqlite = { version = "0.32", features = ["bundled"] }
+tauri-plugin-clipboard-manager = "2.3.2"
 
 # Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
 # traer al frente la ventana del juego en marcha (Win32), y simular atajos de

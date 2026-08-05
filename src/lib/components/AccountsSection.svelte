@@ -15,7 +15,7 @@
   let linking = false;
 
   async function editProfileInput() {
-    const v = await openKeyboard(profileInput, "Perfil de Steam (SteamID64 o nombre)");
+    const v = await openKeyboard(profileInput, "Steam ID (SteamID64 o nombre de perfil)");
     if (v !== null) profileInput = v;
   }
   async function editApiKey() {
@@ -97,7 +97,7 @@
   {:else}
     <div class="rows">
       <div class="row">
-        <span class="rlabel">Perfil</span>
+        <span class="rlabel">Steam ID</span>
         <button class="field" data-focusable tabindex="-1" on:click={editProfileInput}>
           {profileInput || "Editar"}
         </button>

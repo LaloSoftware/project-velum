@@ -16,6 +16,10 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        // Leer el portapapeles del SO para "Pegar" en el teclado virtual
+        // (Ctrl+V) — más confiable que la Clipboard API del navegador, que en
+        // WebView2/WKWebView necesita un permiso que no siempre se resuelve.
+        .plugin(tauri_plugin_clipboard_manager::init())
         // Controles de sistema (mock en dev; WindowsSystemControls en el futuro).
         .manage(system::SystemHandle(Mutex::new(Box::new(
             system::mock::MockSystemControls::new(),

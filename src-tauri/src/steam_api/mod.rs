@@ -23,10 +23,21 @@ const API_BASE: &str = "https://api.steampowered.com";
 
 /// La API key guardada de una cuenta ya vinculada, o un error legible si no
 /// hay ninguna (p. ej. si se llama a sincronizar sin haber vinculado antes).
+/// Se incluye el error crudo del almacén de credenciales del SO (en vez de
+/// tragárselo con un mensaje genérico): "no encuentra el API key" justo
+/// después de vincular con éxito (que sí escribe la key) apunta a un problema
+/// de acceso al almacén (p. ej. ACL de Keychain en macOS que cambia entre
+/// builds sin firmar), no a que falte vincular — sin el texto real del error
+/// no hay forma de distinguir un caso del otro.
 pub(crate) fn stored_key(steamid: &str) -> Result<String, String> {
     Entry::new(KEYRING_SERVICE, steamid)
         .and_then(|e| e.get_password())
-        .map_err(|_| "No hay una API key guardada para esta cuenta — vincúlala de nuevo".to_string())
+        .map_err(|e| {
+            format!(
+                "No se pudo leer la API key guardada para esta cuenta ({e}) — \
+                 vincúlala de nuevo si el problema persiste"
+            )
+        })
 }
 
 #[derive(Debug, Clone, Serialize)]
