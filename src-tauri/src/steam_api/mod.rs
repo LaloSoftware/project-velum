@@ -31,6 +31,28 @@ const API_BASE: &str = "https://api.steampowered.com";
 pub(crate) const PRIMARY_LANG: &str = "latam";
 pub(crate) const FALLBACK_LANG: &str = "english";
 
+/// Describe un error de `ureq` incluyendo el CUERPO de la respuesta cuando hay
+/// un status HTTP (p. ej. Steam responde 403 con un texto legible tipo
+/// "Forbidden... Please verify your key= parameter" — el `Display` por
+/// defecto de `ureq::Error` solo muestra "status code 403", sin ese texto,
+/// que es justo lo que hace falta para distinguir "key inválida" de un
+/// problema real de la app). Usado en todas las llamadas a la Web API para
+/// que los errores que ve el usuario sean accionables.
+pub(crate) fn describe_http_error(e: ureq::Error) -> String {
+    match e {
+        ureq::Error::Status(code, response) => {
+            let body = response.into_string().unwrap_or_default();
+            let body = body.trim();
+            if body.is_empty() {
+                format!("status {code}")
+            } else {
+                format!("status {code}: {body}")
+            }
+        }
+        ureq::Error::Transport(t) => t.to_string(),
+    }
+}
+
 /// La API key guardada de una cuenta ya vinculada, o un error legible si no
 /// hay ninguna (p. ej. si se llama a sincronizar sin haber vinculado antes).
 /// Se incluye el error crudo del almacén de credenciales del SO (en vez de
@@ -95,7 +117,7 @@ fn resolve_vanity_url(api_key: &str, vanity: &str) -> Result<String, String> {
             .query("key", api_key)
             .query("vanityurl", vanity)
             .call()
-            .map_err(|e| format!("no se pudo resolver el perfil de Steam: {e}"))?
+            .map_err(|e| format!("no se pudo resolver el perfil de Steam: {}", describe_http_error(e)))?
             .into_json()
             .map_err(|e| e.to_string())?;
     if resp.response.success == 1 {
@@ -113,7 +135,7 @@ fn fetch_player_summary(api_key: &str, steamid: &str) -> Result<SteamAccountInfo
             .query("key", api_key)
             .query("steamids", steamid)
             .call()
-            .map_err(|e| format!("no se pudo validar la API key: {e}"))?
+            .map_err(|e| format!("no se pudo validar la API key: {}", describe_http_error(e)))?
             .into_json()
             .map_err(|e| e.to_string())?;
     let player = resp

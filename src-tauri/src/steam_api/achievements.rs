@@ -105,7 +105,7 @@ fn fetch_schema(api_key: &str, appid: i64, lang: &str) -> Result<Vec<SchemaAchie
         .query("appid", &appid.to_string())
         .query("l", lang)
         .call()
-        .map_err(|e| format!("GetSchemaForGame({appid}) falló: {e}"))?
+        .map_err(|e| format!("GetSchemaForGame({appid}) falló: {}", super::describe_http_error(e)))?
         .into_json()
         .map_err(|e| e.to_string())?;
     Ok(resp
@@ -162,7 +162,12 @@ fn fetch_player_achievements(
                 println!("[steam] appid {appid}: GetPlayerAchievements 400 (sin stats), se omite");
                 return Ok(Vec::new());
             }
-            Err(e) => return Err(format!("GetPlayerAchievements({appid}) falló: {e}")),
+            Err(e) => {
+                return Err(format!(
+                    "GetPlayerAchievements({appid}) falló: {}",
+                    super::describe_http_error(e)
+                ))
+            }
         };
     if !resp.playerstats.success {
         println!("[steam] appid {appid}: perfil de logros no público, se omite");

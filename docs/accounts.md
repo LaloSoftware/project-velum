@@ -65,7 +65,7 @@ SO, así que declarar ambas es seguro en dev-macOS y producción-Windows).
 - `schema_cache(appid, fetched_at, has_achievements)` — para no volver a pedir
   el esquema de un juego ya visto, ni sus logros si no tiene ninguno.
 - `achievement_global_pct(appid, apiname, percent, fetched_at)` — % de
-  jugadores que tienen cada logro (`GetGlobalAchievementPercentagesForGame`,
+  jugadores que tienen cada logro (`GetGlobalAchievementPercentagesForApp`,
   público, no requiere `key`/`steamid`). A diferencia de `achievement_schema`,
   SÍ se refresca (con el intervalo configurable en Cuentas → Opciones de
   sincronización, ver más abajo) — solo se pide cuando el jugador abre "Ver %
@@ -220,6 +220,32 @@ mientras se lee. **Solo click por ahora** — no participa del sistema de
 navegación por mando (no es un modal que bloquee el resto de la app);
 pendiente asignar un atajo de mando más adelante.
 
+### Errores confirmados y corregidos (segunda ronda de prueba real)
+
+El badge de resumen mostró dos errores reales al probar. Ambos se verificaron
+directamente contra la API real de Steam (`curl`, sin necesidad de una API key
+para confirmar la causa) antes de tocar el código:
+
+- **404 en el % global de logros**: el método real se llama
+  `GetGlobalAchievementPercentagesForApp` — **"...ForApp", no "...ForGame"**
+  (el nombre que tenía el código, un error de tipeo desde el principio, nunca
+  iba a existir esa ruta). De paso, la API devuelve `percent` como **string**
+  (`"49.9"`), no como número JSON — el struct esperaba `f64` directo y habría
+  fallado al parsear incluso con la URL corregida. `parse_percent`
+  (`steam_api/global_achievements.rs`) acepta string o número.
+- **403 en `GetSchemaForGame`**: **no era un problema de URL/versión** — se
+  probó `v2` y `v0002` sin key contra la API real y ambos dan el mismo `400`
+  (petición reconocida, falta la key), y con una key inválida ambos dan `403`
+  con el cuerpo `"Forbidden... Please verify your key= parameter"` — el mismo
+  403 que reportó el usuario. Es decir, `GetSchemaForGame/v2/` es la ruta
+  correcta; el 403 apunta a un problema con la API key en sí en ese momento
+  puntual (no reproducible desde este entorno sin una key real). Lo que sí se
+  corrigió: **todas** las llamadas a la Web API ahora usan
+  `describe_http_error()` (`steam_api/mod.rs`), que incluye el CUERPO de la
+  respuesta de Steam en el mensaje de error (antes solo se veía "status code
+  403", sin el texto explicativo) — la próxima vez que pase, el mensaje debería
+  decir directamente si es la key o algo más.
+
 ## Desvincular
 
 Botón "Desvincular" en Cuentas pide confirmación (`ConfirmUnlinkSteam.svelte`,
@@ -240,12 +266,11 @@ el caché local (`steam_unlink_account`/`cache::clear_account`, sin cambios ahí
   por encima de lo que necesita una sola cuenta de una sala.
 - Validado con cuenta real: vinculación, sincronización de biblioteca y logros
   funcionan; badge/modal de logros, carátulas de fantasmas, y resiliencia a
-  errores probados en una segunda ronda. **Sin verificar todavía con cuenta/red
-  real**: porcentajes globales de logros (firma exacta de
-  `GetGlobalAchievementPercentagesForGame` — ver nota en
-  `steam_api/global_achievements.rs`; el botón "Ver % global" no mostraba nada
-  visible en la última prueba, pendiente reverificar con el nuevo estado de
-  error explícito) y el fallback de idioma en un juego sin traducción a `latam`.
+  errores probados en una segunda ronda. Los dos errores de esa ronda (403 en
+  `GetSchemaForGame`, 404 en el % global) tenían causas distintas — ver
+  "Errores confirmados y corregidos" arriba/abajo. **Sin verificar todavía con
+  cuenta/red real** tras el arreglo: % globales con el nombre de método
+  correcto, y el fallback de idioma en un juego sin traducción a `latam`.
 - **Atajo de mando para el badge de resumen de sync**: `SteamSyncSummaryBadge.svelte`
   hoy solo se abre con click/mouse — pendiente asignar un atajo de mando
   (mismo patrón que el resto de atajos configurables) más adelante.

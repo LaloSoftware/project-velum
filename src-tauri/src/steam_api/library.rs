@@ -70,7 +70,7 @@ fn fetch_owned_games(
             .query("include_played_free_games", if include_played_free_games { "1" } else { "0" })
             .query("l", PRIMARY_LANG)
             .call()
-            .map_err(|e| format!("GetOwnedGames falló: {e}"))?
+            .map_err(|e| format!("GetOwnedGames falló: {}", super::describe_http_error(e)))?
             .into_json()
             .map_err(|e| e.to_string())?;
     println!(
