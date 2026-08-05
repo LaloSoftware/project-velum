@@ -30,6 +30,26 @@ que se persiste en `config.json` (vía `patchAppConfig`, igual que el resto de
 la config) es la identidad pública ya resuelta: `{ steamid, personaName,
 avatarUrl }`.
 
+Como la identidad y la key viven en dos lugares distintos, es posible que la
+key desaparezca del almacén del SO por fuera de la app (o que la escritura
+original haya fallado) sin que `config.json` se entere — quedaría "vinculada"
+en apariencia (nombre/avatar visibles) pero cualquier sync fallaría con un
+error del keyring. `initSteamAccount()` (`stores/steamAccount.js`) verifica
+esto al arrancar con `steam_has_key` y, si la key ya no está, limpia el estado
+y pide vincular de nuevo en vez de dejar la UI en ese estado fantasma.
+
+**Bug real encontrado en la primera prueba (ya corregido)**: `keyring = "3"` sin
+features explícitas no trae NINGÚN backend real — cae en su store "mock"
+interno (in-memory, pensado solo para tests de la propia crate), que acepta
+`set_password` sin error pero cuya `get_password` en una `Entry` nueva siempre
+da `NoEntry` (no hay persistencia entre instancias de `Entry`, ni dentro del
+mismo proceso). Por eso "vincular" parecía funcionar (usa el resultado en
+memoria de esa misma llamada) pero cualquier sync fallaba con "no matching
+entry in secure storage" — sin excepción, sin importar reintentar. Arreglado
+activando `features = ["apple-native", "windows-native"]` en
+`src-tauri/Cargo.toml` (cada una solo compila su dependencia real en su propio
+SO, así que declarar ambas es seguro en dev-macOS y producción-Windows).
+
 ## Caché local (SQLite)
 
 `<app_config_dir>/steam_cache.sqlite` (mismo directorio que `config.json`,

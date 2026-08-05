@@ -6,6 +6,7 @@ import {
   isTauri,
   steamLinkAccount,
   steamUnlinkAccount,
+  steamHasKey,
   steamSyncLibrary,
   steamLibraryCache,
   steamSyncAchievements,
@@ -30,9 +31,24 @@ export const steamSyncProgress = writable(null); // { done, total, appid } | nul
 
 export async function initSteamAccount() {
   const cfg = await loadAppConfig();
-  if (cfg && cfg.steamAccount) {
+  if (!cfg || !cfg.steamAccount) return;
+  // La identidad (nombre/avatar) vive en config.json, pero la API key vive
+  // solo en el keyring del SO (nunca aquí) — si desapareció por fuera (o la
+  // escritura original falló en silencio), config.json seguiría diciendo
+  // "vinculado" y la UI mostraría nombre/avatar con normalidad, pero
+  // cualquier sync fallaría con un error críptico más adelante. Se verifica
+  // acá, al arrancar, para no quedar en ese estado fantasma.
+  const hasKey = isTauri ? await steamHasKey(cfg.steamAccount.steamid) : true;
+  if (hasKey) {
     steamAccount.set(cfg.steamAccount);
     console.log("[gm:steam] cuenta recordada:", cfg.steamAccount);
+  } else {
+    console.warn(
+      "[gm:steam] cuenta recordada pero sin API key en el keyring del SO — hay que vincular de nuevo:",
+      cfg.steamAccount
+    );
+    await patchAppConfig({ steamAccount: null });
+    showToast("Se perdió la API key de Steam guardada — vincula tu cuenta de nuevo");
   }
 }
 

@@ -24,7 +24,17 @@ base64 = "0.22"
 ureq = { version = "2", features = ["json"] }
 # Guardar la API key de Steam en el almacén de credenciales del SO (Credential
 # Manager en Windows, Keychain en macOS) en vez de en config.json en texto plano.
-keyring = "3"
+# IMPORTANTE: sin features explícitas, `keyring` v3 no trae ningún backend real
+# — cae en su "mock" interno (in-memory, SIN persistencia entre `Entry::new()`,
+# ver keyring-3.x/src/mock.rs), que acepta `set_password` sin error pero
+# `get_password` de una entry nueva siempre da NoEntry. Esto es justo el bug
+# reportado ("vincular" parece funcionar porque usa el `info` en memoria, pero
+# cualquier lectura posterior del keyring falla con "no matching entry").
+# `apple-native`/`windows-native` activan los backends reales; cada uno solo
+# compila su dependencia (`security-framework`/`windows-sys`) en su propio SO
+# vía `[target.cfg(...)]` en el Cargo.toml de la crate, así que declarar ambos
+# aquí es seguro tanto en dev (macOS) como en producción (Windows).
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
 # Caché local de biblioteca/logros de Steam (Fase 9b/9c). Multiplataforma (no
 # solo Windows como cuando era exclusivo de leer la BD de GOG Galaxy) porque el
 # caché en sí no depende del SO.
