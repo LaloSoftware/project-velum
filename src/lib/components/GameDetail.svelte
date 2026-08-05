@@ -103,12 +103,20 @@
   // mismo índice pasa a apuntar a OTRA sección distinta a la que se veía.
   // Se seguía la sección por NOMBRE en vez de por índice para que no cambie
   // de golpe bajo los pies del usuario.
-  let prevSections = sections;
+  // OJO: no inicializar con "= sections" — en Svelte 5, `$: sections = ...`
+  // se compila como un efecto que corre DESPUÉS del script síncrono inicial,
+  // así que en ese momento `sections` todavía es `undefined` y quedaría
+  // capturado así para siempre. `null` no depende de ese timing; la primera
+  // vez que corre el bloque de abajo no hay nada que comparar (se salta la
+  // reubicación) y ahí sí se guarda el `sections` ya resuelto.
+  let prevSections = null;
   $: {
-    const current = prevSections[$detailSection];
-    if (current && sections[$detailSection] !== current) {
-      const newIndex = sections.indexOf(current);
-      if (newIndex >= 0) setDetailSection(newIndex);
+    if (prevSections) {
+      const current = prevSections[$detailSection];
+      if (current && sections[$detailSection] !== current) {
+        const newIndex = sections.indexOf(current);
+        if (newIndex >= 0) setDetailSection(newIndex);
+      }
     }
     prevSections = sections;
   }
