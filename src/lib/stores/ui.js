@@ -20,7 +20,13 @@ export const detailAnchor = writable(null);
 // ¿El menú inferior del detalle está desplegado?
 export const detailExpanded = writable(false);
 // Sección visible del menú del detalle (paginado): índice en DETAIL_SECTIONS.
-export const DETAIL_SECTIONS = ["grupos", "imagenes", "soundtrack", "vista"];
+// Store (no array fijo) porque GameDetail.svelte antepone "logros" cuando
+// corresponde mostrarlo como sección en vez de badge (ver GAME_VIEW_FIELDS
+// `achievements` en uiprefs.js) — el conteo de secciones varía según el juego.
+export const DETAIL_SECTIONS = writable(["grupos", "imagenes", "soundtrack", "vista"]);
+export function setDetailSections(list) {
+  DETAIL_SECTIONS.set(list);
+}
 export const detailSection = writable(0);
 
 // Menú contextual de tarjeta: { game, rect, anchor } (capa flotante).

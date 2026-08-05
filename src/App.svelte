@@ -428,7 +428,7 @@
     }
     const before = document.activeElement;
     nav.move("down");
-    if (document.activeElement === before && $detailSection < DETAIL_SECTIONS.length - 1) {
+    if (document.activeElement === before && $detailSection < $DETAIL_SECTIONS.length - 1) {
       setDetailSection($detailSection + 1);
       focusSection();
     }

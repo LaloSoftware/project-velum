@@ -14,17 +14,20 @@ import { activeProfileId, getActive, updateActive, initProfiles } from "./profil
  */
 
 // Fuente única de los datos del juego que el Detalle puede mostrar/ocultar.
+// `default`: si no está, el campo nace en `true` (ver defaultGameView) —
+// se declara solo cuando hace falta arrancar en `false`.
 export const GAME_VIEW_FIELDS = [
   { key: "title", label: "Título" },
   { key: "platform", label: "Plataforma" },
   { key: "lastPlayed", label: "Última vez jugado" },
   { key: "installDir", label: "Ruta de instalación" },
   { key: "playtime", label: "Horas jugadas (Steam)" },
-  { key: "achievements", label: "Logros (Steam)" },
+  { key: "achievements", label: "Logros como badge (si no, sección)" },
+  { key: "achievementsBadgeFixed", label: "Fijar el badge de logros en la esquina", default: false },
 ];
 
 function defaultGameView() {
-  return Object.fromEntries(GAME_VIEW_FIELDS.map((f) => [f.key, true]));
+  return Object.fromEntries(GAME_VIEW_FIELDS.map((f) => [f.key, f.default ?? true]));
 }
 
 export const hideCardText = writable(false);

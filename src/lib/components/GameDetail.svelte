@@ -1,5 +1,14 @@
 <script>
-  import { closeDetail, detailAnchor, showToast, detailExpanded, detailSection, openAchievements } from "../stores/ui.js";
+  import {
+    closeDetail,
+    detailAnchor,
+    showToast,
+    detailExpanded,
+    detailSection,
+    setDetailSection,
+    setDetailSections,
+    openAchievements,
+  } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
@@ -48,6 +57,36 @@
   $: badgePct = steamAchievementsList.length
     ? Math.round((unlockedCount / steamAchievementsList.length) * 100)
     : 0;
+  $: hasAchievementsData = !!($steamAccount && steamAppid && steamAchievementsList.length);
+  // "Logros" es o un badge flotante, o (si se desmarca) una sección más del
+  // menú paginado — nunca las dos a la vez, y solo si de verdad hay datos.
+  $: showAchievementsBadge = $gameView.achievements && hasAchievementsData;
+  $: showAchievementsSection = !$gameView.achievements && hasAchievementsData;
+
+  // Secciones del menú paginado: "logros" se antepone a las fijas cuando
+  // corresponde mostrarla (ver showAchievementsSection). Se expone vía store
+  // (DETAIL_SECTIONS) porque App.svelte necesita el conteo para saber cuándo
+  // "abajo" debe pasar a la siguiente sección (detailDown()).
+  const BASE_SECTIONS = ["grupos", "imagenes", "soundtrack", "vista"];
+  $: sections = showAchievementsSection ? ["logros", ...BASE_SECTIONS] : BASE_SECTIONS;
+  $: setDetailSections(sections);
+
+  // `sections` puede cambiar de composición mientras el usuario ya está
+  // viendo una (toggle "Logros como badge/sección" desde "Vista de juego", o
+  // los logros terminan de cargar de forma asíncrona mientras el menú ya
+  // estaba desplegado en otra sección) — si eso antepone/quita "logros", el
+  // mismo índice pasa a apuntar a OTRA sección distinta a la que se veía.
+  // Se seguía la sección por NOMBRE en vez de por índice para que no cambie
+  // de golpe bajo los pies del usuario.
+  let prevSections = sections;
+  $: {
+    const current = prevSections[$detailSection];
+    if (current && sections[$detailSection] !== current) {
+      const newIndex = sections.indexOf(current);
+      if (newIndex >= 0) setDetailSection(newIndex);
+    }
+    prevSections = sections;
+  }
 
   const inGroup = (g) => g.gameIds.includes(game.id);
   // Fondo = hero efectivo (override manual o el de la tienda).
@@ -121,10 +160,33 @@
     return "Última vez: " + d.toLocaleDateString() + " " + d.toLocaleTimeString().slice(0, 5);
   }
 
+  $: notInstalled = game?.installed === false;
+
   async function play() {
+    if (notInstalled) return;
     await startPlay(game);
   }
 </script>
+
+{#snippet achievementBadge()}
+  <!-- Badge de logros: último obtenido o próximo a desbloquear + progreso.
+       Sube si hay una sync en curso para no solaparse con SteamSyncIndicator
+       (misma esquina, fixed a nivel de toda la app). -->
+  <button
+    class="ach-badge"
+    class:raised={$steamSyncing || !!$steamSyncSummary}
+    data-focusable
+    tabindex="-1"
+    on:click={() => openAchievements(steamAppid, game.title)}
+  >
+    {#if badgeAchievement?.iconUrl}<img class="ach-badge-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
+    <div class="ach-badge-text">
+      <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
+      <div class="ach-badge-name">{badgeAchievement?.displayName || badgeAchievement?.apiname}</div>
+      <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
+    </div>
+  </button>
+{/snippet}
 
 <div class="detail" class:expanded={$detailExpanded} style="--hue: {h}">
   <!-- Escenario (hero): a pantalla completa; al desplegar el menú baja a la mitad -->
@@ -139,6 +201,9 @@
         <img src={logoUrl} alt="" on:error={() => (logoUrl = null)} />
       </div>
     {/if}
+    {#if showAchievementsBadge && !$gameView.achievementsBadgeFixed}
+      {@render achievementBadge()}
+    {/if}
     <div class="content">
       {#if $gameView.platform}<span class="store">{STORE_LABEL[game.store] || game.store}</span>{/if}
       {#if $gameView.title}<h1>{game.title}</h1>{/if}
@@ -149,9 +214,11 @@
       <div class="actions">
         <button
           class="play"
-          data-focusable={!$detailExpanded ? "" : undefined}
-          data-focus-default
+          class:disabled={notInstalled}
+          data-focusable={!$detailExpanded && !notInstalled ? "" : undefined}
+          data-focus-default={!notInstalled}
           tabindex="-1"
+          title={notInstalled ? `Instálalo desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo` : undefined}
           on:click={play}
         >
           ▶ Jugar
@@ -159,33 +226,23 @@
         <button
           class="back"
           data-focusable={!$detailExpanded ? "" : undefined}
+          data-focus-default={notInstalled ? "" : undefined}
           tabindex="-1"
           on:click={back}
         >
           Volver
         </button>
       </div>
+      {#if notInstalled}
+        <p class="install-hint">
+          Instálalo desde {STORE_LABEL[game.store] || game.store} para poder jugarlo.
+        </p>
+      {/if}
     </div>
   </div>
 
-  <!-- Badge de logros (esquina inferior derecha): último obtenido o próximo a
-       desbloquear + progreso. Sube si hay una sync en curso para no solaparse
-       con SteamSyncIndicator (misma esquina, fixed a nivel de toda la app). -->
-  {#if $gameView.achievements && $steamAccount && steamAppid && steamAchievementsList.length}
-    <button
-      class="ach-badge"
-      class:raised={$steamSyncing || !!$steamSyncSummary}
-      data-focusable
-      tabindex="-1"
-      on:click={() => openAchievements(steamAppid, game.title)}
-    >
-      {#if badgeAchievement?.iconUrl}<img class="ach-badge-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
-      <div class="ach-badge-text">
-        <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
-        <div class="ach-badge-name">{badgeAchievement?.displayName || badgeAchievement?.apiname}</div>
-        <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
-      </div>
-    </button>
+  {#if showAchievementsBadge && $gameView.achievementsBadgeFixed}
+    {@render achievementBadge()}
   {/if}
 
   <!-- Menú inferior (aparece al pulsar abajo): una sección a la vez (paginado) -->
@@ -195,13 +252,34 @@
       <div class="menu-main">
         <!-- Indicador vertical de posición (arriba/abajo = otras secciones) -->
         <div class="section-dots" aria-hidden="true">
-          {#each ["Grupos", "Imágenes", "Soundtrack", "Vista de juego"] as _, i}
+          {#each sections as _, i}
             <span class="dot" class:active={$detailSection === i}></span>
           {/each}
         </div>
 
         <div class="section-body">
-          {#if $detailSection === 0}
+          {#if sections[$detailSection] === "logros"}
+            <section class="msection" data-focus-group="logros" data-detail-top>
+              <h3>Logros de {STORE_LABEL[game.store] || game.store}</h3>
+              {#if badgeAchievement}
+                <div class="ach-inline">
+                  {#if badgeAchievement.iconUrl}<img class="ach-inline-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
+                  <div>
+                    <div class="ach-inline-name">{badgeAchievement.displayName || badgeAchievement.apiname}</div>
+                    <div class="ach-inline-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
+                  </div>
+                </div>
+              {/if}
+              <button
+                class="chip"
+                data-focusable
+                tabindex="-1"
+                on:click={() => openAchievements(steamAppid, game.title)}
+              >
+                Ver todos los logros
+              </button>
+            </section>
+          {:else if sections[$detailSection] === "grupos"}
             <section class="msection" data-focus-group="grupos" data-detail-top>
               <h3>Grupos</h3>
               <div class="groups">
@@ -221,12 +299,12 @@
                 </button>
               </div>
             </section>
-          {:else if $detailSection === 1}
+          {:else if sections[$detailSection] === "imagenes"}
             <section class="msection" data-focus-group="imagenes" data-detail-top>
               <h3>Imágenes</h3>
               <ArtEditor {game} />
             </section>
-          {:else if $detailSection === 2}
+          {:else if sections[$detailSection] === "soundtrack"}
             <section class="msection" data-focus-group="soundtrack" data-detail-top>
               <h3>Soundtrack</h3>
               <SoundtrackEditor {game} />
@@ -364,6 +442,11 @@
     background: var(--gm-accent);
     color: #06101f;
   }
+  .play.disabled {
+    cursor: default;
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+  }
   .back {
     background: var(--gm-surface);
     color: var(--gm-text);
@@ -372,6 +455,11 @@
   .back:focus {
     box-shadow: var(--gm-focus-ring);
     transform: scale(1.04);
+  }
+  .install-hint {
+    margin: 10px 0 0;
+    color: var(--gm-text-dim);
+    font-size: 0.85rem;
   }
 
   /* Menú inferior a dos columnas: opciones (izq) + carátula expandida (der) */
@@ -453,6 +541,41 @@
     color: #06101f;
   }
   .groups .chip:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+
+  /* Sección "Logros" (cuando el badge está en modo sección, no flotante). */
+  .ach-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .ach-inline-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .ach-inline-name {
+    font-weight: 700;
+  }
+  .ach-inline-progress {
+    color: var(--gm-text-dim);
+    font-size: 0.85rem;
+  }
+  .msection .chip {
+    cursor: pointer;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    color: var(--gm-text);
+    font-weight: 600;
+  }
+  .msection .chip:focus {
     box-shadow: var(--gm-focus-ring);
   }
 

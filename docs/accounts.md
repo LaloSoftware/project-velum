@@ -131,10 +131,14 @@ cruce lo hace el frontend (`stores/games.js::mergeSteamGhosts`, llamado desde
 `steam:{appid}` (mismo formato que `library/steam.rs`, ver `docs/stores.md`)
 no aparece ya en `list_games()`, se agrega una tarjeta "fantasma" (`installed:
 false`) — mismo badge Steam, pero el botón "Jugar" avisa que hay que instalar
-el juego en vez de intentar lanzarlo (`GameCard.svelte`). Si la persona lo
-instala después, la siguiente carga real de `list_games()` trae el mismo id y
-el "fantasma" queda descartado por `dedupeById` (se queda con la primera
-aparición).
+el juego en vez de intentar lanzarlo (`GameCard.svelte`: `title` nativo del
+navegador al pasar el mouse; `GameDetail.svelte`: el botón "Jugar" queda
+deshabilitado de verdad — sin `data-focusable`, así que el mando/teclado ya no
+puede "activarlo" tampoco, antes solo se avisaba con el mouse — y "Volver" pasa
+a ser el foco por defecto; un mensaje bajo los botones repite el aviso). Si la
+persona lo instala después, la siguiente carga real de `list_games()` trae el
+mismo id y el "fantasma" queda descartado por `dedupeById` (se queda con la
+primera aparición).
 
 **Carátulas por CDN público** (`stores/games.js::steamCdnArt`): URLs
 deterministas por `appid`
@@ -162,19 +166,50 @@ siempre); el logo es el único `<img>` real de la cadena, blindado con
 
 Las horas jugadas de Steam aparecen en línea con el resto de la metadata del
 hero (título, plataforma, ruta de instalación) — campo togglable `playtime` en
-`GAME_VIEW_FIELDS` (`stores/uiprefs.js`). Los logros se condensan en un badge
-fijo en la esquina inferior derecha del Detalle (campo togglable
-`achievements`): ícono + nombre del último logro obtenido (o, si aún no hay
-ninguno, el próximo por desbloquear — desempate determinista por
-`s.rowid` de `achievement_schema`, ver `steam_api/achievements.rs`) + progreso
-`X/Y` y %. El título "Logros de {plataforma}" (p. ej. "Logros de Steam") deja
-claro de qué se trata el badge. Al activarlo (click/Aceptar) abre
-`AchievementsModal.svelte`, un modal centrado con el listado completo — solo la
-lista scrollea, título y botones quedan fijos; cada logro es `data-focusable`
-(se navega con arriba/abajo, no solo entre "Ver % global"/"Listo"). Ahí mismo,
-"Ver % global" pide (bajo demanda, no en cada sync) el % de jugadores que tiene
-cada logro — si no se pudo obtener nada, se avisa explícitamente en vez de no
-mostrar nada (antes quedaba en blanco, indistinguible de "cargando").
+`GAME_VIEW_FIELDS` (`stores/uiprefs.js`).
+
+Los logros se muestran de dos formas posibles, dos campos independientes en
+`GAME_VIEW_FIELDS`/"Vista de juego":
+
+- **`achievements`** ("Logros como badge (si no, sección)", default `true`):
+  con `true`, badge flotante con ícono + nombre del último logro obtenido (o,
+  si aún no hay ninguno, el próximo por desbloquear — desempate determinista
+  por `s.rowid` de `achievement_schema`, ver `steam_api/achievements.rs`) +
+  progreso `X/Y` y %, título "Logros de {plataforma}" para identificarlo. Con
+  `false`, en vez del badge aparece una sección "Logros" más en el menú
+  paginado del Detalle, **antepuesta** a "Grupos" — misma información (último
+  logro + progreso) más un botón "Ver todos los logros" que abre el mismo
+  modal. Nunca las dos formas a la vez.
+- **`achievementsBadgeFixed`** ("Fijar el badge de logros en la esquina",
+  default **`false`**): con `true`, el badge queda `position:absolute` dentro
+  de `.detail` — fijo en la esquina inferior derecha sin importar si el menú
+  inferior está desplegado. Con `false` (default), el badge se renderiza
+  DENTRO de `.stage` (el contenedor del hero) en vez de `.detail` — la misma
+  CSS de posición (`right`/`bottom`) queda relativa al hero, así que
+  literalmente se mueve/encoge junto con él cuando el menú se despliega
+  (`.stage` pasa a `flex-basis: 50%`), en vez de quedar fijo a la pantalla
+  completa. Ambos modos comparten el mismo markup — `{#snippet
+  achievementBadge()}` en `GameDetail.svelte`, renderizado en uno de los dos
+  sitios según el toggle.
+
+Click/Aceptar en el badge (o el botón de la sección) abre
+`AchievementsModal.svelte`, un modal centrado con el listado completo — solo
+la lista scrollea, título y botones quedan fijos; cada logro es
+`data-focusable` (se navega con arriba/abajo, no solo entre "Ver % global"/
+"Listo"). Ahí mismo, "Ver % global" pide (bajo demanda, no en cada sync) el %
+de jugadores que tiene cada logro — si no se pudo obtener nada, se avisa
+explícitamente en vez de no mostrar nada (antes quedaba en blanco,
+indistinguible de "cargando").
+
+**Secciones dinámicas del Detalle**: `stores/ui.js::DETAIL_SECTIONS` pasó de
+ser un array fijo a un store (`GameDetail.svelte` llama `setDetailSections()`
+reactivamente) porque la sección "Logros" puede aparecer o no según el juego y
+el toggle de arriba — `App.svelte::detailDown()` usa `$DETAIL_SECTIONS.length`
+para saber cuándo "abajo" debe pasar de sección. El interruptor entre
+secciones en `GameDetail.svelte` compara por NOMBRE (`sections[$detailSection]
+=== "grupos"`, etc.), no por índice fijo, para que insertar/quitar "logros" no
+cambie de golpe qué sección se está viendo bajo el mismo índice (hay un ajuste
+explícito que seguía la sección por nombre si su posición se corre).
 
 ## Idioma
 
