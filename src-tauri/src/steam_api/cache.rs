@@ -35,6 +35,9 @@ pub fn open(app: &AppHandle) -> Result<Connection, String> {
             playtime_forever INTEGER NOT NULL DEFAULT 0,
             icon_url TEXT,
             last_synced_at INTEGER NOT NULL,
+            rtime_last_played INTEGER,
+            playtime_2weeks INTEGER NOT NULL DEFAULT 0,
+            has_community_visible_stats INTEGER,
             PRIMARY KEY (steamid, appid)
         );
         CREATE TABLE IF NOT EXISTS achievement_schema (
@@ -43,6 +46,8 @@ pub fn open(app: &AppHandle) -> Result<Connection, String> {
             display_name TEXT,
             description TEXT,
             icon_url TEXT,
+            icon_gray_url TEXT,
+            hidden INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (appid, apiname)
         );
         CREATE TABLE IF NOT EXISTS achievements (
@@ -73,7 +78,48 @@ pub fn open(app: &AppHandle) -> Result<Connection, String> {
         ",
     )
     .map_err(|e| e.to_string())?;
+
+    // Migración de instalaciones previas: `CREATE TABLE IF NOT EXISTS` no
+    // agrega columnas a una tabla que ya existía con un esquema más viejo (los
+    // campos de arriba son nuevos desde la Fase 9l). `ensure_column` es
+    // idempotente — no hace nada si la columna ya está.
+    ensure_column(&conn, "games", "rtime_last_played", "rtime_last_played INTEGER")?;
+    ensure_column(&conn, "games", "playtime_2weeks", "playtime_2weeks INTEGER NOT NULL DEFAULT 0")?;
+    ensure_column(
+        &conn,
+        "games",
+        "has_community_visible_stats",
+        "has_community_visible_stats INTEGER",
+    )?;
+    ensure_column(&conn, "achievement_schema", "icon_gray_url", "icon_gray_url TEXT")?;
+    ensure_column(
+        &conn,
+        "achievement_schema",
+        "hidden",
+        "hidden INTEGER NOT NULL DEFAULT 0",
+    )?;
+
     Ok(conn)
+}
+
+/// Agrega una columna a una tabla ya existente si todavía no la tiene.
+/// SQLite no soporta `ADD COLUMN IF NOT EXISTS`, así que se consulta
+/// `PRAGMA table_info` primero. `column_ddl` es la definición completa
+/// (`"nombre TIPO ..."`), no solo el nombre.
+fn ensure_column(conn: &Connection, table: &str, column: &str, column_ddl: &str) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table})"))
+        .map_err(|e| e.to_string())?;
+    let exists = stmt
+        .query_map([], |r| r.get::<_, String>(1))
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .any(|name| name == column);
+    if !exists {
+        conn.execute(&format!("ALTER TABLE {table} ADD COLUMN {column_ddl}"), [])
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// Borra todo lo de una cuenta (al desvincular) — no toca `achievement_schema`

@@ -1,4 +1,5 @@
 <script>
+  import { fade } from "svelte/transition";
   import {
     closeDetail,
     detailAnchor,
@@ -29,6 +30,8 @@
   $: steamAppid = game?.store === "steam" ? Number(game.id.split(":")[1]) : null;
   let steamAchievementsList = [];
   let steamPlaytimeMinutes = null;
+  let steamPlaytime2weeksMinutes = null;
+  let steamLastPlayedAt = null; // epoch (segundos) según Steam, no local
   let steamStatsFor = null;
   $: if ($steamAccount && steamAppid && steamStatsFor !== `${$steamAccount.steamid}:${steamAppid}`) {
     steamStatsFor = `${$steamAccount.steamid}:${steamAppid}`;
@@ -37,6 +40,8 @@
       .then((entries) => {
         const entry = entries.find((e) => e.appid === steamAppid);
         steamPlaytimeMinutes = entry?.playtimeForever ?? null;
+        steamPlaytime2weeksMinutes = entry?.playtime2weeks ?? null;
+        steamLastPlayedAt = entry?.rtimeLastPlayed ?? null;
       })
       .catch(() => {});
   }
@@ -44,6 +49,18 @@
     if (!minutes) return "Sin horas registradas";
     const hours = minutes / 60;
     return hours >= 1 ? `${hours.toFixed(1)} h jugadas` : `${minutes} min jugados`;
+  }
+  function formatRecentPlaytime(minutes) {
+    if (!minutes) return "Sin horas en las últimas 2 semanas";
+    const hours = minutes / 60;
+    return hours >= 1
+      ? `${hours.toFixed(1)} h jugadas (2 semanas)`
+      : `${minutes} min jugados (2 semanas)`;
+  }
+  function formatSteamLastPlayed(ts) {
+    if (!ts) return "Sin registro de Steam";
+    const d = new Date(ts * 1000);
+    return "Última vez (Steam): " + d.toLocaleDateString();
   }
 
   // Badge de logros (esquina inferior derecha): último obtenido, o si aún no
@@ -57,6 +74,14 @@
   $: badgePct = steamAchievementsList.length
     ? Math.round((unlockedCount / steamAchievementsList.length) * 100)
     : 0;
+  // El "próximo a desbloquear" puede ser un logro spoiler (`hidden`) — no
+  // reventar el nombre/ícono real en el badge/sección, mismo criterio que
+  // AchievementsModal.
+  $: badgeIsSpoiler = !!(badgeAchievement && badgeAchievement.hidden && !badgeAchievement.achieved);
+  $: badgeName = badgeIsSpoiler ? "Logro oculto" : badgeAchievement?.displayName || badgeAchievement?.apiname;
+  $: badgeIcon = badgeIsSpoiler
+    ? null
+    : (!badgeAchievement?.achieved && badgeAchievement?.iconGrayUrl) || badgeAchievement?.iconUrl;
   $: hasAchievementsData = !!($steamAccount && steamAppid && steamAchievementsList.length);
   // "Logros" es o un badge flotante, o (si se desmarca) una sección más del
   // menú paginado — nunca las dos a la vez, y solo si de verdad hay datos.
@@ -179,10 +204,10 @@
     tabindex="-1"
     on:click={() => openAchievements(steamAppid, game.title)}
   >
-    {#if badgeAchievement?.iconUrl}<img class="ach-badge-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
+    {#if badgeIcon}<img class="ach-badge-icon" src={badgeIcon} alt="" />{/if}
     <div class="ach-badge-text">
       <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
-      <div class="ach-badge-name">{badgeAchievement?.displayName || badgeAchievement?.apiname}</div>
+      <div class="ach-badge-name">{badgeName}</div>
       <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
     </div>
   </button>
@@ -191,11 +216,18 @@
 <div class="detail" class:expanded={$detailExpanded} style="--hue: {h}">
   <!-- Escenario (hero): a pantalla completa; al desplegar el menú baja a la mitad -->
   <div class="stage">
-    <div
-      class="art"
-      class:photo={!!heroUrl}
-      style={heroUrl ? `background-image: url("${heroUrl}")` : ""}
-    ></div>
+    <div class="art">
+      <!-- Capa de la foto SEPARADA del degradado base: background-image no
+           anima de forma fiable con CSS, así que el fade-in va sobre esta capa
+           en opacity (svelte/transition) en vez de sobre el color de fondo. -->
+      {#if heroUrl}
+        <div
+          class="art-photo"
+          style="background-image: url('{heroUrl}')"
+          transition:fade={{ duration: 280 }}
+        ></div>
+      {/if}
+    </div>
     {#if logoUrl}
       <div class="hero-logo" style="align-items:{logoAlignItems}; justify-content:{logoJustify}">
         <img src={logoUrl} alt="" on:error={() => (logoUrl = null)} />
@@ -210,6 +242,8 @@
       {#if $gameView.lastPlayed}<p class="meta">{fmtLast(game.lastPlayed)}</p>{/if}
       {#if $gameView.installDir && game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
       {#if $gameView.playtime && steamAppid && $steamAccount}<p class="meta dim">{formatPlaytime(steamPlaytimeMinutes)}</p>{/if}
+      {#if $gameView.recentPlaytime && steamAppid && $steamAccount}<p class="meta dim">{formatRecentPlaytime(steamPlaytime2weeksMinutes)}</p>{/if}
+      {#if $gameView.steamLastPlayed && steamAppid && $steamAccount}<p class="meta dim">{formatSteamLastPlayed(steamLastPlayedAt)}</p>{/if}
 
       <div class="actions">
         <button
@@ -263,9 +297,9 @@
               <h3>Logros de {STORE_LABEL[game.store] || game.store}</h3>
               {#if badgeAchievement}
                 <div class="ach-inline">
-                  {#if badgeAchievement.iconUrl}<img class="ach-inline-icon" src={badgeAchievement.iconUrl} alt="" />{/if}
+                  {#if badgeIcon}<img class="ach-inline-icon" src={badgeIcon} alt="" />{/if}
                   <div>
-                    <div class="ach-inline-name">{badgeAchievement.displayName || badgeAchievement.apiname}</div>
+                    <div class="ach-inline-name">{badgeName}</div>
                     <div class="ach-inline-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
                   </div>
                 </div>
@@ -335,7 +369,7 @@
 
       <!-- Mitad derecha: carátula expandida con difuminado a la izquierda -->
       {#if wideUrl}
-        <div class="menu-art" style="background-image: url('{wideUrl}')"></div>
+        <div class="menu-art" style="background-image: url('{wideUrl}')" transition:fade={{ duration: 280 }}></div>
       {/if}
     </div>
   {/if}
@@ -374,7 +408,11 @@
     );
     z-index: 0;
   }
-  .art.photo {
+  /* Capa de la foto, superpuesta al degradado — separada para poder animar su
+     opacity (fade-in) sin depender de transiciones de background-image. */
+  .art-photo {
+    position: absolute;
+    inset: 0;
     background-color: hsl(var(--hue) 55% 12%);
     background-size: cover;
     background-position: center;

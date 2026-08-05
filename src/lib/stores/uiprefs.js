@@ -22,6 +22,8 @@ export const GAME_VIEW_FIELDS = [
   { key: "lastPlayed", label: "Última vez jugado" },
   { key: "installDir", label: "Ruta de instalación" },
   { key: "playtime", label: "Horas jugadas (Steam)" },
+  { key: "recentPlaytime", label: "Jugado recientemente, 2 semanas (Steam)" },
+  { key: "steamLastPlayed", label: "Última vez jugado según Steam" },
   { key: "achievements", label: "Logros como badge (si no, sección)" },
   { key: "achievementsBadgeFixed", label: "Fijar el badge de logros en la esquina", default: false },
 ];

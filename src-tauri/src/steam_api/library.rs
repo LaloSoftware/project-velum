@@ -26,6 +26,22 @@ struct OwnedGame {
     playtime_forever: i64,
     #[serde(default)]
     img_icon_url: String,
+    // Horas jugadas en las últimas 2 semanas — Steam solo incluye este campo
+    // si el juego se jugó en ese período, ausente en el resto (de ahí el
+    // default 0, no "no jugado nunca").
+    #[serde(default)]
+    playtime_2weeks: i64,
+    // Epoch de la última vez que se jugó, SEGÚN STEAM (0 si nunca) — a
+    // diferencia de `Game.lastPlayed` en el resto de la app, que para
+    // instalados es 100% local (fecha del ACF/registro local).
+    #[serde(default)]
+    rtime_last_played: i64,
+    // Si el juego tiene stats/logros visibles públicamente. Se usa para
+    // saltarse GetSchemaForGame por completo en juegos que definitivamente no
+    // tienen logros, en vez de pedirlo igual y descubrirlo por una respuesta
+    // vacía (ver `achievements::sync_one_game`).
+    #[serde(default)]
+    has_community_visible_stats: bool,
 }
 
 /// Resumen de una sincronización: cuántos juegos hay en total y cuáles
@@ -45,6 +61,8 @@ pub struct SteamLibraryEntry {
     pub name: String,
     pub playtime_forever: i64,
     pub icon_url: Option<String>,
+    pub playtime_2weeks: i64,
+    pub rtime_last_played: Option<i64>,
 }
 
 fn icon_url(appid: i64, img_icon_url: &str) -> Option<String> {
@@ -137,20 +155,29 @@ pub fn steam_sync_library(
             changed.push(g.appid);
         }
         conn.execute(
-            "INSERT INTO games (steamid, appid, name, playtime_forever, icon_url, last_synced_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            "INSERT INTO games (
+               steamid, appid, name, playtime_forever, icon_url, last_synced_at,
+               rtime_last_played, playtime_2weeks, has_community_visible_stats
+             )
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
              ON CONFLICT(steamid, appid) DO UPDATE SET
                name = excluded.name,
                playtime_forever = excluded.playtime_forever,
                icon_url = excluded.icon_url,
-               last_synced_at = excluded.last_synced_at",
+               last_synced_at = excluded.last_synced_at,
+               rtime_last_played = excluded.rtime_last_played,
+               playtime_2weeks = excluded.playtime_2weeks,
+               has_community_visible_stats = excluded.has_community_visible_stats",
             params![
                 steamid,
                 g.appid,
                 g.name,
                 g.playtime_forever,
                 icon_url(g.appid, &g.img_icon_url),
-                synced_at
+                synced_at,
+                if g.rtime_last_played > 0 { Some(g.rtime_last_played) } else { None },
+                g.playtime_2weeks,
+                g.has_community_visible_stats as i64,
             ],
         )
         .map_err(|e| e.to_string())?;
@@ -174,7 +201,10 @@ pub fn steam_sync_library(
 pub fn steam_library(app: AppHandle, steamid: String) -> Result<Vec<SteamLibraryEntry>, String> {
     let conn = cache::open(&app)?;
     let mut stmt = conn
-        .prepare("SELECT appid, name, playtime_forever, icon_url FROM games WHERE steamid = ?1 ORDER BY name")
+        .prepare(
+            "SELECT appid, name, playtime_forever, icon_url, playtime_2weeks, rtime_last_played
+             FROM games WHERE steamid = ?1 ORDER BY name",
+        )
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map(params![steamid], |r| {
@@ -183,6 +213,8 @@ pub fn steam_library(app: AppHandle, steamid: String) -> Result<Vec<SteamLibrary
                 name: r.get(1)?,
                 playtime_forever: r.get(2)?,
                 icon_url: r.get(3)?,
+                playtime_2weeks: r.get(4)?,
+                rtime_last_played: r.get(5)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -207,6 +239,19 @@ mod tests {
         }
     }"#;
 
+    const SAMPLE_WITH_EXTRA_FIELDS: &str = r#"{
+        "response": {
+            "game_count": 1,
+            "games": [
+                {
+                    "appid": 620, "name": "Portal 2", "playtime_forever": 943,
+                    "img_icon_url": "abc123", "playtime_2weeks": 120,
+                    "rtime_last_played": 1700000000, "has_community_visible_stats": true
+                }
+            ]
+        }
+    }"#;
+
     #[test]
     fn parses_get_owned_games_response() {
         let resp: OwnedGamesResponse = serde_json::from_str(SAMPLE).unwrap();
@@ -222,6 +267,24 @@ mod tests {
             serde_json::from_str(r#"{"response":{}}"#).unwrap();
         assert_eq!(resp.response.game_count, 0);
         assert!(resp.response.games.is_empty());
+    }
+
+    #[test]
+    fn parses_extra_fields_when_present() {
+        let resp: OwnedGamesResponse = serde_json::from_str(SAMPLE_WITH_EXTRA_FIELDS).unwrap();
+        let g = &resp.response.games[0];
+        assert_eq!(g.playtime_2weeks, 120);
+        assert_eq!(g.rtime_last_played, 1700000000);
+        assert!(g.has_community_visible_stats);
+    }
+
+    #[test]
+    fn extra_fields_default_when_absent() {
+        let resp: OwnedGamesResponse = serde_json::from_str(SAMPLE).unwrap();
+        let g = &resp.response.games[0];
+        assert_eq!(g.playtime_2weeks, 0);
+        assert_eq!(g.rtime_last_played, 0);
+        assert!(!g.has_community_visible_stats);
     }
 
     #[test]

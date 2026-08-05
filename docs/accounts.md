@@ -5,6 +5,10 @@ Fase 9: trae la biblioteca **completa** de la cuenta de Steam de una persona
 "perfil" de `stores/profiles.js` (tema/apariencia) — **una sola cuenta de Steam
 vinculada globalmente**, no por perfil de tema.
 
+Este documento es el flujo general (vinculación, caché, sincronización, UI).
+Para el detalle campo-por-campo de cada endpoint de la Steam Web API (qué se
+captura, qué se deja fuera y por qué) ver `docs/steam-metadata.md`.
+
 ## Por qué cada persona usa su propia API key
 
 La Steam Web API (`GetOwnedGames`/`GetPlayerAchievements`) **no devuelve datos
@@ -55,11 +59,15 @@ SO, así que declarar ambas es seguro en dev-macOS y producción-Windows).
 `<app_config_dir>/steam_cache.sqlite` (mismo directorio que `config.json`,
 `src-tauri/src/steam_api/cache.rs`). Esquema normalizado:
 
-- `games(steamid, appid, name, playtime_forever, icon_url, last_synced_at)` —
-  biblioteca completa de `GetOwnedGames`.
-- `achievement_schema(appid, apiname, display_name, description, icon_url)` —
-  datos ESTÁTICOS de cada logro posible de un juego (de `GetSchemaForGame`),
-  por-juego, no por-cuenta: sirve para cualquier cuenta que se vincule después.
+- `games(steamid, appid, name, playtime_forever, icon_url, last_synced_at,
+  rtime_last_played, playtime_2weeks, has_community_visible_stats)` —
+  biblioteca completa de `GetOwnedGames` (los últimos 3 campos, Fase 9l — ver
+  `docs/steam-metadata.md` para el detalle campo-por-campo).
+- `achievement_schema(appid, apiname, display_name, description, icon_url,
+  icon_gray_url, hidden)` — datos ESTÁTICOS de cada logro posible de un juego
+  (de `GetSchemaForGame`), por-juego, no por-cuenta: sirve para cualquier
+  cuenta que se vincule después. `icon_gray_url`/`hidden` (Fase 9l): ícono
+  bloqueado real y logros "spoiler" — ver `docs/steam-metadata.md`.
 - `achievements(steamid, appid, apiname, achieved, unlock_time)` — estado
   DINÁMICO por jugador (de `GetPlayerAchievements`).
 - `schema_cache(appid, fetched_at, has_achievements)` — para no volver a pedir
@@ -166,7 +174,11 @@ siempre); el logo es el único `<img>` real de la cadena, blindado con
 
 Las horas jugadas de Steam aparecen en línea con el resto de la metadata del
 hero (título, plataforma, ruta de instalación) — campo togglable `playtime` en
-`GAME_VIEW_FIELDS` (`stores/uiprefs.js`).
+`GAME_VIEW_FIELDS` (`stores/uiprefs.js`). Dos campos más de `GetOwnedGames`
+(Fase 9l, ver `docs/steam-metadata.md`), también en línea y togglables:
+`recentPlaytime` (horas en las últimas 2 semanas) y `steamLastPlayed` (última
+vez jugado **según Steam** — distinto del `lastPlayed` de siempre, que para
+instalados es 100% local).
 
 Los logros se muestran de dos formas posibles, dos campos independientes en
 `GAME_VIEW_FIELDS`/"Vista de juego":
@@ -196,7 +208,16 @@ Click/Aceptar en el badge (o el botón de la sección) abre
 `AchievementsModal.svelte`, un modal centrado con el listado completo — solo
 la lista scrollea, título y botones quedan fijos; cada logro es
 `data-focusable` (se navega con arriba/abajo, no solo entre "Ver % global"/
-"Listo"). Ahí mismo, "Ver % global" pide (bajo demanda, no en cada sync) el %
+"Listo"). Cada fila muestra, además de nombre/descripción: la **fecha de
+obtención** si está desbloqueado (`unlockTime`, se capturaba desde la Fase 9c
+pero nunca se mostraba en ningún lado hasta ahora); el **ícono bloqueado
+real** (`iconGrayUrl`) en vez de reusar el desbloqueado con opacidad — si no
+hay variante gris, cae al mismo de siempre atenuado; y los logros **spoiler**
+(`hidden`, ver `docs/steam-metadata.md`) se muestran como "Logro oculto" hasta
+desbloquearse, sin revelar nombre/descripción antes de tiempo (mismo criterio
+que el cliente de Steam). El badge/sección de logros aplican el mismo
+enmascarado si el "próximo a desbloquear" resulta ser un spoiler. Ahí mismo,
+"Ver % global" pide (bajo demanda, no en cada sync) el %
 de jugadores que tiene cada logro — si no se pudo obtener nada, se avisa
 explícitamente en vez de no mostrar nada (antes quedaba en blanco,
 indistinguible de "cargando").
@@ -317,8 +338,15 @@ el caché local (`steam_unlink_account`/`cache::clear_account`, sin cambios ahí
   errores probados en una segunda ronda. Los dos errores de esa ronda (403 en
   `GetSchemaForGame`, 404 en el % global) tenían causas distintas — ver
   "Errores confirmados y corregidos" arriba/abajo. **Sin verificar todavía con
-  cuenta/red real** tras el arreglo: % globales con el nombre de método
-  correcto, y el fallback de idioma en un juego sin traducción a `latam`.
+  cuenta/red real**: % globales con el nombre de método correcto, el fallback
+  de idioma en un juego sin traducción a `latam`, y todo lo de la Fase 9l
+  (fecha de obtención, ícono bloqueado real, logros spoiler, `recentPlaytime`/
+  `steamLastPlayed`, y la migración de columnas nuevas del caché SQLite en una
+  instalación con datos previos).
+- **Campos de la Web API deliberadamente no capturados** (`img_logo_url`,
+  desglose de playtime por plataforma, `content_descriptorids`,
+  `defaultvalue`): ver tabla completa con el porqué de cada uno en
+  `docs/steam-metadata.md`.
 - **Atajo de mando para el badge de resumen de sync**: `SteamSyncSummaryBadge.svelte`
   hoy solo se abre con click/mouse — pendiente asignar un atajo de mando
   (mismo patrón que el resto de atajos configurables) más adelante.

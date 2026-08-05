@@ -13,6 +13,20 @@
     loadAchievements(appid).then((l) => (list = l));
   }
 
+  // Logros "spoiler" (Steam los marca `hidden`): no revelar nombre/descripción
+  // hasta desbloquearlos, igual que hace el cliente de Steam.
+  const isSpoiler = (a) => a.hidden && !a.achieved;
+  const iconFor = (a) => (!a.achieved && a.iconGrayUrl) || a.iconUrl;
+  // Solo atenuar si no hay ícono gris real — con uno real, ya se ve "apagado"
+  // por sí mismo y oscurecerlo de más lo deja irreconocible.
+  const dimIcon = (a) => !a.achieved && !a.iconGrayUrl;
+
+  function fmtUnlockDate(ts) {
+    if (!ts) return null;
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString() + " " + d.toLocaleTimeString().slice(0, 5);
+  }
+
   // % global (rareza) — opcional, bajo demanda ("Ver % global"), no se pide
   // hasta que el jugador lo quiere ver (mismo criterio que el usuario pidió).
   let showGlobal = false;
@@ -50,10 +64,20 @@
     <div class="body">
       {#each list as a (a.apiname)}
         <button class="ach" class:locked={!a.achieved} data-focusable tabindex="-1">
-          {#if a.iconUrl}<img class="ach-icon" src={a.iconUrl} alt="" />{/if}
+          {#if iconFor(a)}
+            <img class="ach-icon" class:dim={dimIcon(a)} src={iconFor(a)} alt="" />
+          {/if}
           <div class="ach-text">
-            <div class="ach-name">{a.displayName || a.apiname}</div>
-            {#if a.description}<div class="ach-desc dim">{a.description}</div>{/if}
+            {#if isSpoiler(a)}
+              <div class="ach-name">Logro oculto</div>
+              <div class="ach-desc dim">Se revela al desbloquearlo.</div>
+            {:else}
+              <div class="ach-name">{a.displayName || a.apiname}</div>
+              {#if a.description}<div class="ach-desc dim">{a.description}</div>{/if}
+            {/if}
+            {#if a.achieved && a.unlockTime}
+              <div class="ach-date dim">Desbloqueado: {fmtUnlockDate(a.unlockTime)}</div>
+            {/if}
             {#if showGlobal}
               <div class="ach-global dim">
                 {#if loadingGlobal}
@@ -176,8 +200,12 @@
     padding: 8px 12px;
     flex-shrink: 0;
   }
-  .ach.locked {
-    opacity: 0.5;
+  /* El ícono bloqueado tiene su propio dimming (.ach-icon.dim, más abajo,
+     SOLO si no hay variante gris real que ya se vea "apagada" por sí sola) —
+     aplicar TAMBIÉN opacity acá encima compondría los dos y quedaría
+     demasiado oscuro. El texto sí se atenúa siempre en un logro bloqueado. */
+  .ach.locked .ach-text {
+    opacity: 0.7;
   }
   .ach:focus {
     box-shadow: var(--gm-focus-ring);
@@ -188,12 +216,16 @@
     border-radius: 6px;
     flex-shrink: 0;
   }
+  .ach-icon.dim {
+    opacity: 0.5;
+  }
   .ach-name {
     font-weight: 600;
     font-size: 0.9rem;
   }
   .ach-desc,
-  .ach-global {
+  .ach-global,
+  .ach-date {
     font-size: 0.8rem;
   }
 </style>

@@ -31,6 +31,15 @@ struct SchemaAchievement {
     description: String,
     #[serde(default)]
     icon: String,
+    // Ícono del logro BLOQUEADO (gris) — antes se reusaba el mismo `icon` para
+    // ambos estados. `hidden`: logro "spoiler" (Steam no revela nombre/
+    // descripción antes de conseguirlo) — se guarda el texto real igual (ya
+    // lo tenemos, viene en la misma respuesta), el frontend decide si lo
+    // enmascara según `achieved`.
+    #[serde(default)]
+    icongray: String,
+    #[serde(default)]
+    hidden: i32,
 }
 
 #[derive(Deserialize)]
@@ -60,6 +69,8 @@ pub struct AchievementEntry {
     pub display_name: Option<String>,
     pub description: Option<String>,
     pub icon_url: Option<String>,
+    pub icon_gray_url: Option<String>,
+    pub hidden: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -198,30 +209,66 @@ fn sync_one_game(
     let has_achievements = match cached_flag {
         Some(flag) => flag != 0,
         None => {
-            let schema = fetch_schema_with_fallback(api_key, appid)?;
-            let has = !schema.is_empty();
-            for a in &schema {
+            // Optimización: si `GetOwnedGames` ya dijo que este juego no tiene
+            // stats/logros visibles, no hace falta pedir GetSchemaForGame en
+            // absoluto para descubrir lo mismo por una respuesta vacía —
+            // ahorra una llamada de red por cada juego sin logros (son
+            // muchos: la mayoría de apps/herramientas en cualquier biblioteca).
+            let known_no_stats = conn
+                .query_row(
+                    "SELECT 1 FROM games WHERE appid = ?1 AND has_community_visible_stats = 0 LIMIT 1",
+                    params![appid],
+                    |_| Ok(()),
+                )
+                .is_ok();
+            if known_no_stats {
                 conn.execute(
-                    "INSERT INTO achievement_schema (appid, apiname, display_name, description, icon_url)
-                     VALUES (?1, ?2, ?3, ?4, ?5)
-                     ON CONFLICT(appid, apiname) DO UPDATE SET
-                       display_name = excluded.display_name,
-                       description = excluded.description,
-                       icon_url = excluded.icon_url",
-                    params![appid, a.name, a.display_name, a.description, a.icon],
+                    "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
+                     VALUES (?1, ?2, 0)
+                     ON CONFLICT(appid) DO UPDATE SET
+                       fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
+                    params![appid, cache::now()],
                 )
                 .map_err(|e| e.to_string())?;
+                println!("[steam] appid {appid}: sin stats visibles (GetOwnedGames), se omite GetSchemaForGame");
+                false
+            } else {
+                let schema = fetch_schema_with_fallback(api_key, appid)?;
+                let has = !schema.is_empty();
+                for a in &schema {
+                    conn.execute(
+                        "INSERT INTO achievement_schema
+                           (appid, apiname, display_name, description, icon_url, icon_gray_url, hidden)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                         ON CONFLICT(appid, apiname) DO UPDATE SET
+                           display_name = excluded.display_name,
+                           description = excluded.description,
+                           icon_url = excluded.icon_url,
+                           icon_gray_url = excluded.icon_gray_url,
+                           hidden = excluded.hidden",
+                        params![
+                            appid,
+                            a.name,
+                            a.display_name,
+                            a.description,
+                            a.icon,
+                            a.icongray,
+                            a.hidden,
+                        ],
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                conn.execute(
+                    "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
+                     VALUES (?1, ?2, ?3)
+                     ON CONFLICT(appid) DO UPDATE SET
+                       fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
+                    params![appid, cache::now(), has as i64],
+                )
+                .map_err(|e| e.to_string())?;
+                println!("[steam] appid {appid}: esquema leído ({} logro(s) posibles)", schema.len());
+                has
             }
-            conn.execute(
-                "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
-                 VALUES (?1, ?2, ?3)
-                 ON CONFLICT(appid) DO UPDATE SET
-                   fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
-                params![appid, cache::now(), has as i64],
-            )
-            .map_err(|e| e.to_string())?;
-            println!("[steam] appid {appid}: esquema leído ({} logro(s) posibles)", schema.len());
-            has
         }
     };
 
@@ -331,7 +378,8 @@ pub fn steam_achievements(
     let conn = cache::open(&app)?;
     let mut stmt = conn
         .prepare(
-            "SELECT a.apiname, a.achieved, a.unlock_time, s.display_name, s.description, s.icon_url
+            "SELECT a.apiname, a.achieved, a.unlock_time, s.display_name, s.description,
+                    s.icon_url, s.icon_gray_url, s.hidden
              FROM achievements a
              LEFT JOIN achievement_schema s ON s.appid = a.appid AND s.apiname = a.apiname
              WHERE a.steamid = ?1 AND a.appid = ?2
@@ -354,6 +402,8 @@ pub fn steam_achievements(
                 display_name: r.get(3)?,
                 description: r.get(4)?,
                 icon_url: r.get(5)?,
+                icon_gray_url: r.get(6)?,
+                hidden: r.get::<_, Option<i64>>(7)?.unwrap_or(0) != 0,
             })
         })
         .map_err(|e| e.to_string())?;

@@ -36,6 +36,36 @@ El usuario puede **sobrescribir** las 3 imágenes por juego desde el detalle
 (`ArtEditor.svelte` → `stores/artoverrides.js`, persistente): tienen prioridad sobre el
 arte de la tienda. Si no hay ninguna, la UI cae a un degradado determinista.
 
+### Fade-in y precarga (Fase 9l)
+
+Las imágenes grandes (hero, sobre todo) tardan lo suyo en resolverse —
+especialmente locales (Steam), que pasan por `read_image`/base64 vía IPC en
+vez de cargar directo. Sin más aviso, el "pop-in" (aparecer de golpe) se nota.
+Dos cambios, ninguno afecta qué imagen se muestra, solo cómo aparece:
+
+- **Fade-in real** (`svelte/transition`'s `fade`, ~280ms): el hero de
+  `Home.svelte` (`.bg`) y de `GameDetail.svelte` ya lo tenían gated por
+  `{#if url}` — se agregó `transition:fade` directo. La carátula expandida
+  (`.menu-art` en `GameDetail.svelte`) igual. El hero de `GameDetail.svelte`
+  necesitó separar el degradado base (`.art`, siempre presente, instantáneo)
+  de la foto (`.art-photo`, capa nueva superpuesta) porque `background-image`
+  no anima de forma fiable con CSS — el fade va sobre la `opacity` de esa capa,
+  no sobre el degradado.
+- **Precarga de vecinos** (`Home.svelte`): al enfocar una tarjeta en la tira de
+  Inicio, además de cargar SU hero, se llama `imageUrl()` (sin mostrarlo) para
+  el hero de la tarjeta inmediatamente anterior y siguiente. `imageUrl()` ya
+  cachea por ruta (con deduplicación de peticiones en vuelo), así que esto es
+  gratis si el usuario no navega hacia ahí, y elimina el pop-in si sí lo hace
+  — la imagen ya estaba resuelta de antes.
+
+**Considerado y descartado**: cachear `read_image` también del lado Rust (la
+frontend ya dedupe por sesión; un caché en Rust solo ayudaría entre
+invalidaciones de ese caché, beneficio marginal, y suma complejidad de
+invalidación si el usuario cambia su arte personalizado). Revertir al
+protocolo `asset://` en vez de base64 IPC — descartado a propósito desde antes
+(ver cabecera de `src-tauri/src/assets.rs`): fallaba en Windows con arte
+personalizado fuera del scope. No se tocó.
+
 ## Cómo lee cada fuente
 
 - **Steam** (`library/steam.rs`): base de Steam por registro

@@ -1,5 +1,6 @@
 <script>
   import { tick, onDestroy } from "svelte";
+  import { fade } from "svelte/transition";
   import { recentGames, onlyGames } from "../stores/games.js";
   import { goto, homeFeaturedGame } from "../stores/ui.js";
   import {
@@ -40,6 +41,19 @@
     imageUrl(bgSrc).then((u) => {
       if (bgSrc === bgFor) bgUrl = u;
     });
+  }
+
+  // Precarga (sin mostrar) el hero de los vecinos inmediatos del destacado:
+  // imageUrl() ya cachea por ruta, así que para cuando el usuario navegue un
+  // paso a cualquier lado, esa imagen ya está lista — sin esto, cada cambio de
+  // foco dispara su propia carga y el "pop-in" se repite en cada tarjeta.
+  $: if (featured) {
+    const i = $recentGames.findIndex((g) => g.id === featured.id);
+    for (const g of [$recentGames[i - 1], $recentGames[i + 1]]) {
+      if (!g) continue;
+      const src = effectiveArt(g, $overrides).hero || effectiveArt(g, $overrides).cover;
+      if (src) imageUrl(src);
+    }
   }
 
   // Texto efectivo de un campo de Inicio: en modo "focus", el título del juego
@@ -134,7 +148,7 @@
 
 <section class="home" style="justify-content: {isVertical ? blockJustify : 'flex-start'}">
   {#if bgUrl}
-    <div class="bg" style="background-image: url('{bgUrl}')"></div>
+    <div class="bg" style="background-image: url('{bgUrl}')" transition:fade={{ duration: 280 }}></div>
   {/if}
 
   <div
