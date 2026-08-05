@@ -47,9 +47,49 @@ function dedupeById(list) {
   return out;
 }
 
+// Carátulas por CDN público de Steam (sin descargar nada del lado Rust: son
+// URLs deterministas por appid, e imageUrl() ya pasa directo cualquier string
+// http(s):). Se pintan como background-image (GameCard/GameDetail), así que
+// un 404 (no todos los juegos tienen los 4 assets) cae solo al degradado de
+// color de siempre, sin romper nada.
+const STEAM_CDN = "https://cdn.akamai.steamstatic.com/steam/apps";
+function steamCdnArt(appid) {
+  return {
+    coverPath: `${STEAM_CDN}/${appid}/library_600x900.jpg`,
+    widePath: `${STEAM_CDN}/${appid}/header.jpg`,
+    heroPath: `${STEAM_CDN}/${appid}/library_hero.jpg`,
+    logoPath: `${STEAM_CDN}/${appid}/logo.png`,
+  };
+}
+
+// Juegos de Steam YA INSTALADOS cuya fuente local (library/steam.rs, grid/
+// librarycache) no encontró alguna imagen quedan con ese campo en `null` — sin
+// cuenta vinculada ni sync, esos juegos se quedaban sin carátula para
+// siempre. Se rellena SOLO lo que vino `null` con el mismo CDN de los
+// "fantasmas" (no pisa nada que sí se haya detectado localmente). Como
+// `effectiveArt()` resuelve `override manual || game.coverPath`, esto
+// funciona además como el valor por defecto al que "restaurar" si el usuario
+// limpia un override personalizado (ArtEditor) — nunca toca `artOverrides`,
+// solo la capa de abajo. No depende de tener cuenta vinculada: la URL es
+// puramente por `appid`.
+function fillMissingSteamArt(list) {
+  const ART_KEYS = ["coverPath", "widePath", "heroPath", "logoPath"];
+  return list.map((g) => {
+    if (g.store !== "steam") return g;
+    const appid = Number(g.id.split(":")[1]);
+    if (!Number.isFinite(appid)) return g;
+    const fallback = steamCdnArt(appid);
+    const patch = {};
+    for (const key of ART_KEYS) {
+      if (!g[key]) patch[key] = fallback[key];
+    }
+    return Object.keys(patch).length ? { ...g, ...patch } : g;
+  });
+}
+
 export async function loadGames() {
   const list = await listGames();
-  games.set(dedupeById(list));
+  games.set(fillMissingSteamArt(dedupeById(list)));
   gamesLoaded.set(true);
 }
 
@@ -59,21 +99,6 @@ export async function loadGames() {
 // usuario instala uno después y se vuelve a cargar la lista real, el
 // duplicado se resuelva solo (dedupeById se queda con la primera aparición).
 // `entries` = lo que devuelve steam_library (steamLibraryCache en ipc).
-// Carátulas por CDN público de Steam (sin descargar nada del lado Rust: son
-// URLs deterministas por appid, e imageUrl() ya pasa directo cualquier string
-// http(s):). Se pintan como background-image (GameCard/GameDetail), así que
-// un 404 (no todos los juegos tienen los 4 assets) cae solo al degradado de
-// color de siempre, sin romper nada.
-const STEAM_CDN = "https://cdn.akamai.steamstatic.com/steam/apps";
-function steamGhostArt(appid) {
-  return {
-    coverPath: `${STEAM_CDN}/${appid}/library_600x900.jpg`,
-    widePath: `${STEAM_CDN}/${appid}/header.jpg`,
-    heroPath: `${STEAM_CDN}/${appid}/library_hero.jpg`,
-    logoPath: `${STEAM_CDN}/${appid}/logo.png`,
-  };
-}
-
 export function mergeSteamGhosts(entries) {
   games.update((list) => {
     const existingIds = new Set(list.map((g) => g.id));
@@ -84,7 +109,7 @@ export function mergeSteamGhosts(entries) {
         title: e.name,
         store: "steam",
         kind: "game",
-        ...steamGhostArt(e.appid),
+        ...steamCdnArt(e.appid),
         installDir: null,
         launchTarget: `steam://rungameid/${e.appid}`,
         lastPlayed: null,

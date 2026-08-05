@@ -136,14 +136,27 @@ instala después, la siguiente carga real de `list_games()` trae el mismo id y
 el "fantasma" queda descartado por `dedupeById` (se queda con la primera
 aparición).
 
-**Carátulas de los fantasmas**: se resuelven en el frontend con URLs
-deterministas del CDN público de Steam por `appid`
+**Carátulas por CDN público** (`stores/games.js::steamCdnArt`): URLs
+deterministas por `appid`
 (`cdn.akamai.steamstatic.com/steam/apps/{appid}/{library_600x900.jpg |
-header.jpg | library_hero.jpg | logo.png}`, ver `stores/games.js::steamGhostArt`)
-— sin tocar Rust ni IPC, `imageUrl()` ya pasa directo cualquier URL `http(s):`.
-Cover/wide/hero se pintan como `background-image` (un 404 cae solo al
-degradado de color de siempre); el logo es el único `<img>` real de la cadena,
-blindado con `on:error` porque no todos los juegos tienen ese asset en el CDN.
+header.jpg | library_hero.jpg | logo.png}`) — sin tocar Rust ni IPC,
+`imageUrl()` ya pasa directo cualquier URL `http(s):`. Cover/wide/hero se
+pintan como `background-image` (un 404 cae solo al degradado de color de
+siempre); el logo es el único `<img>` real de la cadena, blindado con
+`on:error` porque no todos los juegos tienen ese asset en el CDN. Dos usos:
+
+1. **Fantasmas** (no instalados): las 4 rutas de arte se fijan de una vez al
+   crear la tarjeta (`mergeSteamGhosts`).
+2. **Instalados sin arte local** (`fillMissingSteamArt`, se corre en cada
+   `loadGames()`): `library/steam.rs` a veces no encuentra nada en
+   `librarycache`/`grid` para un `appid` (juego nuevo, sin arte oficial
+   cacheado por el cliente de Steam, etc.) — antes esos quedaban sin carátula
+   para siempre. Ahora se rellena SOLO el campo que vino `null`, sin pisar
+   nada que sí se haya detectado localmente. No depende de tener cuenta
+   vinculada (la URL es puramente por `appid`). Como `effectiveArt()`
+   (`stores/artoverrides.js`) resuelve `override manual || game.coverPath`,
+   esto de paso se vuelve el valor al que "Quitar" (`ArtEditor.svelte`)
+   restaura un override personalizado, en vez de caer a un placeholder vacío.
 
 ## Detalle de un juego: horas, logros
 
