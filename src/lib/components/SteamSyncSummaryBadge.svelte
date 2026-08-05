@@ -2,22 +2,15 @@
   import {
     steamSyncing,
     steamSyncSummary,
+    syncSummaryExpanded,
+    toggleSyncSummaryExpanded,
     dismissSyncSummary,
-    holdSyncSummary,
-    resumeSyncSummaryTimer,
   } from "../stores/steamAccount.js";
 
-  // Solo click por ahora (sin scope de navegación por mando, no es un modal
-  // que bloquee el resto de la app) — pendiente asignar un atajo de mando más
-  // adelante, ver stores/steamAccount.js.
-  let expanded = false;
-  function toggleExpanded() {
-    expanded = !expanded;
-    if (expanded) holdSyncSummary();
-    else resumeSyncSummaryTimer();
-  }
+  // El detalle (log de errores) se abre/cierra con click o con el combo de
+  // mando Home+L3 (App.svelte, mientras el badge esté vivo) — mismo estado
+  // compartido (syncSummaryExpanded), no es un modal que bloquee el resto.
   function close() {
-    expanded = false;
     dismissSyncSummary();
   }
 </script>

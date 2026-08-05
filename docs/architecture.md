@@ -45,7 +45,14 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
 - `stores/library.js` — filtros de tienda habilitados, alineación, filtro/búsqueda de Juegos.
 - `stores/groups.js` — grupos personalizados (colecciones manuales de juegos).
 - `stores/hidden.js` — blacklist de juegos/apps ocultos (se gestiona en Configuración > Ocultos).
-- `stores/prompts.js` — estilo de los indicadores de botón (`ButtonPrompt`; hoy texto).
+- `stores/prompts.js` — estilo de los indicadores de botón (`ButtonPrompt`): texto o
+  iconos reales (línea/duotono/badge × Xbox/PlayStation/universal). Ver `docs/theming.md`.
+- `stores/inputSource.js` — última fuente de input detectada (mando vs. teclado/mouse),
+  usada para mostrar el atajo correcto en el pie y otros menús. Ver `docs/input.md`.
+- `stores/sounds.js` — sonido de inicio configurable (con lista curada + botón "Probar").
+  Ver `docs/theming.md`.
+- `stores/artoverrides.js` — overrides de arte por juego (carátula/expandida/hero/logo,
+  con posición del logo en preset 3×3). Ver `docs/stores.md`.
 - `stores/keyboard.js` — teclado virtual en pantalla (`openKeyboard()` devuelve Promise).
 - `stores/uiprefs.js` — preferencias visuales de Inicio/Detalle/barra superior
   (orientación y comportamiento de la tira de Inicio, posición del bloque,

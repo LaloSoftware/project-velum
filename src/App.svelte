@@ -19,7 +19,14 @@
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { initVkBindings } from "./lib/stores/vkBindings.js";
-  import { initSteamAccount, mergeCachedSteamGhosts, syncNow } from "./lib/stores/steamAccount.js";
+  import {
+    initSteamAccount,
+    mergeCachedSteamGhosts,
+    syncNow,
+    steamSyncing,
+    steamSyncSummary,
+    toggleSyncSummaryExpanded,
+  } from "./lib/stores/steamAccount.js";
   import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
@@ -349,6 +356,12 @@
         if ($vk.open) return;
         if (inGames()) return cycleFilter(1);
         return;
+      case "steamSyncSummary":
+        // Combo Home+L3 (ver comboShortcuts.js) — solo válido mientras el
+        // badge de resumen de sync esté vivo; no reabre nada tras cerrarse.
+        if ($vk.open || $steamSyncing) return;
+        if (!$steamSyncSummary) return;
+        return toggleSyncSummaryExpanded();
       case "vkSpace":
         return vkType(" ");
       case "vkBackspace":

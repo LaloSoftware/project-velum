@@ -54,7 +54,6 @@ const DEFAULTS = {
   r3: "filters",
   start: "menu",
   select: "quick",
-  guide: "quick",
 };
 
 // Mapa reactivo botón -> acción.
@@ -62,7 +61,13 @@ export const bindings = writable({ ...DEFAULTS });
 
 export async function initBindings() {
   const cfg = await loadAppConfig();
-  if (cfg && cfg.bindings) bindings.set({ ...DEFAULTS, ...cfg.bindings });
+  const saved = cfg?.bindings ? { ...cfg.bindings } : {};
+  // "guide" (Home) ya no tiene acción individual por defecto — queda
+  // reservado como modificador de combos (ver comboShortcuts.js). Si se
+  // heredó "quick" del default viejo, se limpia una vez; una reasignación
+  // deliberada del usuario a otra acción no se toca.
+  if (saved.guide === "quick") delete saved.guide;
+  bindings.set({ ...DEFAULTS, ...saved });
 }
 
 // Acción asignada a un botón crudo (o null).

@@ -339,7 +339,7 @@
   <div class="minihead">Combo de botones</div>
   <p class="dim">
     Mantén varios botones a la vez para disparar una acción, sin navegar hasta el
-    menú correspondiente. El combo por defecto abre el menú rápido de sistema.
+    menú correspondiente. "Home" es el botón base de todos los combos por defecto.
   </p>
   <div class="rows">
     {#each $comboShortcuts as c (c.id)}

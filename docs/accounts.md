@@ -283,11 +283,14 @@ tumba la sincronización de los demás.
 muestra en `SteamSyncSummaryBadge.svelte` — un badge flotante (misma esquina
 que `SteamSyncIndicator`, se turnan porque uno es mientras sincroniza y el
 otro después) con las 4 métricas de un vistazo y un temporizador de auto-cierre
-(20s, `stores/steamAccount.js::showSyncSummary`); al hacer click se expande el
-detalle con el log de errores (appid + mensaje) y pausa el auto-cierre
-mientras se lee. **Solo click por ahora** — no participa del sistema de
-navegación por mando (no es un modal que bloquee el resto de la app);
-pendiente asignar un atajo de mando más adelante.
+(20s, `stores/steamAccount.js::showSyncSummary`); al hacer click (o con el
+combo de mando **Guide + L3**, ver `docs/input.md`) se expande/colapsa el
+detalle con el log de errores (appid + mensaje), pausando el auto-cierre
+mientras se lee (`syncSummaryExpanded`/`toggleSyncSummaryExpanded()` en
+`stores/steamAccount.js`, estado compartido entre click y combo). El combo
+solo tiene efecto mientras el badge sigue vivo — no es un modal que bloquee
+el resto de la app, así que no participa del sistema de navegación por
+mando más allá de ese combo puntual.
 
 ### Errores confirmados y corregidos (segunda ronda de prueba real)
 
@@ -347,14 +350,12 @@ API key al editarla. Un toggle "Mostrar Steam ID" justo debajo lo revela.
   `GetSchemaForGame`, 404 en el % global) tenían causas distintas — ver
   "Errores confirmados y corregidos" arriba/abajo. **Sin verificar todavía con
   cuenta/red real**: % globales con el nombre de método correcto, el fallback
-  de idioma en un juego sin traducción a `latam`, y todo lo de la Fase 9l
-  (fecha de obtención, ícono bloqueado real, logros spoiler, `recentPlaytime`/
-  `steamLastPlayed`, y la migración de columnas nuevas del caché SQLite en una
-  instalación con datos previos).
+  de idioma en un juego sin traducción a `latam`. La Fase 9l (fecha de
+  obtención, ícono bloqueado real, logros spoiler, `recentPlaytime`/
+  `steamLastPlayed`, migración de columnas nuevas del caché SQLite en una
+  instalación con datos previos) **ya se verificó con cuenta real** — los
+  únicos ajustes encontrados fueron estéticos.
 - **Campos de la Web API deliberadamente no capturados** (`img_logo_url`,
   desglose de playtime por plataforma, `content_descriptorids`,
   `defaultvalue`): ver tabla completa con el porqué de cada uno en
   `docs/steam-metadata.md`.
-- **Atajo de mando para el badge de resumen de sync**: `SteamSyncSummaryBadge.svelte`
-  hoy solo se abre con click/mouse — pendiente asignar un atajo de mando
-  (mismo patrón que el resto de atajos configurables) más adelante.

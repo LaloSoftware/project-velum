@@ -34,7 +34,10 @@ devuelve un `data:` URI. El resultado se cachea por ruta.
 
 El usuario puede **sobrescribir** las 3 imágenes por juego desde el detalle
 (`ArtEditor.svelte` → `stores/artoverrides.js`, persistente): tienen prioridad sobre el
-arte de la tienda. Si no hay ninguna, la UI cae a un degradado determinista.
+arte de la tienda. Si no hay ninguna, la UI cae a un degradado determinista. Un **logo**
+(PNG transparente) puede subirse aparte y se muestra superpuesto sobre el hero del
+Detalle, con su posición ajustable en un preset de **3×3** (esquinas/bordes/centro,
+`logoPos`, persistente por juego).
 
 ### Fade-in y precarga (Fase 9l)
 

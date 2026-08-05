@@ -71,6 +71,30 @@ en `:root`) para demostrar la carga en runtime. En la app real, este texto vendr
 archivo `.css` elegido por el usuario. Tu CSS puede redefinir cualquier `--gm-*` y/o
 añadir reglas nuevas (p. ej. estilar `.gm-card`).
 
+## Iconos de botones (prompts)
+
+Los indicadores de botón (`ButtonPrompt.svelte`, footer/menús) pueden mostrarse como
+**texto** (comportamiento de siempre, "auto") o como **iconos reales**, elegibles en
+Ajustes → Iconos de botones (`stores/prompts.js::PROMPT_STYLES`): 3 sets (línea,
+duotono, badge) × 3 plataformas (Xbox, PlayStation, universal) = 9 combinaciones + auto.
+Los SVG viven en `src/assets/icons/<set>/<plataforma>/<token>.svg`, mismo `<token>`
+físico que usa `stores/bindings.js` (south, east, l1, guide...) — agregar un set o
+plataforma nueva es solo sumar una carpeta con esos mismos nombres
+(`theming/icons.js::iconFor()`, sin tabla de traducción).
+
+Aparte del estilo elegido, `stores/inputSource.js` recuerda la **última fuente de
+input detectada** (mando o teclado/mouse, actualizado por `lib/input/index.js` en
+cada evento crudo) para decidir automáticamente qué atajo mostrar en el pie y otros
+menús de navegación cuando ambos coexisten (p. ej. el combo de mando del menú de
+sistema vs. su atajo de teclado/mouse alterno — ver `docs/input.md`).
+
+## Sonidos
+
+Ajustes → Sonidos: sonido de inicio configurable (`stores/sounds.js`, lista curada de
+`.ogg` + botón "Probar"), reproducido una vez en `App.svelte` justo después de aplicar
+el arranque (`applyStartup()`). Si el WebView bloquea autoplay con audio, falla en
+silencio y no interrumpe el arranque.
+
 ## Pendiente / a evaluar a futuro
 
 **Cálculo de contraste genérico** en vez del descarte fijo actual de "Color de

@@ -11,6 +11,15 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 const DEFAULT_COMBOS = [
   // Home (guide) + Start: abre el menú rápido de sistema (ver SystemQuickMenu).
   { id: "system-menu", label: "Menú de sistema", buttons: ["guide", "start"], action: "openSystemMenu", enabled: true },
+  // Home (guide) + L3: expande/colapsa el detalle del badge de sync de Steam
+  // (SteamSyncSummaryBadge) — solo válido mientras la notificación esté viva.
+  {
+    id: "steam-sync-summary",
+    label: "Detalle de sincronización (Steam)",
+    buttons: ["guide", "l3"],
+    action: "steamSyncSummary",
+    enabled: true,
+  },
 ];
 
 export const comboShortcuts = writable(DEFAULT_COMBOS.map((c) => ({ ...c })));

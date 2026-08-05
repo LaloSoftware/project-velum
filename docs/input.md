@@ -8,8 +8,9 @@ físico (hay teclado virtual en pantalla para escribir).
 Las fuentes de **mando** emiten eventos **crudos** `{ type: "dir"|"button", name, pressed }`;
 el mapeo `botón→acción` se hace en el frontend (bindings configurables). Las acciones que
 interpreta `App.svelte` son: `up | down | left | right | accept | back | north | west |
-context | filters | menu | quick | openSystemMenu | tabLeft | tabRight | search |
-filterPrev | filterNext | vkSpace | vkBackspace | vkShift | vkCancel | vkConfirm`.
+context | filters | menu | quick | openSystemMenu | steamSyncSummary | tabLeft |
+tabRight | search | filterPrev | filterNext | vkSpace | vkBackspace | vkShift |
+vkCancel | vkConfirm`.
 
 1. **Mando vía Rust/`gilrs`** (app real) — `src-tauri/src/input.rs`. Un hilo lee los
    mandos y emite el evento Tauri `gm://input`. Direcciones (d-pad/stick) → `type:"dir"`;
@@ -53,7 +54,8 @@ Defaults e ids crudos de botón:
 | `l3` (clic stick izq.) | search (abrir **búsqueda** en Juegos) | S |
 | `r3` (clic stick der.) | context (**menú contextual** de tarjeta) | C |
 | `start` | menu (menú **Configuración**) | Tab |
-| `select` / `guide` | quick (menú Sistema / QAM) | Q |
+| `select` | quick (menú Sistema / QAM) | Q |
+| `guide` | — (reservado como modificador de combos, ver abajo) | — |
 | — | filters (filtros y orden, Juegos/Apps) | F |
 | — | openSystemMenu (**menú rápido de sistema** — ver abajo) | sin default |
 | d-pad / stick izq. | up/down/left/right (**fijo**) | Flechas (fijo) |
@@ -70,10 +72,15 @@ arriba porque agrupa atajos que no son "una tecla → una acción" simple:
   del combo están presionados **a la vez** (no una secuencia). Detección en
   `input/index.js` (`trackComboButton`): un `Set` de botones crudos sostenidos +
   un `Set` de combos ya disparados mientras se mantienen (para no repetir el disparo,
-  liberado al soltar cualquiera de sus botones). El combo por defecto,
-  `system-menu` (**Guide + Start → openSystemMenu**), es reasignable con el mismo modo
-  captura que el resto; el modelo admite más combos a futuro pero la UI actual solo
-  administra este.
+  liberado al soltar cualquiera de sus botones). **Guide/Home es el botón base de
+  todos los combos por defecto** (justo por eso no tiene acción individual propia —
+  ver tabla arriba); cada uno reasignable con el mismo modo captura que el resto:
+  - `system-menu` (**Guide + Start → openSystemMenu**).
+  - `steam-sync-summary` (**Guide + L3 → steamSyncSummary**): expande/colapsa el
+    detalle del badge de resumen de sync de Steam (`SteamSyncSummaryBadge.svelte`,
+    ver `docs/accounts.md`). Solo tiene efecto mientras el badge está vivo
+    (`steamSyncSummary` no nulo en `stores/steamAccount.js`) — si ya se cerró (por
+    click o por su temporizador), el combo no reabre nada.
 - **Menú de sistema (teclado/mouse)** — el equivalente de un solo input físico al combo
   de arriba, para quien no tiene mando: reasignable como cualquier fila de la tabla de
   teclado/mouse (acción `openSystemMenu`, sin default — ver tabla arriba).

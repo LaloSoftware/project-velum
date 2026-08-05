@@ -30,16 +30,20 @@ export const steamSyncing = writable(false);
 export const steamSyncProgress = writable(null); // { done, total, appid } | null
 
 // Resumen simplificado de la última sincronización de logros — badge flotante
-// (SteamSyncSummaryBadge.svelte), NO un modal: se cierra clickeando (todavía
-// sin atajo de mando — pendiente asignar uno más adelante) o solo, con
-// temporizador, para no acumular. Se llena en syncNow() cuando de verdad se
-// sincronizaron logros de al menos un juego (silenciosa o no).
+// (SteamSyncSummaryBadge.svelte), NO un modal: se cierra clickeando (o con el
+// combo de mando Home+L3, ver comboShortcuts.js) o solo, con temporizador,
+// para no acumular. Se llena en syncNow() cuando de verdad se sincronizaron
+// logros de al menos un juego (silenciosa o no).
 export const steamSyncSummary = writable(null); // AchievementsSyncSummary | null
+// Detalle (log de errores) expandido o no — compartido entre el click del
+// mouse y el combo de mando, ambos deben abrir/cerrar lo mismo.
+export const syncSummaryExpanded = writable(false);
 const SYNC_SUMMARY_AUTOCLOSE_MS = 20000;
 let summaryTimer = null;
 export function dismissSyncSummary() {
   clearTimeout(summaryTimer);
   steamSyncSummary.set(null);
+  syncSummaryExpanded.set(false);
 }
 function showSyncSummary(summary) {
   clearTimeout(summaryTimer);
@@ -56,6 +60,14 @@ export function resumeSyncSummaryTimer() {
   if (get(steamSyncSummary)) {
     summaryTimer = setTimeout(() => steamSyncSummary.set(null), SYNC_SUMMARY_AUTOCLOSE_MS);
   }
+}
+// Expande/colapsa el detalle — usado tanto por el click del badge como por el
+// combo de mando Home+L3 (App.svelte, acción "steamSyncSummary").
+export function toggleSyncSummaryExpanded() {
+  const next = !get(syncSummaryExpanded);
+  syncSummaryExpanded.set(next);
+  if (next) holdSyncSummary();
+  else resumeSyncSummaryTimer();
 }
 
 // Opciones de sincronización (Configuración → Cuentas → "Opciones de
