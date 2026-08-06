@@ -51,6 +51,11 @@ windows = { version = "0.58", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Input_KeyboardAndMouse",
 ] }
+# Poll de XInput suplementario (fix/control-input): `gilrs` en Windows usa WGI
+# por defecto, que no entrega input de mandos XInput-class (Xbox, mandos en
+# modo PC) sin foco real de ventana — GM corre a pantalla completa. `XInputGetState`
+# directo no tiene ese requisito. Ver src/input.rs::start_xinput_poll_thread.
+rusty-xinput = "1.3"
 
 [profile.release]
 opt-level = "s"

@@ -29,6 +29,10 @@ fn main() {
         .setup(|app| {
             // Hilo de lectura de mando(s) que emite eventos al frontend.
             input::start_gamepad_thread(app.handle().clone());
+            // Poll de XInput suplementario (solo Windows, no-op en otros SOs) —
+            // cubre mandos XInput-class que WGI no reparte sin foco de ventana
+            // (ver src/input.rs::start_xinput_poll_thread, fix/control-input).
+            input::start_xinput_poll_thread(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
