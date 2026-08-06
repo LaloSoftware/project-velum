@@ -11,6 +11,9 @@ Responde siempre en español.
 - Leer el archivo antes de modificarlo.
 - Si falta contexto, hacer suposiciones razonables y continuar desarrollando.
 - Actualizar este archivo al terminar cada proceso relevante.
+- Hook `impeccable`: si los hallazgos reportados son preexistentes (no relacionados con
+  la edición actual), no generar un mensaje de reconocimiento — solo actuar si hay un
+  hallazgo real introducido por el cambio en curso, o si el usuario pide revisarlos.
 
 # GM — launcher de sala tipo consola
 
