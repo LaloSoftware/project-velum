@@ -85,8 +85,8 @@ plataforma nueva es solo sumar una carpeta con esos mismos nombres
 Aparte del estilo elegido, `stores/inputSource.js` recuerda la **última fuente de
 input detectada** (mando o teclado/mouse, actualizado por `lib/input/index.js` en
 cada evento crudo) para decidir automáticamente qué atajo mostrar en el pie y otros
-menús de navegación cuando ambos coexisten (p. ej. el combo de mando del menú de
-sistema vs. su atajo de teclado/mouse alterno — ver `docs/input.md`).
+menús de navegación cuando ambos coexisten (p. ej. el menú radial de mando (Home) vs.
+su atajo de teclado/mouse alterno para el menú de sistema — ver `docs/input.md`).
 
 ## Sonidos
 

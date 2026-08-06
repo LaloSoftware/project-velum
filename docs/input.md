@@ -8,8 +8,8 @@ físico (hay teclado virtual en pantalla para escribir).
 Las fuentes de **mando** emiten eventos **crudos** `{ type: "dir"|"button", name, pressed }`;
 el mapeo `botón→acción` se hace en el frontend (bindings configurables). Las acciones que
 interpreta `App.svelte` son: `up | down | left | right | accept | back | north | west |
-context | filters | menu | quick | openSystemMenu | steamSyncSummary | tabLeft |
-tabRight | search | filterPrev | filterNext | vkSpace | vkBackspace | vkShift |
+context | filters | menu | quick | openSystemMenu | openRadialMenu | steamSyncSummary |
+tabLeft | tabRight | search | filterPrev | filterNext | vkSpace | vkBackspace | vkShift |
 vkCancel | vkConfirm`.
 
 1. **Mando vía Rust/`gilrs`** (app real) — `src-tauri/src/input.rs`. Un hilo lee los
@@ -74,52 +74,78 @@ Defaults e ids crudos de botón:
 | `r3` (clic stick der.) | context (**menú contextual** de tarjeta) | C |
 | `start` | menu (menú **Configuración**) | Tab |
 | `select` | quick (menú Sistema / QAM) | Q |
-| `guide` | — (reservado como modificador de combos, ver abajo) | — |
+| `guide` | openRadialMenu (**menú radial de sistema**, mantener presionado — ver abajo) | — |
 | — | filters (filtros y orden, Juegos/Apps) | F |
-| — | openSystemMenu (**menú rápido de sistema** — ver abajo) | sin default |
+| — | openSystemMenu (**menú de sistema**, lista — ver abajo) | sin default |
 | d-pad / stick izq. | up/down/left/right (**fijo**) | Flechas (fijo) |
 
-## "Funciones": combos y menú rápido de sistema
+## "Funciones": menú radial, menú de sistema y otros atajos compuestos
 
 Sección propia dentro de **Configuración de atajos**, separada de las dos tablas de
 arriba porque agrupa atajos que no son "una tecla → una acción" simple:
 
 - **Volver al launcher (en juego)** — botón + modo *pulsar*/*mantener* con duración
   (ver "Modo en juego" abajo).
-- **Combos de botones** — `src/lib/stores/comboShortcuts.js`: lista de
-  `{ id, buttons: string[], action, enabled }`. Se disparan cuando **todos** los botones
-  del combo están presionados **a la vez** (no una secuencia). Detección en
-  `input/index.js` (`trackComboButton`): un `Set` de botones crudos sostenidos +
-  un `Set` de combos ya disparados mientras se mantienen (para no repetir el disparo,
-  liberado al soltar cualquiera de sus botones). **Guide/Home es el botón base de
-  todos los combos por defecto** (justo por eso no tiene acción individual propia —
-  ver tabla arriba); cada uno reasignable con el mismo modo captura que el resto.
-  **Un botón miembro de un combo habilitado que ya está "en curso" (algún otro de sus
-  botones también sostenido) no dispara además su propia acción individual** —
-  `isComboEngaged()` en `input/index.js` lo suprime antes del `resolve()` normal. Sin
-  esto, reasignar p. ej. el combo de sistema a `guide + north` disparaba A LA VEZ el
-  combo y la acción individual de `north` (Detalle en tarjeta) — bug real encontrado
-  al reasignar un combo con un segundo botón distinto de los por defecto:
-  - `system-menu` (**Guide + Start → openSystemMenu**).
-  - `steam-sync-summary` (**Guide + L3 → steamSyncSummary**): expande/colapsa el
-    detalle del badge de resumen de sync de Steam (`SteamSyncSummaryBadge.svelte`,
-    ver `docs/accounts.md`). Solo tiene efecto mientras el badge está vivo
-    (`steamSyncSummary` no nulo en `stores/steamAccount.js`) — si ya se cerró (por
-    click o por su temporizador), el combo no reabre nada.
-- **Menú de sistema (teclado/mouse)** — el equivalente de un solo input físico al combo
-  de arriba, para quien no tiene mando: reasignable como cualquier fila de la tabla de
-  teclado/mouse (acción `openSystemMenu`, sin default — ver tabla arriba).
+- **Menú radial de sistema (mando)** — ver subsección propia abajo.
+- **Menú de sistema (teclado/mouse)** — el equivalente de un solo input físico al menú
+  radial, para quien no tiene mando: reasignable como cualquier fila de la tabla de
+  teclado/mouse (acción `openSystemMenu`, sin default — ver tabla arriba). Abre la
+  lista de siempre (`SystemQuickMenu.svelte`, ver abajo), no el rombo.
 
-### Menú rápido de sistema (`SystemQuickMenu.svelte`)
+**Historia**: antes de esto, "Home" era el botón base de **combos** configurables
+(`stores/comboShortcuts.js`) — `guide+start` abría el menú de sistema, `guide+l3`
+expandía el badge de sync de Steam. Se retiraron: `isComboEngaged()`
+(`input/index.js`) solo suprimía la acción individual del botón "compañero" del combo
+si ese botón se presionaba **después** de que Home ya estuviera sostenido — si se
+presionaba antes (plausible al reasignar el combo a un botón con acción individual
+propia, ej. `guide+r1`), esa acción se disparaba igual justo antes de que el combo se
+completara. El menú radial de abajo no tiene ese problema: Home ya no es modificador de
+combo, abre el radial directo al presionarse, y mientras está abierto se congela
+cualquier otra entrada (ver abajo) — no hay ventana en la que un segundo botón dispare
+algo por su cuenta. `guide+l3` no se reemplazó (fuera de alcance); el detalle de sync de
+Steam se mantiene, solo dejó de ser accesible por combo.
 
-Se abre con el combo de mando o el atajo de teclado/mouse de "Funciones" (acción
-`openSystemMenu`, guardas contra abrir si ya hay otro modal encima). Muestra **siempre
-las 6 acciones** de ventana/energía (a diferencia del pie de Configuración, que alterna
-Maximizar/Restaurar según estado): Minimizar, Maximizar, Entrar/Salir de pantalla
-completa, Cerrar la aplicación, Apagar el sistema (reusa el flujo de confirmación
-existente — el menú queda abierto detrás mientras se confirma). Orden editable desde
-**Configuración → Acciones del sistema** (mover arriba/abajo), persistido en
-`stores/systemActions.js` → `quickMenuOrder`. B/Esc cierra el menú.
+### Menú radial de sistema (mando) (`RadialMenu.svelte`)
+
+**Mantener presionado "Home/Guide"** abre un overlay a pantalla completa (fondo
+difuminado) con **8 posiciones fijas**: un rombo central sobre los botones de cara
+(`north/south/east/west`) + 4 alrededor sobre hombros/gatillos (`l1/r1/lt/rt`),
+imitando la silueta física del mando. Cada posición puede tener asignada una de las
+`QUICK_MENU_ACTIONS` (`stores/systemActions.js`) o ninguna — configurable en
+**Configuración de atajos → Menú radial de sistema (mando)**, un `<Select>` por
+posición (no hay flujo de captura: las 8 posiciones son fijas, no remapeables).
+Ejecutar una acción usa `runSystemAction(id)` (`stores/systemActions.js`), compartida
+con la lista de teclado/mouse de abajo — mismo mapa, sin duplicar.
+
+- **Mientras está abierto, congela todo lo demás** (dirección y botones): ninguna
+  navegación ni acción individual de la vista de abajo se dispara. Solo las 8
+  posiciones (o el botón de cancelar configurado) hacen algo —
+  `runRadialInput()`/`RADIAL_POSITIONS` en `stores/radialMenu.js`, resuelto en
+  `input/index.js::handleRaw()` antes de llegar al `resolve()`/`isComboEngaged()`
+  normal.
+- **Cerrar**: soltar Home siempre cierra sin ejecutar nada (no se puede quedar
+  "atascado"). Además, en **Configuración de atajos** se puede elegir un botón de
+  cancelar explícito (`radialCancelButton`) que cierra igual mientras se mantiene Home
+  — si ese botón también tiene una acción asignada, cancelar tiene prioridad.
+- No participa del scope de navegación (`nav.setScope()`/`layerKey` en `App.svelte`):
+  no se navega dentro de él por foco, se resuelve por posición de botón físico —
+  cerrarlo no mueve el foco de la vista de abajo (nunca se movió mientras estaba
+  abierto).
+- Se abre vía `dispatch("openRadialMenu")` (mismas guardas que `openSystemMenu`: no
+  se abre si ya hay otro modal encima) — disparado directo desde `handleRaw()` al
+  detectar el flanco de presión de `guide`, sin pasar por `resolve()`.
+
+### Menú de sistema, lista (`SystemQuickMenu.svelte`)
+
+Se abre con el atajo de teclado/mouse de "Funciones" (acción `openSystemMenu`, guardas
+contra abrir si ya hay otro modal encima) — la vía de mando equivalente es el menú
+radial de arriba. Muestra **siempre las 6 acciones** de ventana/energía (a diferencia
+del pie de Configuración, que alterna Maximizar/Restaurar según estado): Minimizar,
+Maximizar, Entrar/Salir de pantalla completa, Cerrar la aplicación, Apagar el sistema
+(reusa el flujo de confirmación existente — el menú queda abierto detrás mientras se
+confirma). Orden editable desde **Configuración → Acciones del sistema** (mover
+arriba/abajo), persistido en `stores/systemActions.js` → `quickMenuOrder`. B/Esc cierra
+el menú.
 
 El **pie de botones de ventana/energía al final de Configuración está oculto por
 defecto** (`showPowerFooter` en `stores/systemActions.js`) — el menú rápido de arriba

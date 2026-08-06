@@ -1,15 +1,17 @@
 import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
+import { openShutdownConfirm } from "./ui.js";
+import { minimizeWindow, maximizeWindow, enterFullscreen, exitFullscreen, closeApp } from "../util/window.js";
 
 /*
  * Preferencias de la sección "Acciones del sistema" (menú de Configuración).
  * Globales (no por perfil): son sobre comportamiento del launcher, no aspecto.
  *   - showPowerFooter: fila de botones de ventana/energía al final del menú
  *     de Configuración. Oculta por defecto; el acceso rápido equivalente es
- *     el combo de botones (ver stores/comboShortcuts.js) o el atajo de
- *     teclado/mouse, que abren el menú rápido de sistema (SystemQuickMenu).
- *   - quickMenuOrder: orden de las opciones de ese menú rápido, editable
- *     aquí con mover arriba/abajo.
+ *     el menú radial de mando (mantener Home, ver stores/radialMenu.js) o el
+ *     atajo de teclado/mouse, que abre esta misma lista (SystemQuickMenu).
+ *   - quickMenuOrder: orden de las opciones de ese menú rápido (lista,
+ *     teclado/mouse), editable aquí con mover arriba/abajo.
  */
 
 export const showPowerFooter = writable(false);
@@ -72,4 +74,24 @@ export async function moveQuickMenuAction(id, dir) {
 export async function resetQuickMenuOrder() {
   quickMenuOrder.set([...DEFAULT_ORDER]);
   await patchAppConfig({ quickMenuOrder: get(quickMenuOrder) });
+}
+
+// Ejecuta una acción de QUICK_MENU_ACTIONS por id — compartida entre
+// SystemQuickMenu.svelte (lista, teclado/mouse) y el menú radial de mando
+// (stores/radialMenu.js), para no duplicar este mapa en dos sitios.
+const HANDLERS = {
+  minimize: minimizeWindow,
+  maximize: maximizeWindow,
+  exitFullscreen,
+  enterFullscreen,
+  closeApp,
+};
+
+export async function runSystemAction(id) {
+  if (id === "shutdown") {
+    // Se queda abierto detrás de la confirmación (mismo patrón que el pie
+    // de Configuración: "Apagar" no oculta lo demás por sí solo).
+    return openShutdownConfirm();
+  }
+  await HANDLERS[id]?.();
 }

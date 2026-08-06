@@ -1,35 +1,17 @@
 <script>
-  import { systemQuickMenu, closeSystemQuickMenu, openShutdownConfirm } from "../stores/ui.js";
-  import { QUICK_MENU_ACTIONS, quickMenuOrder } from "../stores/systemActions.js";
-  import {
-    minimizeWindow,
-    maximizeWindow,
-    enterFullscreen,
-    exitFullscreen,
-    closeApp,
-  } from "../util/window.js";
+  import { systemQuickMenu, closeSystemQuickMenu } from "../stores/ui.js";
+  import { QUICK_MENU_ACTIONS, quickMenuOrder, runSystemAction } from "../stores/systemActions.js";
 
   const LABEL = Object.fromEntries(QUICK_MENU_ACTIONS.map((a) => [a.id, a.label]));
 
   // Acciones ordenadas según stores/systemActions.js -> quickMenuOrder.
   $: orderedActions = $quickMenuOrder.map((id) => ({ id, label: LABEL[id] || id }));
 
-  const HANDLERS = {
-    minimize: minimizeWindow,
-    maximize: maximizeWindow,
-    exitFullscreen,
-    enterFullscreen,
-    closeApp,
-  };
-
   async function run(id) {
-    if (id === "shutdown") {
-      // Se queda abierto detrás de la confirmación (mismo patrón que el pie
-      // de Configuración: "Apagar" no oculta lo demás por sí solo).
-      return openShutdownConfirm();
-    }
-    closeSystemQuickMenu();
-    await HANDLERS[id]?.();
+    // "shutdown" abre la confirmación y deja este menú abierto detrás (ver
+    // runSystemAction) — el resto de acciones sí cierran el menú antes.
+    if (id !== "shutdown") closeSystemQuickMenu();
+    await runSystemAction(id);
   }
 </script>
 
