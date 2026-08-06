@@ -350,20 +350,23 @@
           {$metaBgVisible ? "ON" : "OFF"}
         </button>
       </div>
-    </div>
-    <div class="sizerow">
-      <input
-        type="range"
-        class="size-slider"
-        data-focusable
-        tabindex="-1"
-        min={META_BG_OPACITY_MIN}
-        max={META_BG_OPACITY_MAX}
-        step="5"
-        value={$metaBgOpacity}
-        on:input={(e) => setMetaBgOpacity(e.target.value)}
-      />
-      <span class="sizeval">{$metaBgOpacity}%</span>
+      <div class="row">
+        <span class="rlabel">Opacidad</span>
+        <div class="sizerow">
+          <input
+            type="range"
+            class="size-slider"
+            data-focusable
+            tabindex="-1"
+            min={META_BG_OPACITY_MIN}
+            max={META_BG_OPACITY_MAX}
+            step="5"
+            value={$metaBgOpacity}
+            on:input={(e) => setMetaBgOpacity(e.target.value)}
+          />
+          <span class="sizeval">{$metaBgOpacity}%</span>
+        </div>
+      </div>
     </div>
 
     <h2>Resaltado de 100% completado (logros)</h2>
@@ -386,7 +389,12 @@
         </button>
       </div>
     </div>
-    <button class="colorfield" data-focusable tabindex="-1" on:click={openCompletePicker}>
+    <button
+      class="colorfield spaced"
+      data-focusable
+      tabindex="-1"
+      on:click={openCompletePicker}
+    >
       <span class="swatch-sm" style="background: {completeColor}"></span>
       <span class="cf-val">{completeColor.toUpperCase()}</span>
       <span class="cf-cta">Personalizar</span>
@@ -609,6 +617,11 @@
     color: var(--gm-text);
     font-weight: 700;
     cursor: pointer;
+  }
+  /* Separación de un ".rows" (toggle) inmediatamente arriba — sin esto quedan
+     pegados (visualmente y para la navegación por foco). */
+  .colorfield.spaced {
+    margin-top: 10px;
   }
   .colorfield:focus {
     box-shadow: var(--gm-focus-ring);
