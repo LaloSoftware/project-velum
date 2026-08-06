@@ -27,6 +27,8 @@
     META_BG_OPACITY_MAX,
     setMetaBgVisible,
     setMetaBgOpacity,
+    completedHighlightEnabled,
+    setCompletedHighlightEnabled,
     uiScale,
     UI_SCALE_MIN,
     UI_SCALE_MAX,
@@ -67,6 +69,7 @@
   const themes = themeOptions();
   const ACCENT_DEFAULT = "#4c8dff";
   const CARD_W_DEFAULT = 190;
+  const COMPLETE_DEFAULT = "#52d69a";
 
   $: active = $profiles.find((p) => p.id === $activeProfileId) || $profiles[0];
   $: cardW = parseInt(active?.tokenOverrides?.["--gm-card-w"]) || CARD_W_DEFAULT;
@@ -75,12 +78,20 @@
   $: baseThemeTokens = BUILTIN_THEMES[active?.baseTheme]?.tokens || {};
   $: textColor = active?.tokenOverrides?.["--gm-text"] || baseThemeTokens["--gm-text"] || "#e8edf3";
   $: fontValue = active?.tokenOverrides?.["--gm-font"] || FONT_OPTIONS[0].value;
+  $: completeColor = active?.tokenOverrides?.["--gm-complete"] || COMPLETE_DEFAULT;
 
   function openAccentPicker() {
     openColorPicker({ value: accentColor, title: "Color de acento", onApply: pickAccent });
   }
   function openTextPicker() {
     openColorPicker({ value: textColor, title: "Color de texto", onApply: pickText });
+  }
+  function openCompletePicker() {
+    openColorPicker({
+      value: completeColor,
+      title: "Color de 100% completado",
+      onApply: pickCompleteColor,
+    });
   }
 
   async function newProfile() {
@@ -114,6 +125,11 @@
   async function pickText(color) {
     await updateActive({
       tokenOverrides: { ...active.tokenOverrides, "--gm-text": color },
+    });
+  }
+  async function pickCompleteColor(color) {
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-complete": color },
     });
   }
   async function pickFont(value) {
@@ -349,6 +365,32 @@
       />
       <span class="sizeval">{$metaBgOpacity}%</span>
     </div>
+
+    <h2>Resaltado de 100% completado (logros)</h2>
+    <p class="dim">
+      Marca los juegos con todos los logros desbloqueados (tarjeta y badge de logros
+      del Detalle) con este color — apágalo o cámbialo si choca con el color de acento
+      de tu perfil.
+    </p>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">Visible</span>
+        <button
+          class="toggle"
+          class:on={$completedHighlightEnabled}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setCompletedHighlightEnabled(!$completedHighlightEnabled)}
+        >
+          {$completedHighlightEnabled ? "ON" : "OFF"}
+        </button>
+      </div>
+    </div>
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openCompletePicker}>
+      <span class="swatch-sm" style="background: {completeColor}"></span>
+      <span class="cf-val">{completeColor.toUpperCase()}</span>
+      <span class="cf-cta">Personalizar</span>
+    </button>
 
     <h2>Inicio · Bienvenida</h2>
     <p class="dim">

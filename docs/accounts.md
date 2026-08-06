@@ -145,14 +145,25 @@ un fantasma **se oculta** (ya no se muestra deshabilitado) y en su lugar
 aparece **"⬇ Descargar desde Steam"** — abre el cliente de Steam directo en la
 página de instalación de ese juego (`steam://install/<appid>`, mismo mecanismo
 `open_target`/`start`/`open`/`xdg-open` que ya usa `launch_game` para lanzar
-juegos instalados — ver `launch.rs::steam_open_install`). No es una sesión de
-juego (no toca `PlayState` ni el vigía de proceso): el usuario decide instalar
-o no desde la propia ventana de Steam. Solo aplica a fantasmas de **Steam**
-con la cuenta vinculada (`$steamAccount`); "Volver" sigue siendo el foco por
-defecto salvo que aparezca este botón, que pasa a serlo él. Si la persona
-instala el juego después, la siguiente carga real de `list_games()` trae el
-mismo id y el "fantasma" queda descartado por `dedupeById` (se queda con la
-primera aparición).
+juegos instalados — ver `launch.rs::steam_open_install`). Solo aplica a
+fantasmas de **Steam** con la cuenta vinculada (`$steamAccount`); "Volver"
+sigue siendo el foco por defecto salvo que aparezca este botón, que pasa a
+serlo él. Si la persona instala el juego después, la siguiente carga real de
+`list_games()` trae el mismo id y el "fantasma" queda descartado por
+`dedupeById` (se queda con la primera aparición).
+
+**Suspende GM igual que un juego real** (`stores/playsession.js::
+startSteamDownload`, no `steam_open_install` directo desde el componente):
+overlay + bloqueo de input, sin usar `launchGame`/vigía de proceso (no hay
+`installDir` que vigilar, el juego no está instalado todavía) — el regreso es
+manual (mantener el botón de volver), igual que cualquier juego sin vigía
+resuelto. Necesario porque el poll de XInput suplementario (`fix/control-
+input`, ver `docs/input.md`) sigue leyendo el mando sin importar qué ventana
+tenga el foco: sin esta suspensión, confirmar la instalación con el control
+mientras Steam tiene el foco le llegaba TAMBIÉN a GM en segundo plano y
+disparaba el mismo botón de nuevo, reabriendo la misma página de Steam.
+`PlayingOverlay.svelte` muestra "⬇ Descargando desde Steam" en vez de
+"▶ Jugando a" para este caso (`$session.mode === "steam-download"`).
 
 **Carátulas por CDN público** (`stores/games.js::steamCdnArt`): URLs
 deterministas por `appid`
@@ -212,24 +223,29 @@ Los logros se muestran de dos formas posibles, dos campos independientes en
   achievementBadge()}` en `GameDetail.svelte`, renderizado en uno de los dos
   sitios según el toggle.
 - **`showGlobalPct`** ("Mostrar % global de obtención (logros)", default
-  `false`) y **`revealHiddenAchievements`** ("Mostrar logros ocultos
-  (spoiler)", default `false`): dos opciones nuevas, ambas también
-  reasignables desde el propio modal (`showGlobalPct`, botón "Ver/Ocultar %
-  global") o solo desde Ajustes/Vista de juego (`revealHiddenAchievements`) —
-  ver detalle del modal más abajo.
+  `false`): también reasignable desde el propio modal (botón "Ver/Ocultar %
+  global"), persistente entre aperturas.
+- **`revealHiddenAchievements`** ("Mostrar logros ocultos (spoiler)", default
+  `false`): **no** revela nada por sí solo — solo decide si el botón "Mostrar/
+  Ocultar logros ocultos" existe dentro del modal. El estado de revelado en sí
+  es de la **sesión del modal**, nunca persistente: arranca siempre apagado
+  cada vez que se abre (incluso reabriendo el mismo juego), y se apaga de
+  nuevo al cerrarlo. Pensado así porque revelar spoilers es una decisión de
+  "ahora sí quiero verlo", no una preferencia permanente.
 
 **Juego 100% completado**: cuando `unlocked === total` (y `total > 0`) para un
-juego de Steam, se marca con un glow verde de éxito (mismo token
-`--gm-success` que el anillo de edición de un `<input type="range">`) — en la
-**tarjeta** (`GameCard.svelte`, badge "100%" en la esquina opuesta al badge de
-tienda) y en el **badge de logros** del Detalle (`.ach-badge.complete`). El
-dato viene de un comando nuevo, `steam_achievements_summary(steamid)`
-(`steam_api/achievements.rs`): un `GROUP BY appid` sobre la tabla ya cacheada
-`achievements` (cada fila ahí ya es un logro que `GetPlayerAchievements`
-devolvió, así que `COUNT(*)` por appid es el total real sin unir con
-`achievement_schema`). Se carga una vez al arrancar (junto con
-`mergeCachedSteamGhosts`) y se refresca tras cada sync — no por tarjeta, para
-no hacer una consulta por juego visible.
+juego de Steam, se marca con un color configurable (`--gm-complete`,
+Ajustes → Apariencia → "Resaltado de 100% completado", apagable — ver
+`docs/theming.md`) en la **tarjeta** (`GameCard.svelte`, badge "100%" + glow),
+el **badge de logros** del Detalle (`.ach-badge.complete`) y la **barra de
+progreso** del modal cuando llega al 100% (`.progress-fill.complete`) — mismo
+color en los tres lugares. El dato viene de un comando nuevo,
+`steam_achievements_summary(steamid)` (`steam_api/achievements.rs`): un
+`GROUP BY appid` sobre la tabla ya cacheada `achievements` (cada fila ahí ya
+es un logro que `GetPlayerAchievements` devolvió, así que `COUNT(*)` por
+appid es el total real sin unir con `achievement_schema`). Se carga una vez
+al arrancar (junto con `mergeCachedSteamGhosts`) y se refresca tras cada
+sync — no por tarjeta, para no hacer una consulta por juego visible.
 
 Click/Aceptar en el badge (o el botón de la sección) abre
 `AchievementsModal.svelte` — tamaño **fijo en px pensado para 1080p** (no
@@ -237,22 +253,24 @@ proporcional a la resolución real: en una pantalla 4K se ve
 proporcionalmente más chico en vez de crecer con la pantalla), con un botón
 **✕** en la esquina superior derecha del header para cerrar (además del clic
 en el scrim). El header también muestra el conteo `unlocked/total` y una
-barra de progreso con el color de acento (`--gm-accent`). Solo la lista de
-logros scrollea, header queda fijo; cada logro es `data-focusable` (se navega
-con arriba/abajo). Cada fila muestra, además de nombre/descripción: la
-**fecha de obtención** si está desbloqueado (`unlockTime`); el **ícono
-bloqueado real** (`iconGrayUrl`) en vez de reusar el desbloqueado con
-opacidad — si no hay variante gris, cae al mismo de siempre atenuado; y los
-logros **spoiler** (`hidden`, ver `docs/steam-metadata.md`) se muestran como
-"Logro oculto" hasta desbloquearse, sin revelar nombre/descripción antes de
-tiempo (mismo criterio que el cliente de Steam) — **salvo** que
-`revealHiddenAchievements` esté activo, en cuyo caso se ve el nombre/
-descripción real siempre. El badge/sección de logros aplican el mismo
-enmascarado si el "próximo a desbloquear" resulta ser un spoiler. "Ver/Ocultar
-% global" (ahora persistente vía `showGlobalPct`, ya no se resetea cada vez
-que se abre el modal) pide bajo demanda el % de jugadores que tiene cada
-logro — si no se pudo obtener nada, se avisa explícitamente en vez de no
-mostrar nada (antes quedaba en blanco, indistinguible de "cargando").
+barra de progreso con el color de acento (`--gm-accent`, o `--gm-complete` si
+ya está al 100%). Solo la lista de logros scrollea, header queda fijo; margen
+propio entre logros y contra los bordes del contenedor (no solo el padding
+del modal) para que no se sientan amontonados; cada logro es `data-focusable`
+(se navega con arriba/abajo). Cada fila muestra, además de nombre/
+descripción: la **fecha de obtención** si está desbloqueado (`unlockTime`);
+el **ícono bloqueado real** (`iconGrayUrl`) en vez de reusar el desbloqueado
+con opacidad — si no hay variante gris, cae al mismo de siempre atenuado; y
+los logros **spoiler** (`hidden`, ver `docs/steam-metadata.md`) se muestran
+como "Logro oculto" hasta desbloquearse, sin revelar nombre/descripción antes
+de tiempo (mismo criterio que el cliente de Steam) — **salvo** que el botón
+"Mostrar logros ocultos" de la sesión actual del modal esté activo (ver
+arriba). El badge/sección de logros aplican el mismo enmascarado (con
+`revealHiddenAchievements` directo, no hay botón de sesión ahí) si el
+"próximo a desbloquear" resulta ser un spoiler. "Ver/Ocultar % global" pide
+bajo demanda el % de jugadores que tiene cada logro — si no se pudo obtener
+nada, se avisa explícitamente en vez de no mostrar nada (antes quedaba en
+blanco, indistinguible de "cargando").
 
 **Secciones dinámicas del Detalle**: `stores/ui.js::DETAIL_SECTIONS` pasó de
 ser un array fijo a un store (`GameDetail.svelte` llama `setDetailSections()`

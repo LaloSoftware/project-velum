@@ -116,7 +116,7 @@ mensual, default mensual).
 | `achievements` | Logros (badge o sección, ver `docs/accounts.md`) | `true` |
 | `achievementsBadgeFixed` | — (solo posición del badge) | `false` |
 | `showGlobalPct` | % global de obtención en el modal (`GetGlobalAchievementPercentagesForApp`) | `false` |
-| `revealHiddenAchievements` | Desactiva el enmascarado de logros `hidden`/spoiler | `false` |
+| `revealHiddenAchievements` | Habilita el botón "Mostrar logros ocultos" en el modal (no revela nada por sí solo, ver `docs/accounts.md`) | `false` |
 
 `steam_achievements_summary(steamid)` (`steam_api/achievements.rs`) es aparte
 de este array — no es un toggle de "Vista de juego", es el comando que

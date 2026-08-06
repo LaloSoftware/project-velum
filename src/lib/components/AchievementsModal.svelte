@@ -2,7 +2,7 @@
   import { achievementsModal, closeAchievements } from "../stores/ui.js";
   import { loadAchievements, globalPctMaxAgeSecs } from "../stores/steamAccount.js";
   import { steamGlobalAchievementPercentages } from "../ipc/index.js";
-  import { gameView, setGameViewField } from "../stores/uiprefs.js";
+  import { gameView, setGameViewField, completedHighlightEnabled } from "../stores/uiprefs.js";
 
   $: appid = $achievementsModal?.appid;
   $: title = $achievementsModal?.title;
@@ -16,11 +16,23 @@
 
   $: unlockedCount = list.filter((a) => a.achieved).length;
   $: pct = list.length ? Math.round((unlockedCount / list.length) * 100) : 0;
+  $: complete = $completedHighlightEnabled && list.length > 0 && unlockedCount === list.length;
+
+  // Botón "Mostrar/Ocultar logros ocultos" — sesión del modal, no persistente:
+  // arranca siempre desactivado cada vez que se abre (incluso reabriendo el
+  // mismo juego, $achievementsModal es un objeto nuevo cada vez que se llama
+  // openAchievements()). `revealHiddenAchievements` (Vista de juego/Ajustes)
+  // ya no revela nada por sí solo — ahora solo decide si este botón existe.
+  let revealed = false;
+  $: if ($achievementsModal) revealed = false;
+  function toggleRevealed() {
+    revealed = !revealed;
+  }
 
   // Logros "spoiler" (Steam los marca `hidden`): no revelar nombre/descripción
   // hasta desbloquearlos, igual que hace el cliente de Steam — salvo que el
-  // jugador haya activado "Mostrar logros ocultos" (Vista de juego/Ajustes).
-  $: isSpoiler = (a) => a.hidden && !a.achieved && !$gameView.revealHiddenAchievements;
+  // jugador haya activado el botón de arriba para esta sesión del modal.
+  $: isSpoiler = (a) => a.hidden && !a.achieved && !revealed;
   const iconFor = (a) => (!a.achieved && a.iconGrayUrl) || a.iconUrl;
   // Solo atenuar si no hay ícono gris real — con uno real, ya se ve "apagado"
   // por sí mismo y oscurecerlo de más lo deja irreconocible.
@@ -76,12 +88,21 @@
       </div>
       <div class="progress-row">
         <span class="progress-count">{unlockedCount}/{list.length}</span>
-        <div class="progress-bar"><div class="progress-fill" style="width: {pct}%"></div></div>
+        <div class="progress-bar">
+          <div class="progress-fill" class:complete style="width: {pct}%"></div>
+        </div>
         <span class="progress-pct">{pct}%</span>
       </div>
-      <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleGlobal}>
-        {$gameView.showGlobalPct ? "Ocultar % global" : "Ver % global"}
-      </button>
+      <div class="stats-row">
+        <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleGlobal}>
+          {$gameView.showGlobalPct ? "Ocultar % global" : "Ver % global"}
+        </button>
+        {#if $gameView.revealHiddenAchievements}
+          <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleRevealed}>
+            {revealed ? "Ocultar logros ocultos" : "Mostrar logros ocultos"}
+          </button>
+        {/if}
+      </div>
     </header>
 
     <div class="body">
@@ -219,6 +240,11 @@
     border-radius: inherit;
     transition: width 0.3s ease;
   }
+  /* --gm-complete (Ajustes → "Resaltado de 100% completado"), no
+     --gm-success directo — mismo criterio que GameCard/GameDetail. */
+  .progress-fill.complete {
+    background: var(--gm-complete);
+  }
   .progress-pct {
     flex: 0 0 auto;
     font-weight: 700;
@@ -227,9 +253,12 @@
     min-width: 40px;
     text-align: right;
   }
+  .stats-row {
+    display: flex;
+    gap: 10px;
+  }
   .stats-toggle {
     cursor: pointer;
-    align-self: flex-start;
     padding: 8px 14px;
     border-radius: 999px;
     background: var(--gm-surface);
@@ -242,15 +271,19 @@
     box-shadow: var(--gm-focus-ring);
     color: var(--gm-text);
   }
-  /* Único elemento con scroll: la lista de logros. Header queda fijo. */
+  /* Único elemento con scroll: la lista de logros. Header queda fijo.
+     Padding propio (no solo el del modal) para que ni el primer/último logro
+     ni los laterales queden pegados al contenedor; gap mayor entre logros
+     para que no se sientan amontonados. */
   .body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     margin-top: 20px;
+    padding: 4px 4px 10px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
   }
   .dim {
     color: var(--gm-text-dim);

@@ -38,6 +38,10 @@ function defaultGameView() {
 export const hideCardText = writable(false);
 export const hideLibraryButton = writable(false);
 export const hideFooter = writable(false);
+// Resaltado de "juego 100% completado" (badge + glow en tarjeta/badge de
+// logros, color --gm-complete) — apagable si choca con el color de acento u
+// otro token del perfil del usuario.
+export const completedHighlightEnabled = writable(true);
 export const gameView = writable(defaultGameView());
 
 // Escala de interfaz: multiplicador continuo sobre el tamaño original de
@@ -181,6 +185,7 @@ function syncFromActiveProfile() {
   hideCardText.set(p.hideCardText ?? false);
   hideLibraryButton.set(p.hideLibraryButton ?? false);
   hideFooter.set(p.hideFooter ?? false);
+  completedHighlightEnabled.set(p.completedHighlightEnabled ?? true);
   gameView.set(p.gameView ? { ...defaultGameView(), ...p.gameView } : defaultGameView());
   uiScale.set(
     Number.isFinite(p.uiScale)
@@ -308,6 +313,11 @@ export async function setHideFooter(v) {
   const val = !!v;
   hideFooter.set(val);
   await updateActive({ hideFooter: val });
+}
+export async function setCompletedHighlightEnabled(v) {
+  const val = !!v;
+  completedHighlightEnabled.set(val);
+  await updateActive({ completedHighlightEnabled: val });
 }
 
 export async function setGameViewField(key, v) {

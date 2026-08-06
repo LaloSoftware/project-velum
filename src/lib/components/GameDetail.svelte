@@ -4,14 +4,13 @@
     closeDetail,
     detailAnchor,
     showToast,
-    reportError,
     detailExpanded,
     detailSection,
     setDetailSection,
     setDetailSections,
     openAchievements,
   } from "../stores/ui.js";
-  import { startPlay } from "../stores/playsession.js";
+  import { startPlay, startSteamDownload } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { imageUrl } from "../util/asset.js";
@@ -22,11 +21,12 @@
     setGameViewField,
     metaBgVisible,
     metaBgOpacity,
+    completedHighlightEnabled,
   } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
   import { steamAccount, steamSyncing, steamSyncSummary, loadAchievements } from "../stores/steamAccount.js";
-  import { steamLibraryCache, steamOpenInstall } from "../ipc/index.js";
+  import { steamLibraryCache } from "../ipc/index.js";
 
   export let game;
 
@@ -101,7 +101,10 @@
   $: showAchievementsBadge = $gameView.achievements && hasAchievementsData;
   $: showAchievementsSection = !$gameView.achievements && hasAchievementsData;
   // 100% completado — mismo glow de éxito que la tarjeta (GameCard.svelte).
-  $: achievementsComplete = steamAchievementsList.length > 0 && unlockedCount === steamAchievementsList.length;
+  $: achievementsComplete =
+    $completedHighlightEnabled &&
+    steamAchievementsList.length > 0 &&
+    unlockedCount === steamAchievementsList.length;
   // Últimos 3 logros desbloqueados, para la variante "sección" (más espacio
   // disponible ahí que en el badge flotante — ver showAchievementsSection).
   $: recentUnlocked = steamAchievementsList.filter((a) => a.achieved).slice(0, 3);
@@ -214,8 +217,7 @@
   $: notInstalled = game?.installed === false;
   // Juego de Steam de la cuenta vinculada, no instalado local: en vez del
   // botón "Jugar" desactivado, uno que abre Steam en la página de este juego
-  // para instalarlo (steam://install/<appid> — no es una sesión de juego, no
-  // toca PlayState ni el vigía de proceso, ver launch.rs).
+  // para instalarlo (steam://install/<appid>, ver launch.rs).
   $: canDownloadFromSteam = notInstalled && game?.store === "steam" && !!$steamAccount;
 
   async function play() {
@@ -223,12 +225,13 @@
     await startPlay(game);
   }
 
+  // Misma suspensión que un juego real (overlay + bloqueo de input) — ver
+  // stores/playsession.js::startSteamDownload para el porqué (si no, el poll
+  // de XInput suplementario sigue leyendo el mando en segundo plano mientras
+  // Steam tiene el foco, y confirmar la instalación con el control reabría
+  // esta misma acción).
   async function downloadFromSteam() {
-    try {
-      await steamOpenInstall(steamAppid);
-    } catch (e) {
-      reportError(e, "GameDetail:downloadFromSteam");
-    }
+    await startSteamDownload(game, steamAppid);
   }
 </script>
 
@@ -494,7 +497,17 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.72));
+    /* Antes rgba(0,0,0,0.72) fijo: en temas claros el texto pasa a oscuro
+       (--gm-text) pero este degradado seguía siendo negro, quedando texto
+       oscuro sobre un velo oscuro — mala lectura sin importar el fondo de
+       metadatos. --gm-bg (ya tematizado, oscuro o claro) resuelve el
+       contraste de raíz en vez de compensar solo con la opacidad del fondo
+       configurable. */
+    background: linear-gradient(
+      180deg,
+      transparent 30%,
+      color-mix(in srgb, var(--gm-bg) 82%, transparent)
+    );
   }
   .content {
     position: relative;
@@ -527,7 +540,7 @@
     color: var(--gm-accent-2);
     letter-spacing: 1px;
     text-transform: uppercase;
-    font-size: 0.85rem;
+    font-size: 1rem;
   }
   h1 {
     font-size: 3rem;
@@ -535,12 +548,13 @@
     font-weight: var(--gm-title-weight);
   }
   .meta {
-    margin: 2px 0;
+    margin: 4px 0;
+    font-size: 1.15rem;
     color: var(--gm-text);
   }
   .meta.dim {
     color: var(--gm-text-dim);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
   }
   .actions {
     margin-top: 26px;
@@ -763,8 +777,8 @@
   .ach-badge.complete {
     box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.35),
-      0 0 0 2px var(--gm-success),
-      0 0 18px 3px color-mix(in srgb, var(--gm-success) 55%, transparent);
+      0 0 0 2px var(--gm-complete),
+      0 0 18px 3px color-mix(in srgb, var(--gm-complete) 55%, transparent);
   }
   .ach-badge:focus {
     box-shadow: var(--gm-focus-ring);

@@ -4,13 +4,14 @@
 
   $: btn = BUTTON_LABELS[$playConfig.returnButton] || "Guía";
   $: verb = $playConfig.returnMode === "hold" ? "Mantén" : "Pulsa";
+  $: isSteamDownload = $session?.mode === "steam-download";
 </script>
 
 {#if $session}
   <div class="playing" role="alertdialog" aria-live="assertive">
     <div class="box">
       <div class="spinner"></div>
-      <div class="label">▶ Jugando a</div>
+      <div class="label">{isSteamDownload ? "⬇ Descargando desde Steam" : "▶ Jugando a"}</div>
       <div class="title">{$session.game.title}</div>
       <div class="hint">{verb} <b>{btn}</b> para volver al launcher</div>
     </div>

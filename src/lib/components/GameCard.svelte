@@ -5,6 +5,7 @@
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import { hideCardText } from "../stores/uiprefs.js";
   import { steamAchievementSummaries } from "../stores/steamAccount.js";
+  import { completedHighlightEnabled } from "../stores/uiprefs.js";
 
   export let game;
   export let focusDefault = false;
@@ -33,7 +34,11 @@
   // resumen unlocked/total por appid poblado tras cada sync).
   $: steamAppid = game?.store === "steam" ? Number(game.id.split(":")[1]) : null;
   $: achSummary = steamAppid ? $steamAchievementSummaries.get(steamAppid) : null;
-  $: complete = !!achSummary && achSummary.total > 0 && achSummary.unlocked === achSummary.total;
+  $: complete =
+    $completedHighlightEnabled &&
+    !!achSummary &&
+    achSummary.total > 0 &&
+    achSummary.unlocked === achSummary.total;
 
   // Portada placeholder determinista a partir del título (sin assets binarios).
   function hue(str) {
@@ -234,17 +239,20 @@
     font-weight: 800;
     padding: 3px 8px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--gm-success) 85%, black);
+    /* --gm-complete (Ajustes → "Resaltado de 100% completado"), no
+       --gm-success directo: un perfil puede recolorear este resaltado sin
+       afectar el color de cualquier toggle ON de la app. */
+    background: color-mix(in srgb, var(--gm-complete) 85%, black);
     color: #04140d;
   }
-  /* Mismo criterio de "glow" de éxito que el anillo de edición de un
+  /* Mismo criterio de "glow" que el anillo de edición de un
      <input type="range"> (Settings.svelte) — remarca de un vistazo, sin
      imagen dorada de logro más raro (no hay ese dato hoy). */
   .gm-card.complete .cover {
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.3),
-      0 0 0 2px var(--gm-success),
-      0 0 18px 3px color-mix(in srgb, var(--gm-success) 55%, transparent);
+      0 0 0 2px var(--gm-complete),
+      0 0 18px 3px color-mix(in srgb, var(--gm-complete) 55%, transparent);
   }
   .title {
     margin-top: 8px;

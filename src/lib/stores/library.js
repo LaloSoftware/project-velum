@@ -33,8 +33,31 @@ export const filterAlign = writable("left");
 // Los espaciados entre tarjetas (gap) no cambian; solo hacia qué lado se agrupan.
 export const cardAlign = writable("center");
 
+// Filtro de instalación (solo Juegos): "all" | "installed" | "not-installed".
+// Solo tiene efecto real en juegos de Steam de una cuenta vinculada (únicos
+// con `installed: false` hoy, ver docs/accounts.md) — el resto no trae ese
+// campo y `matchesInstallFilter` los trata siempre como instalados.
+export const INSTALL_FILTER_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "installed", label: "Instalados" },
+  { value: "not-installed", label: "No instalados" },
+];
+export const installFilter = writable("all");
+
+export function matchesInstallFilter(game, filter) {
+  if (filter === "installed") return game.installed !== false;
+  if (filter === "not-installed") return game.installed === false;
+  return true;
+}
+
 export async function initLibrary() {
   const cfg = await loadAppConfig();
+  if (
+    cfg &&
+    INSTALL_FILTER_OPTIONS.some((o) => o.value === cfg.installFilter)
+  ) {
+    installFilter.set(cfg.installFilter);
+  }
   if (cfg && cfg.enabledStores) {
     enabledStores.set({
       steam: true,
@@ -57,6 +80,12 @@ export async function setFilterAlign(v) {
 export async function setCardAlign(v) {
   cardAlign.set(v);
   await patchAppConfig({ cardAlign: get(cardAlign) });
+}
+
+export async function setInstallFilter(v) {
+  if (!INSTALL_FILTER_OPTIONS.some((o) => o.value === v)) return;
+  installFilter.set(v);
+  await patchAppConfig({ installFilter: v });
 }
 
 export async function setStoreEnabled(store, on) {

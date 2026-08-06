@@ -9,6 +9,8 @@
     filterAlign,
     query,
     setFilter,
+    installFilter,
+    matchesInstallFilter,
   } from "../stores/library.js";
   import { groups } from "../stores/groups.js";
   import { sortGames, sortList } from "../stores/sorting.js";
@@ -54,6 +56,7 @@
             : $enabledStores[g.store] !== false &&
               ($activeFilter === "all" || g.store === $activeFilter)
         )
+        .filter((g) => matchesInstallFilter(g, $installFilter))
         .filter((g) => (g.title || "").toLowerCase().includes(($query || "").toLowerCase())),
     [],
     "filtered"
