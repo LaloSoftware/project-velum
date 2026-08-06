@@ -81,6 +81,21 @@ function trackComboButton(name, pressed) {
   }
 }
 
+// ¿Este botón es miembro de algún combo habilitado que ya está "en curso"
+// (algún OTRO de sus botones también sostenido)? Si es así, su acción
+// INDIVIDUAL (bindings.js) no debe dispararse de pasada — solo cuenta como
+// parte del combo. Sin este chequeo, reasignar p. ej. el combo de sistema a
+// "guide + north" abría a la vez el combo Y la acción individual de `north`
+// (Detalle), porque `trackComboButton()` y la resolución individual corren
+// sin coordinarse para el mismo evento de botón (ver docs/input.md).
+function isComboEngaged(name) {
+  for (const combo of get(comboShortcuts)) {
+    if (!combo.enabled || !combo.buttons.length || !combo.buttons.includes(name)) continue;
+    if (combo.buttons.some((b) => b !== name && heldButtons.has(b))) return true;
+  }
+  return false;
+}
+
 export function setCapture(fn) {
   captureFn = fn;
 }
@@ -143,6 +158,10 @@ function handleRaw(ev) {
       const vkAction = resolveVk(ev.name);
       if (vkAction) return dispatchFn(vkAction);
     }
+    // Si este botón es parte de un combo habilitado que ya está en curso
+    // (otro de sus botones sostenido — típicamente "guide"), no dispara
+    // también su acción individual: solo cuenta para el combo.
+    if (isComboEngaged(ev.name)) return;
     const action = resolve(ev.name);
     if (action) dispatchFn(action);
   }

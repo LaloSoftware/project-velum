@@ -74,7 +74,13 @@ arriba porque agrupa atajos que no son "una tecla → una acción" simple:
   un `Set` de combos ya disparados mientras se mantienen (para no repetir el disparo,
   liberado al soltar cualquiera de sus botones). **Guide/Home es el botón base de
   todos los combos por defecto** (justo por eso no tiene acción individual propia —
-  ver tabla arriba); cada uno reasignable con el mismo modo captura que el resto:
+  ver tabla arriba); cada uno reasignable con el mismo modo captura que el resto.
+  **Un botón miembro de un combo habilitado que ya está "en curso" (algún otro de sus
+  botones también sostenido) no dispara además su propia acción individual** —
+  `isComboEngaged()` en `input/index.js` lo suprime antes del `resolve()` normal. Sin
+  esto, reasignar p. ej. el combo de sistema a `guide + north` disparaba A LA VEZ el
+  combo y la acción individual de `north` (Detalle en tarjeta) — bug real encontrado
+  al reasignar un combo con un segundo botón distinto de los por defecto:
   - `system-menu` (**Guide + Start → openSystemMenu**).
   - `steam-sync-summary` (**Guide + L3 → steamSyncSummary**): expande/colapsa el
     detalle del badge de resumen de sync de Steam (`SteamSyncSummaryBadge.svelte`,
