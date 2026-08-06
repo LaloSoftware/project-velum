@@ -95,6 +95,19 @@ Ajustes → Sonidos: sonido de inicio configurable (`stores/sounds.js`, lista cu
 el arranque (`applyStartup()`). Si el WebView bloquea autoplay con audio, falla en
 silencio y no interrumpe el arranque.
 
+## Fondo de metadatos (Detalle)
+
+Ajustes → Apariencia → "Fondo de metadatos (Detalle)": toggle (`metaBgVisible`,
+default `true`) + slider de opacidad 0-100% (`metaBgOpacity`, `stores/uiprefs.js`,
+persistente por perfil) para el fondo detrás del título/plataforma/meta del
+Detalle (hoy flota sobre el hero, la legibilidad venía solo del degradado fijo
+`.art::after`). Default de opacidad según el tema activo (`BUILTIN_THEMES[...]
+.kind`, mismo lookup que `pickTheme()`): **30% en temas oscuros, 50% en
+claros** — un tema oscuro ya tiene bastante contraste por el degradado; uno
+claro necesita más respaldo para el texto oscuro sobre una imagen ocupada. El
+color base es `--gm-bg-elev` (no un negro fijo) compuesto con la opacidad vía
+`color-mix()`, así que se adapta solo al tema/perfil activo.
+
 ## Pendiente / a evaluar a futuro
 
 **Cálculo de contraste genérico** en vez del descarte fijo actual de "Color de

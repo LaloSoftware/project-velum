@@ -231,3 +231,6 @@ export async function steamAchievements(steamid, appid) {
 export async function steamGlobalAchievementPercentages(appid, maxAgeSecs) {
   return invoke("steam_global_achievement_percentages", { appid, maxAgeSecs });
 }
+export async function steamAchievementsSummary(steamid) {
+  return invoke("steam_achievements_summary", { steamid });
+}

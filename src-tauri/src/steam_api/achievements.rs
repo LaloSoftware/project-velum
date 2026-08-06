@@ -414,6 +414,52 @@ pub fn steam_achievements(
     Ok(out)
 }
 
+/// Resumen `unlocked/total` de logros por juego — pensado para marcar en la
+/// biblioteca (tarjetas) los juegos con logros 100% completados sin tener
+/// que abrir el Detalle de cada uno (eso solo lee logros de UN appid a la
+/// vez, ver `steam_achievements` arriba). Un solo `GROUP BY` sobre la tabla
+/// ya cacheada `achievements`: cada fila ahí es un logro del juego que
+/// `GetPlayerAchievements` ya devolvió (achieved o no), así que `COUNT(*)`
+/// por appid ya es el total real de logros del juego, sin falta unir con
+/// `achievement_schema`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AchievementSummary {
+    pub appid: i64,
+    pub unlocked: i64,
+    pub total: i64,
+}
+
+#[tauri::command]
+pub fn steam_achievements_summary(
+    app: AppHandle,
+    steamid: String,
+) -> Result<Vec<AchievementSummary>, String> {
+    let conn = cache::open(&app)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT appid, SUM(achieved), COUNT(*)
+             FROM achievements
+             WHERE steamid = ?1
+             GROUP BY appid",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![steamid], |r| {
+            Ok(AchievementSummary {
+                appid: r.get(0)?,
+                unlocked: r.get(1)?,
+                total: r.get(2)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

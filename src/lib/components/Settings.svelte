@@ -21,6 +21,12 @@
     gameView,
     GAME_VIEW_FIELDS,
     setGameViewField,
+    metaBgVisible,
+    metaBgOpacity,
+    META_BG_OPACITY_MIN,
+    META_BG_OPACITY_MAX,
+    setMetaBgVisible,
+    setMetaBgOpacity,
     uiScale,
     UI_SCALE_MIN,
     UI_SCALE_MAX,
@@ -308,6 +314,40 @@
           </button>
         </div>
       {/each}
+    </div>
+
+    <h2>Fondo de metadatos (Detalle)</h2>
+    <p class="dim">
+      Fondo detrás del título/plataforma/meta del Detalle, para que se lea mejor sobre
+      el hero — se adapta al tema/perfil activo (no es un negro fijo).
+    </p>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">Visible</span>
+        <button
+          class="toggle"
+          class:on={$metaBgVisible}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setMetaBgVisible(!$metaBgVisible)}
+        >
+          {$metaBgVisible ? "ON" : "OFF"}
+        </button>
+      </div>
+    </div>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min={META_BG_OPACITY_MIN}
+        max={META_BG_OPACITY_MAX}
+        step="5"
+        value={$metaBgOpacity}
+        on:input={(e) => setMetaBgOpacity(e.target.value)}
+      />
+      <span class="sizeval">{$metaBgOpacity}%</span>
     </div>
 
     <h2>Inicio · Bienvenida</h2>

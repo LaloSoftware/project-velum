@@ -2,6 +2,7 @@
   import { achievementsModal, closeAchievements } from "../stores/ui.js";
   import { loadAchievements, globalPctMaxAgeSecs } from "../stores/steamAccount.js";
   import { steamGlobalAchievementPercentages } from "../ipc/index.js";
+  import { gameView, setGameViewField } from "../stores/uiprefs.js";
 
   $: appid = $achievementsModal?.appid;
   $: title = $achievementsModal?.title;
@@ -13,9 +14,13 @@
     loadAchievements(appid).then((l) => (list = l));
   }
 
+  $: unlockedCount = list.filter((a) => a.achieved).length;
+  $: pct = list.length ? Math.round((unlockedCount / list.length) * 100) : 0;
+
   // Logros "spoiler" (Steam los marca `hidden`): no revelar nombre/descripción
-  // hasta desbloquearlos, igual que hace el cliente de Steam.
-  const isSpoiler = (a) => a.hidden && !a.achieved;
+  // hasta desbloquearlos, igual que hace el cliente de Steam — salvo que el
+  // jugador haya activado "Mostrar logros ocultos" (Vista de juego/Ajustes).
+  $: isSpoiler = (a) => a.hidden && !a.achieved && !$gameView.revealHiddenAchievements;
   const iconFor = (a) => (!a.achieved && a.iconGrayUrl) || a.iconUrl;
   // Solo atenuar si no hay ícono gris real — con uno real, ya se ve "apagado"
   // por sí mismo y oscurecerlo de más lo deja irreconocible.
@@ -27,26 +32,28 @@
     return d.toLocaleDateString() + " " + d.toLocaleTimeString().slice(0, 5);
   }
 
-  // % global (rareza) — opcional, bajo demanda ("Ver % global"), no se pide
-  // hasta que el jugador lo quiere ver (mismo criterio que el usuario pidió).
-  let showGlobal = false;
+  // % global (rareza) — opcional, bajo demanda ("Ver % global"), persistente
+  // (Vista de juego/Ajustes: "Mostrar % global de obtención") en vez de
+  // resetearse cada vez que se abre el modal.
   let globalPct = {}; // apiname -> percent
   let globalFor = null;
   let loadingGlobal = false;
-  async function toggleGlobal() {
-    showGlobal = !showGlobal;
-    if (showGlobal && appid !== globalFor) {
-      globalFor = appid;
-      loadingGlobal = true;
-      try {
-        const rows = await steamGlobalAchievementPercentages(appid, globalPctMaxAgeSecs());
+  $: if ($gameView.showGlobalPct && appid && appid !== globalFor) {
+    globalFor = appid;
+    loadingGlobal = true;
+    steamGlobalAchievementPercentages(appid, globalPctMaxAgeSecs())
+      .then((rows) => {
         globalPct = Object.fromEntries(rows.map((r) => [r.apiname, r.percent]));
-      } catch {
+      })
+      .catch(() => {
         globalPct = {};
-      } finally {
+      })
+      .finally(() => {
         loadingGlobal = false;
-      }
-    }
+      });
+  }
+  function toggleGlobal() {
+    setGameViewField("showGlobalPct", !$gameView.showGlobalPct);
   }
 </script>
 
@@ -55,15 +62,37 @@
   <div class="scrim" on:click={closeAchievements} role="presentation"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-label="Logros">
     <header class="head">
-      <h2>Logros — {title}</h2>
+      <div class="head-top">
+        <h2>Logros — {title}</h2>
+        <button
+          class="close"
+          data-focusable
+          tabindex="-1"
+          aria-label="Cerrar"
+          on:click={closeAchievements}
+        >
+          ✕
+        </button>
+      </div>
+      <div class="progress-row">
+        <span class="progress-count">{unlockedCount}/{list.length}</span>
+        <div class="progress-bar"><div class="progress-fill" style="width: {pct}%"></div></div>
+        <span class="progress-pct">{pct}%</span>
+      </div>
       <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleGlobal}>
-        {showGlobal ? "Ocultar % global" : "Ver % global"}
+        {$gameView.showGlobalPct ? "Ocultar % global" : "Ver % global"}
       </button>
     </header>
 
     <div class="body">
-      {#each list as a (a.apiname)}
-        <button class="ach" class:locked={!a.achieved} data-focusable tabindex="-1">
+      {#each list as a, i (a.apiname)}
+        <button
+          class="ach"
+          class:locked={!a.achieved}
+          data-focusable
+          data-focus-default={i === 0 ? "" : undefined}
+          tabindex="-1"
+        >
           {#if iconFor(a)}
             <img class="ach-icon" class:dim={dimIcon(a)} src={iconFor(a)} alt="" />
           {/if}
@@ -78,7 +107,7 @@
             {#if a.achieved && a.unlockTime}
               <div class="ach-date dim">Desbloqueado: {fmtUnlockDate(a.unlockTime)}</div>
             {/if}
-            {#if showGlobal}
+            {#if $gameView.showGlobalPct}
               <div class="ach-global dim">
                 {#if loadingGlobal}
                   cargando %…
@@ -95,12 +124,6 @@
         <p class="dim">Sin logros sincronizados todavía — sincroniza desde Configuración → Cuentas.</p>
       {/each}
     </div>
-
-    <footer class="actions">
-      <button class="done" data-focusable data-focus-default tabindex="-1" on:click={closeAchievements}>
-        Listo
-      </button>
-    </footer>
   </div>
 {/if}
 
@@ -117,23 +140,34 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(620px, 94vw);
-    max-height: 82vh;
+    /* Tamaño fijo pensado para 1080p, NO proporcional a la resolución real —
+       en una pantalla 4K el modal se ve proporcionalmente más chico en vez de
+       crecer con la pantalla. Los vw/vh son solo un tope de seguridad para no
+       desbordar en ventanas chicas. */
+    width: 900px;
+    max-width: 92vw;
+    height: 700px;
+    max-height: 92vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: var(--gm-bg-elev);
     border-radius: var(--gm-radius-lg);
-    padding: 24px;
+    padding: 28px 32px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
   }
   .head {
     flex: 0 0 auto;
     display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .head-top {
+    display: flex;
     align-items: center;
     gap: 12px;
   }
-  .head h2 {
+  .head-top h2 {
     flex: 1;
     margin: 0;
     font-size: 1.3rem;
@@ -142,9 +176,60 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .stats-toggle {
+  .close {
     cursor: pointer;
     flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    color: var(--gm-text-dim);
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .close:hover {
+    color: var(--gm-text);
+  }
+  .close:focus {
+    box-shadow: var(--gm-focus-ring);
+    color: var(--gm-text);
+  }
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .progress-count {
+    flex: 0 0 auto;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--gm-text-dim);
+    min-width: 52px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--gm-surface);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gm-accent);
+    border-radius: inherit;
+    transition: width 0.3s ease;
+  }
+  .progress-pct {
+    flex: 0 0 auto;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--gm-accent-2);
+    min-width: 40px;
+    text-align: right;
+  }
+  .stats-toggle {
+    cursor: pointer;
+    align-self: flex-start;
     padding: 8px 14px;
     border-radius: 999px;
     background: var(--gm-surface);
@@ -157,32 +242,15 @@
     box-shadow: var(--gm-focus-ring);
     color: var(--gm-text);
   }
-  /* Único elemento con scroll: la lista de logros. Título/botones quedan
-     fijos (pedido explícito, para no romper la UI al escalar). */
+  /* Único elemento con scroll: la lista de logros. Header queda fijo. */
   .body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    margin: 18px 0;
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-  }
-  .actions {
-    flex: 0 0 auto;
-    display: flex;
-  }
-  .done {
-    cursor: pointer;
-    flex: 1;
-    padding: 13px 0;
-    border-radius: 999px;
-    background: var(--gm-surface);
-    color: var(--gm-text);
-    font-weight: 800;
-  }
-  .done:focus {
-    box-shadow: var(--gm-focus-ring);
+    gap: 10px;
   }
   .dim {
     color: var(--gm-text-dim);
@@ -190,14 +258,14 @@
   .ach {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     width: 100%;
     text-align: left;
     cursor: default;
     background: var(--gm-surface);
     color: var(--gm-text);
     border-radius: var(--gm-radius);
-    padding: 8px 12px;
+    padding: 12px 16px;
     flex-shrink: 0;
   }
   /* El ícono bloqueado tiene su propio dimming (.ach-icon.dim, más abajo,
@@ -211,17 +279,23 @@
     box-shadow: var(--gm-focus-ring);
   }
   .ach-icon {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 6px;
     flex-shrink: 0;
   }
   .ach-icon.dim {
     opacity: 0.5;
   }
+  .ach-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
   .ach-name {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.92rem;
   }
   .ach-desc,
   .ach-global,

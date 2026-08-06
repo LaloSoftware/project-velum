@@ -59,6 +59,7 @@ fn main() {
             steam_api::library::steam_library,
             steam_api::achievements::steam_sync_achievements,
             steam_api::achievements::steam_achievements,
+            steam_api::achievements::steam_achievements_summary,
             steam_api::global_achievements::steam_global_achievement_percentages,
         ])
         .run(tauri::generate_context!())

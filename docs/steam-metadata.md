@@ -115,6 +115,13 @@ mensual, default mensual).
 | `steamLastPlayed` | `GetOwnedGames.rtime_last_played` | `true` |
 | `achievements` | Logros (badge o sección, ver `docs/accounts.md`) | `true` |
 | `achievementsBadgeFixed` | — (solo posición del badge) | `false` |
+| `showGlobalPct` | % global de obtención en el modal (`GetGlobalAchievementPercentagesForApp`) | `false` |
+| `revealHiddenAchievements` | Desactiva el enmascarado de logros `hidden`/spoiler | `false` |
+
+`steam_achievements_summary(steamid)` (`steam_api/achievements.rs`) es aparte
+de este array — no es un toggle de "Vista de juego", es el comando que
+alimenta `stores/steamAccount.js::steamAchievementSummaries` (indicador de
+juego 100% completado en tarjetas/badge, ver `docs/accounts.md`).
 
 ## Migraciones de esquema (SQLite)
 

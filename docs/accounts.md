@@ -184,14 +184,16 @@ Los logros se muestran de dos formas posibles, dos campos independientes en
 `GAME_VIEW_FIELDS`/"Vista de juego":
 
 - **`achievements`** ("Logros como badge (si no, sección)", default `true`):
-  con `true`, badge flotante con ícono + nombre del último logro obtenido (o,
+  con `true`, badge flotante — encabezado "Logros de {plataforma}", progreso
+  `X/Y` y % debajo, y hasta abajo ícono+nombre del último logro obtenido (o,
   si aún no hay ninguno, el próximo por desbloquear — desempate determinista
-  por `s.rowid` de `achievement_schema`, ver `steam_api/achievements.rs`) +
-  progreso `X/Y` y %, título "Logros de {plataforma}" para identificarlo. Con
+  por `s.rowid` de `achievement_schema`, ver `steam_api/achievements.rs`). Con
   `false`, en vez del badge aparece una sección "Logros" más en el menú
-  paginado del Detalle, **antepuesta** a "Grupos" — misma información (último
-  logro + progreso) más un botón "Ver todos los logros" que abre el mismo
-  modal. Nunca las dos formas a la vez.
+  paginado del Detalle, **antepuesta** a "Grupos" — con más espacio disponible
+  ahí que en el badge flotante, se muestran hasta **3 logros desbloqueados**
+  recientes (no solo el último) más un botón "Ver todos los logros" que abre
+  el mismo modal; si todavía no hay ninguno desbloqueado, cae al próximo por
+  desbloquear (mismo criterio que el badge). Nunca badge y sección a la vez.
 - **`achievementsBadgeFixed`** ("Fijar el badge de logros en la esquina",
   default **`false`**): con `true`, el badge queda `position:absolute` dentro
   de `.detail` — fijo en la esquina inferior derecha sin importar si el menú
@@ -203,24 +205,48 @@ Los logros se muestran de dos formas posibles, dos campos independientes en
   completa. Ambos modos comparten el mismo markup — `{#snippet
   achievementBadge()}` en `GameDetail.svelte`, renderizado en uno de los dos
   sitios según el toggle.
+- **`showGlobalPct`** ("Mostrar % global de obtención (logros)", default
+  `false`) y **`revealHiddenAchievements`** ("Mostrar logros ocultos
+  (spoiler)", default `false`): dos opciones nuevas, ambas también
+  reasignables desde el propio modal (`showGlobalPct`, botón "Ver/Ocultar %
+  global") o solo desde Ajustes/Vista de juego (`revealHiddenAchievements`) —
+  ver detalle del modal más abajo.
+
+**Juego 100% completado**: cuando `unlocked === total` (y `total > 0`) para un
+juego de Steam, se marca con un glow verde de éxito (mismo token
+`--gm-success` que el anillo de edición de un `<input type="range">`) — en la
+**tarjeta** (`GameCard.svelte`, badge "100%" en la esquina opuesta al badge de
+tienda) y en el **badge de logros** del Detalle (`.ach-badge.complete`). El
+dato viene de un comando nuevo, `steam_achievements_summary(steamid)`
+(`steam_api/achievements.rs`): un `GROUP BY appid` sobre la tabla ya cacheada
+`achievements` (cada fila ahí ya es un logro que `GetPlayerAchievements`
+devolvió, así que `COUNT(*)` por appid es el total real sin unir con
+`achievement_schema`). Se carga una vez al arrancar (junto con
+`mergeCachedSteamGhosts`) y se refresca tras cada sync — no por tarjeta, para
+no hacer una consulta por juego visible.
 
 Click/Aceptar en el badge (o el botón de la sección) abre
-`AchievementsModal.svelte`, un modal centrado con el listado completo — solo
-la lista scrollea, título y botones quedan fijos; cada logro es
-`data-focusable` (se navega con arriba/abajo, no solo entre "Ver % global"/
-"Listo"). Cada fila muestra, además de nombre/descripción: la **fecha de
-obtención** si está desbloqueado (`unlockTime`, se capturaba desde la Fase 9c
-pero nunca se mostraba en ningún lado hasta ahora); el **ícono bloqueado
-real** (`iconGrayUrl`) en vez de reusar el desbloqueado con opacidad — si no
-hay variante gris, cae al mismo de siempre atenuado; y los logros **spoiler**
-(`hidden`, ver `docs/steam-metadata.md`) se muestran como "Logro oculto" hasta
-desbloquearse, sin revelar nombre/descripción antes de tiempo (mismo criterio
-que el cliente de Steam). El badge/sección de logros aplican el mismo
-enmascarado si el "próximo a desbloquear" resulta ser un spoiler. Ahí mismo,
-"Ver % global" pide (bajo demanda, no en cada sync) el %
-de jugadores que tiene cada logro — si no se pudo obtener nada, se avisa
-explícitamente en vez de no mostrar nada (antes quedaba en blanco,
-indistinguible de "cargando").
+`AchievementsModal.svelte` — tamaño **fijo en px pensado para 1080p** (no
+proporcional a la resolución real: en una pantalla 4K se ve
+proporcionalmente más chico en vez de crecer con la pantalla), con un botón
+**✕** en la esquina superior derecha del header para cerrar (además del clic
+en el scrim). El header también muestra el conteo `unlocked/total` y una
+barra de progreso con el color de acento (`--gm-accent`). Solo la lista de
+logros scrollea, header queda fijo; cada logro es `data-focusable` (se navega
+con arriba/abajo). Cada fila muestra, además de nombre/descripción: la
+**fecha de obtención** si está desbloqueado (`unlockTime`); el **ícono
+bloqueado real** (`iconGrayUrl`) en vez de reusar el desbloqueado con
+opacidad — si no hay variante gris, cae al mismo de siempre atenuado; y los
+logros **spoiler** (`hidden`, ver `docs/steam-metadata.md`) se muestran como
+"Logro oculto" hasta desbloquearse, sin revelar nombre/descripción antes de
+tiempo (mismo criterio que el cliente de Steam) — **salvo** que
+`revealHiddenAchievements` esté activo, en cuyo caso se ve el nombre/
+descripción real siempre. El badge/sección de logros aplican el mismo
+enmascarado si el "próximo a desbloquear" resulta ser un spoiler. "Ver/Ocultar
+% global" (ahora persistente vía `showGlobalPct`, ya no se resetea cada vez
+que se abre el modal) pide bajo demanda el % de jugadores que tiene cada
+logro — si no se pudo obtener nada, se avisa explícitamente en vez de no
+mostrar nada (antes quedaba en blanco, indistinguible de "cargando").
 
 **Secciones dinámicas del Detalle**: `stores/ui.js::DETAIL_SECTIONS` pasó de
 ser un array fijo a un store (`GameDetail.svelte` llama `setDetailSections()`

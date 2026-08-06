@@ -4,6 +4,7 @@
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import { hideCardText } from "../stores/uiprefs.js";
+  import { steamAchievementSummaries } from "../stores/steamAccount.js";
 
   export let game;
   export let focusDefault = false;
@@ -26,6 +27,13 @@
   $: notInstalled = game?.installed === false;
   $: title = game?.title || "";
   $: art = effectiveArt(game, $overrides);
+
+  // Juego con logros 100% completados (Steam) — marca discreta en la tarjeta,
+  // sin abrir el Detalle (ver stores/steamAccount.js::steamAchievementSummaries,
+  // resumen unlocked/total por appid poblado tras cada sync).
+  $: steamAppid = game?.store === "steam" ? Number(game.id.split(":")[1]) : null;
+  $: achSummary = steamAppid ? $steamAchievementSummaries.get(steamAppid) : null;
+  $: complete = !!achSummary && achSummary.total > 0 && achSummary.unlocked === achSummary.total;
 
   // Portada placeholder determinista a partir del título (sin assets binarios).
   function hue(str) {
@@ -109,6 +117,7 @@
   class:no-grow={heroOnFocus}
   class:ctx-open={pinned}
   class:not-installed={notInstalled}
+  class:complete={complete}
   data-focusable
   data-focus-default={focusDefault ? "" : undefined}
   tabindex="-1"
@@ -127,6 +136,9 @@
       <span class="cover-title">{title}</span>
     {/if}
     <span class="badge">{STORE_LABEL[game.store] || game.store}</span>
+    {#if complete}
+      <span class="complete-badge" title="Logros 100% completados">100%</span>
+    {/if}
   </div>
   {#if !$hideCardText}
     <div class="title">{title}</div>
@@ -213,6 +225,26 @@
   }
   .not-installed .badge::after {
     content: " · no instalado";
+  }
+  .complete-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gm-success) 85%, black);
+    color: #04140d;
+  }
+  /* Mismo criterio de "glow" de éxito que el anillo de edición de un
+     <input type="range"> (Settings.svelte) — remarca de un vistazo, sin
+     imagen dorada de logro más raro (no hay ese dato hoy). */
+  .gm-card.complete .cover {
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      0 0 0 2px var(--gm-success),
+      0 0 18px 3px color-mix(in srgb, var(--gm-success) 55%, transparent);
   }
   .title {
     margin-top: 8px;
