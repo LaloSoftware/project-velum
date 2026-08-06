@@ -4,6 +4,7 @@
     closeDetail,
     detailAnchor,
     showToast,
+    reportError,
     detailExpanded,
     detailSection,
     setDetailSection,
@@ -25,7 +26,7 @@
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
   import { steamAccount, steamSyncing, steamSyncSummary, loadAchievements } from "../stores/steamAccount.js";
-  import { steamLibraryCache } from "../ipc/index.js";
+  import { steamLibraryCache, steamOpenInstall } from "../ipc/index.js";
 
   export let game;
 
@@ -211,10 +212,23 @@
   }
 
   $: notInstalled = game?.installed === false;
+  // Juego de Steam de la cuenta vinculada, no instalado local: en vez del
+  // botón "Jugar" desactivado, uno que abre Steam en la página de este juego
+  // para instalarlo (steam://install/<appid> — no es una sesión de juego, no
+  // toca PlayState ni el vigía de proceso, ver launch.rs).
+  $: canDownloadFromSteam = notInstalled && game?.store === "steam" && !!$steamAccount;
 
   async function play() {
     if (notInstalled) return;
     await startPlay(game);
+  }
+
+  async function downloadFromSteam() {
+    try {
+      await steamOpenInstall(steamAppid);
+    } catch (e) {
+      reportError(e, "GameDetail:downloadFromSteam");
+    }
   }
 </script>
 
@@ -274,28 +288,42 @@
       {#if $gameView.steamLastPlayed && steamAppid && $steamAccount}<p class="meta dim">{formatSteamLastPlayed(steamLastPlayedAt)}</p>{/if}
 
       <div class="actions">
-        <button
-          class="play"
-          class:disabled={notInstalled}
-          data-focusable={!$detailExpanded && !notInstalled ? "" : undefined}
-          data-focus-default={!notInstalled}
-          tabindex="-1"
-          title={notInstalled ? `Instálalo desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo` : undefined}
-          on:click={play}
-        >
-          ▶ Jugar
-        </button>
+        {#if canDownloadFromSteam}
+          <button
+            class="play"
+            data-focusable={!$detailExpanded ? "" : undefined}
+            data-focus-default
+            tabindex="-1"
+            on:click={downloadFromSteam}
+          >
+            ⬇ Descargar desde Steam
+          </button>
+        {:else}
+          <button
+            class="play"
+            class:disabled={notInstalled}
+            data-focusable={!$detailExpanded && !notInstalled ? "" : undefined}
+            data-focus-default={!notInstalled}
+            tabindex="-1"
+            title={notInstalled ? `Instálalo desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo` : undefined}
+            on:click={play}
+          >
+            ▶ Jugar
+          </button>
+        {/if}
         <button
           class="back"
           data-focusable={!$detailExpanded ? "" : undefined}
-          data-focus-default={notInstalled ? "" : undefined}
+          data-focus-default={notInstalled && !canDownloadFromSteam ? "" : undefined}
           tabindex="-1"
           on:click={back}
         >
           Volver
         </button>
       </div>
-      {#if notInstalled}
+      {#if canDownloadFromSteam}
+        <p class="install-hint">Se abre Steam en la página de este juego para instalarlo.</p>
+      {:else if notInstalled}
         <p class="install-hint">
           Instálalo desde {STORE_LABEL[game.store] || game.store} para poder jugarlo.
         </p>

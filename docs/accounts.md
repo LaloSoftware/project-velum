@@ -138,13 +138,19 @@ cruce lo hace el frontend (`stores/games.js::mergeSteamGhosts`, llamado desde
 `stores/steamAccount.js`): por cada juego de la biblioteca remota cuyo
 `steam:{appid}` (mismo formato que `library/steam.rs`, ver `docs/stores.md`)
 no aparece ya en `list_games()`, se agrega una tarjeta "fantasma" (`installed:
-false`) — mismo badge Steam, pero el botón "Jugar" avisa que hay que instalar
-el juego en vez de intentar lanzarlo (`GameCard.svelte`: `title` nativo del
-navegador al pasar el mouse; `GameDetail.svelte`: el botón "Jugar" queda
-deshabilitado de verdad — sin `data-focusable`, así que el mando/teclado ya no
-puede "activarlo" tampoco, antes solo se avisaba con el mouse — y "Volver" pasa
-a ser el foco por defecto; un mensaje bajo los botones repite el aviso). Si la
-persona lo instala después, la siguiente carga real de `list_games()` trae el
+false`) — mismo badge Steam. `GameCard.svelte` sigue avisando con el `title`
+nativo del navegador al pasar el mouse (sin acción real al hacer clic, mismo
+criterio que antes). En `GameDetail.svelte`, en cambio, el botón "Jugar" para
+un fantasma **se oculta** (ya no se muestra deshabilitado) y en su lugar
+aparece **"⬇ Descargar desde Steam"** — abre el cliente de Steam directo en la
+página de instalación de ese juego (`steam://install/<appid>`, mismo mecanismo
+`open_target`/`start`/`open`/`xdg-open` que ya usa `launch_game` para lanzar
+juegos instalados — ver `launch.rs::steam_open_install`). No es una sesión de
+juego (no toca `PlayState` ni el vigía de proceso): el usuario decide instalar
+o no desde la propia ventana de Steam. Solo aplica a fantasmas de **Steam**
+con la cuenta vinculada (`$steamAccount`); "Volver" sigue siendo el foco por
+defecto salvo que aparezca este botón, que pasa a serlo él. Si la persona
+instala el juego después, la siguiente carga real de `list_games()` trae el
 mismo id y el "fantasma" queda descartado por `dedupeById` (se queda con la
 primera aparición).
 

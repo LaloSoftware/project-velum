@@ -100,6 +100,14 @@ export async function launchGame(id, target, installDir) {
   }
 }
 
+export async function steamOpenInstall(appid) {
+  try {
+    return await invoke("steam_open_install", { appid });
+  } catch {
+    console.info(`[mock] steam_open_install: appid ${appid}`);
+  }
+}
+
 export async function focusGame() {
   try {
     return await invoke("focus_game");
