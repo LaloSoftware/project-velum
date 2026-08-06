@@ -5,7 +5,7 @@
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
   import { hideCardText } from "../stores/uiprefs.js";
   import { steamAchievementSummaries } from "../stores/steamAccount.js";
-  import { completedHighlightEnabled } from "../stores/uiprefs.js";
+  import { completedBadgeEnabled, completedGlowEnabled } from "../stores/uiprefs.js";
 
   export let game;
   export let focusDefault = false;
@@ -34,11 +34,9 @@
   // resumen unlocked/total por appid poblado tras cada sync).
   $: steamAppid = game?.store === "steam" ? Number(game.id.split(":")[1]) : null;
   $: achSummary = steamAppid ? $steamAchievementSummaries.get(steamAppid) : null;
-  $: complete =
-    $completedHighlightEnabled &&
-    !!achSummary &&
-    achSummary.total > 0 &&
-    achSummary.unlocked === achSummary.total;
+  $: complete = !!achSummary && achSummary.total > 0 && achSummary.unlocked === achSummary.total;
+  $: showCompleteBadge = complete && $completedBadgeEnabled;
+  $: showCompleteGlow = complete && $completedGlowEnabled;
 
   // Portada placeholder determinista a partir del título (sin assets binarios).
   function hue(str) {
@@ -122,7 +120,7 @@
   class:no-grow={heroOnFocus}
   class:ctx-open={pinned}
   class:not-installed={notInstalled}
-  class:complete={complete}
+  class:complete={showCompleteGlow}
   data-focusable
   data-focus-default={focusDefault ? "" : undefined}
   tabindex="-1"
@@ -141,7 +139,7 @@
       <span class="cover-title">{title}</span>
     {/if}
     <span class="badge">{STORE_LABEL[game.store] || game.store}</span>
-    {#if complete}
+    {#if showCompleteBadge}
       <span class="complete-badge" title="Logros 100% completados">100%</span>
     {/if}
   </div>

@@ -2,7 +2,12 @@
   import { achievementsModal, closeAchievements } from "../stores/ui.js";
   import { loadAchievements, globalPctMaxAgeSecs } from "../stores/steamAccount.js";
   import { steamGlobalAchievementPercentages } from "../ipc/index.js";
-  import { gameView, setGameViewField, completedHighlightEnabled } from "../stores/uiprefs.js";
+  import {
+    gameView,
+    setGameViewField,
+    completedBadgeEnabled,
+    completedGlowEnabled,
+  } from "../stores/uiprefs.js";
 
   $: appid = $achievementsModal?.appid;
   $: title = $achievementsModal?.title;
@@ -16,7 +21,11 @@
 
   $: unlockedCount = list.filter((a) => a.achieved).length;
   $: pct = list.length ? Math.round((unlockedCount / list.length) * 100) : 0;
-  $: complete = $completedHighlightEnabled && list.length > 0 && unlockedCount === list.length;
+  // Recolorea la barra de progreso si cualquiera de los dos interruptores de
+  // "Resaltado de 100% completado" está activo (insignia o brillo) — acá no
+  // hay insignia/brillo propios, solo un color que refleja el mismo resaltado.
+  $: complete =
+    ($completedBadgeEnabled || $completedGlowEnabled) && list.length > 0 && unlockedCount === list.length;
 
   // Botón "Mostrar/Ocultar logros ocultos" — sesión del modal, no persistente:
   // arranca siempre desactivado cada vez que se abre (incluso reabriendo el

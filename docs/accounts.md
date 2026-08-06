@@ -235,11 +235,12 @@ Los logros se muestran de dos formas posibles, dos campos independientes en
 
 **Juego 100% completado**: cuando `unlocked === total` (y `total > 0`) para un
 juego de Steam, se marca con un color configurable (`--gm-complete`,
-Ajustes → Apariencia → "Resaltado de 100% completado", apagable — ver
-`docs/theming.md`) en la **tarjeta** (`GameCard.svelte`, badge "100%" + glow),
-el **badge de logros** del Detalle (`.ach-badge.complete`) y la **barra de
-progreso** del modal cuando llega al 100% (`.progress-fill.complete`) — mismo
-color en los tres lugares. El dato viene de un comando nuevo,
+Ajustes → Apariencia → "Resaltado de 100% completado" — ver `docs/theming.md`
+para el detalle de los dos interruptores independientes, insignia y brillo)
+en la **tarjeta** (`GameCard.svelte`) y el **badge de logros** del Detalle
+(`GameDetail.svelte`, agrandado también en este ajuste), y recolorea la
+**barra de progreso** del modal cuando llega al 100% (`.progress-fill.complete`).
+El dato viene de un comando nuevo,
 `steam_achievements_summary(steamid)` (`steam_api/achievements.rs`): un
 `GROUP BY appid` sobre la tabla ya cacheada `achievements` (cada fila ahí ya
 es un logro que `GetPlayerAchievements` devolvió, así que `COUNT(*)` por

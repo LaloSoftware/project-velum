@@ -38,10 +38,13 @@ function defaultGameView() {
 export const hideCardText = writable(false);
 export const hideLibraryButton = writable(false);
 export const hideFooter = writable(false);
-// Resaltado de "juego 100% completado" (badge + glow en tarjeta/badge de
-// logros, color --gm-complete) — apagable si choca con el color de acento u
-// otro token del perfil del usuario.
-export const completedHighlightEnabled = writable(true);
+// Resaltado de "juego 100% completado" (tarjeta y badge de logros del
+// Detalle, color compartido --gm-complete) — dos interruptores INDEPENDIENTES
+// (antes uno solo controlaba las dos cosas a la vez): la insignia de texto
+// "100%" y el brillo/glow alrededor. Cada uno apagable por separado si uno de
+// los dos choca con el resto del tema del usuario mientras el otro no.
+export const completedBadgeEnabled = writable(true);
+export const completedGlowEnabled = writable(true);
 export const gameView = writable(defaultGameView());
 
 // Escala de interfaz: multiplicador continuo sobre el tamaño original de
@@ -185,7 +188,8 @@ function syncFromActiveProfile() {
   hideCardText.set(p.hideCardText ?? false);
   hideLibraryButton.set(p.hideLibraryButton ?? false);
   hideFooter.set(p.hideFooter ?? false);
-  completedHighlightEnabled.set(p.completedHighlightEnabled ?? true);
+  completedBadgeEnabled.set(p.completedBadgeEnabled ?? true);
+  completedGlowEnabled.set(p.completedGlowEnabled ?? true);
   gameView.set(p.gameView ? { ...defaultGameView(), ...p.gameView } : defaultGameView());
   uiScale.set(
     Number.isFinite(p.uiScale)
@@ -314,10 +318,15 @@ export async function setHideFooter(v) {
   hideFooter.set(val);
   await updateActive({ hideFooter: val });
 }
-export async function setCompletedHighlightEnabled(v) {
+export async function setCompletedBadgeEnabled(v) {
   const val = !!v;
-  completedHighlightEnabled.set(val);
-  await updateActive({ completedHighlightEnabled: val });
+  completedBadgeEnabled.set(val);
+  await updateActive({ completedBadgeEnabled: val });
+}
+export async function setCompletedGlowEnabled(v) {
+  const val = !!v;
+  completedGlowEnabled.set(val);
+  await updateActive({ completedGlowEnabled: val });
 }
 
 export async function setGameViewField(key, v) {

@@ -120,18 +120,30 @@ subieron de tamaño (pensado para verse desde el sofá/TV, no solo de cerca).
 
 ## Resaltado de 100% completado (logros)
 
-Ajustes → Apariencia → "Resaltado de 100% completado (logros)": toggle
-(`completedHighlightEnabled`, `stores/uiprefs.js`, default `true`) + color
-personalizable (`--gm-complete`, token nuevo en `app.css` — mismo valor por
-defecto que `--gm-success` pero **independiente**: un perfil puede
-recolorear uno sin afectar el otro, ya que `--gm-success` también colorea
-cualquier toggle "ON" de la app). Marca los juegos con `unlocked === total`
-(logros de Steam) en: la tarjeta (`GameCard.svelte`, badge "100%" + glow),
-el badge de logros del Detalle (`GameDetail.svelte`, `.ach-badge.complete`) y
-la barra de progreso del modal de logros cuando está al 100%
-(`AchievementsModal.svelte`, `.progress-fill.complete`) — mismo color en los
-tres lugares. Pensado para poder apagarlo o recolorearlo si choca con el
-color de acento u otro token del perfil del usuario.
+Ajustes → Apariencia → "Resaltado de 100% completado (logros)". Un color
+compartido (`--gm-complete`, token en `app.css` — mismo valor por defecto que
+`--gm-success` pero **independiente**: un perfil puede recolorear uno sin
+afectar el otro, ya que `--gm-success` también colorea cualquier toggle "ON"
+de la app), ordenado **primero** en la sección para transmitir que es el
+color de todo lo que sigue. Debajo, **dos interruptores independientes**
+(`completedBadgeEnabled`/`completedGlowEnabled`, `stores/uiprefs.js`, default
+`true` los dos — antes uno solo, `completedHighlightEnabled`, controlaba las
+dos cosas a la vez):
+
+- **Insignia "100%"** (`completedBadgeEnabled`): la etiqueta de texto —
+  `.complete-badge` en la tarjeta (`GameCard.svelte`) y `.ach-badge-tag` en el
+  badge de logros del Detalle (`GameDetail.svelte`, agregado en este ajuste
+  para tener el mismo tipo de insignia que la tarjeta).
+- **Brillo** (`completedGlowEnabled`): el glow/`box-shadow` alrededor de la
+  tarjeta y del badge de logros.
+
+Marca los juegos con `unlocked === total` (logros de Steam). La barra de
+progreso del modal de logros (`AchievementsModal.svelte`,
+`.progress-fill.complete`) se recolorea si **cualquiera** de los dos
+interruptores está activo (no tiene insignia/brillo propios, solo refleja el
+mismo resaltado). El badge de logros del Detalle también se agrandó en este
+ajuste (`.ach-badge`: más padding, ícono e insignia más grandes) para que se
+note más.
 
 ## Pendiente / a evaluar a futuro
 

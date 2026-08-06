@@ -49,6 +49,11 @@
     {/if}
   </div>
 
+  <p class="warn">
+    ⚠ Preferí archivos comprimidos (MP3/OGG) y de tamaño moderado — uno muy pesado
+    puede afectar el rendimiento mientras suena.
+  </p>
+
   {#if entry.path}
     <div class="filename">{fileName}</div>
     <div class="sizerow">
@@ -137,5 +142,9 @@
   .hint {
     color: var(--gm-text-dim);
     font-size: 0.75rem;
+  }
+  .warn {
+    color: var(--gm-danger);
+    font-size: 0.8rem;
   }
 </style>

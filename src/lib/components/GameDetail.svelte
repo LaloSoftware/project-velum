@@ -21,7 +21,8 @@
     setGameViewField,
     metaBgVisible,
     metaBgOpacity,
-    completedHighlightEnabled,
+    completedBadgeEnabled,
+    completedGlowEnabled,
   } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
@@ -100,11 +101,11 @@
   // menú paginado — nunca las dos a la vez, y solo si de verdad hay datos.
   $: showAchievementsBadge = $gameView.achievements && hasAchievementsData;
   $: showAchievementsSection = !$gameView.achievements && hasAchievementsData;
-  // 100% completado — mismo glow de éxito que la tarjeta (GameCard.svelte).
-  $: achievementsComplete =
-    $completedHighlightEnabled &&
-    steamAchievementsList.length > 0 &&
-    unlockedCount === steamAchievementsList.length;
+  // 100% completado — insignia de texto y brillo son interruptores
+  // independientes (mismos tokens/criterio que GameCard.svelte).
+  $: achievementsComplete = steamAchievementsList.length > 0 && unlockedCount === steamAchievementsList.length;
+  $: showAchBadgeComplete = achievementsComplete && $completedBadgeEnabled;
+  $: showAchGlowComplete = achievementsComplete && $completedGlowEnabled;
   // Últimos 3 logros desbloqueados, para la variante "sección" (más espacio
   // disponible ahí que en el badge flotante — ver showAchievementsSection).
   $: recentUnlocked = steamAchievementsList.filter((a) => a.achieved).slice(0, 3);
@@ -239,16 +240,20 @@
   <!-- Badge de logros: encabezado, progreso y (abajo) el último obtenido o
        próximo a desbloquear. Sube si hay una sync en curso para no solaparse
        con SteamSyncIndicator (misma esquina, fixed a nivel de toda la app).
-       Con los logros 100% completados, un glow de éxito alrededor (mismo
-       criterio que GameCard.svelte). -->
+       Al 100%: insignia de texto y brillo son interruptores independientes
+       (Ajustes → Apariencia → "Resaltado de 100% completado"), mismo color
+       compartido que la tarjeta (GameCard.svelte). -->
   <button
     class="ach-badge"
     class:raised={$steamSyncing || !!$steamSyncSummary}
-    class:complete={achievementsComplete}
+    class:complete={showAchGlowComplete}
     data-focusable
     tabindex="-1"
     on:click={() => openAchievements(steamAppid, game.title)}
   >
+    {#if showAchBadgeComplete}
+      <span class="ach-badge-tag" title="Logros 100% completados">100%</span>
+    {/if}
     <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
     <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
     <div class="ach-badge-last">
@@ -745,13 +750,14 @@
     box-shadow: var(--gm-focus-ring);
   }
 
-  /* Badge de logros (Fase 9f, agrandado y reordenado en el ajuste de logros):
+  /* Badge de logros (Fase 9f, agrandado/reordenado en el ajuste de logros):
      esquina inferior derecha del Detalle, mismo estilo "chip" que el resto de
      la app. Orden: encabezado → progreso → último logro (icono+nombre) abajo.
      Sube (.raised) si hay una sync en curso, para no solaparse con
      SteamSyncIndicator (misma esquina, pero fixed a nivel de toda la app,
-     z-index 90). Con logros 100% completados, glow de éxito (.complete,
-     mismo criterio que GameCard.svelte). */
+     z-index 90). Al 100%: insignia de texto (.ach-badge-tag, abajo) y brillo
+     (.complete) son interruptores independientes, mismo color compartido que
+     GameCard.svelte. */
   .ach-badge {
     position: absolute;
     right: var(--gm-pad);
@@ -759,21 +765,23 @@
     z-index: 5;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     align-items: flex-start;
     text-align: left;
-    max-width: 360px;
+    max-width: 420px;
     cursor: pointer;
     background: var(--gm-bg-elev);
     border-radius: var(--gm-radius-lg);
-    padding: 14px 20px;
+    padding: 18px 26px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     /* transform, no "bottom": anima solo compositing (sin layout thrash). */
     transition: transform 0.2s ease;
   }
   .ach-badge.raised {
-    transform: translateY(-58px);
+    transform: translateY(-64px);
   }
+  /* Brillo al 100% — interruptor independiente de la insignia de texto
+     (Ajustes → Apariencia → "Resaltado de 100% completado"). */
   .ach-badge.complete {
     box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.35),
@@ -783,32 +791,46 @@
   .ach-badge:focus {
     box-shadow: var(--gm-focus-ring);
   }
-  .ach-badge-title {
+  /* Insignia de texto al 100% — interruptor independiente del brillo de
+     arriba, mismo estilo que el badge "100%" de GameCard.svelte. */
+  .ach-badge-tag {
+    position: absolute;
+    top: -10px;
+    right: -10px;
     font-size: 0.72rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gm-complete) 85%, black);
+    color: #04140d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  .ach-badge-title {
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     color: var(--gm-accent-2);
   }
   .ach-badge-progress {
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--gm-text);
   }
   .ach-badge-last {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
   }
   .ach-badge-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 6px;
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
     flex-shrink: 0;
   }
   .ach-badge-name {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: var(--gm-text-dim);
     white-space: nowrap;
     overflow: hidden;

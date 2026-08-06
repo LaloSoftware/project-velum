@@ -27,8 +27,10 @@
     META_BG_OPACITY_MAX,
     setMetaBgVisible,
     setMetaBgOpacity,
-    completedHighlightEnabled,
-    setCompletedHighlightEnabled,
+    completedBadgeEnabled,
+    completedGlowEnabled,
+    setCompletedBadgeEnabled,
+    setCompletedGlowEnabled,
     uiScale,
     UI_SCALE_MIN,
     UI_SCALE_MAX,
@@ -372,33 +374,41 @@
     <h2>Resaltado de 100% completado (logros)</h2>
     <p class="dim">
       Marca los juegos con todos los logros desbloqueados (tarjeta y badge de logros
-      del Detalle) con este color — apágalo o cámbialo si choca con el color de acento
-      de tu perfil.
+      del Detalle) con este color — cámbialo si choca con el color de acento de tu
+      perfil. Aplica a la insignia de texto y al brillo de abajo, cada uno con su
+      propio interruptor.
     </p>
-    <div class="rows">
-      <div class="row">
-        <span class="rlabel">Visible</span>
-        <button
-          class="toggle"
-          class:on={$completedHighlightEnabled}
-          data-focusable
-          tabindex="-1"
-          on:click={() => setCompletedHighlightEnabled(!$completedHighlightEnabled)}
-        >
-          {$completedHighlightEnabled ? "ON" : "OFF"}
-        </button>
-      </div>
-    </div>
-    <button
-      class="colorfield spaced"
-      data-focusable
-      tabindex="-1"
-      on:click={openCompletePicker}
-    >
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openCompletePicker}>
       <span class="swatch-sm" style="background: {completeColor}"></span>
       <span class="cf-val">{completeColor.toUpperCase()}</span>
       <span class="cf-cta">Personalizar</span>
     </button>
+    <div class="rows spaced">
+      <div class="row">
+        <span class="rlabel">Insignia "100%"</span>
+        <button
+          class="toggle"
+          class:on={$completedBadgeEnabled}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setCompletedBadgeEnabled(!$completedBadgeEnabled)}
+        >
+          {$completedBadgeEnabled ? "ON" : "OFF"}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">Brillo</span>
+        <button
+          class="toggle"
+          class:on={$completedGlowEnabled}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setCompletedGlowEnabled(!$completedGlowEnabled)}
+        >
+          {$completedGlowEnabled ? "ON" : "OFF"}
+        </button>
+      </div>
+    </div>
 
     <h2>Inicio · Bienvenida</h2>
     <p class="dim">
@@ -618,9 +628,9 @@
     font-weight: 700;
     cursor: pointer;
   }
-  /* Separación de un ".rows" (toggle) inmediatamente arriba — sin esto quedan
-     pegados (visualmente y para la navegación por foco). */
-  .colorfield.spaced {
+  /* Separación de un control (colorfield, slider) inmediatamente arriba —
+     sin esto quedan pegados (visualmente y para la navegación por foco). */
+  .rows.spaced {
     margin-top: 10px;
   }
   .colorfield:focus {
