@@ -22,6 +22,11 @@ npm run tauri icon <src.png>   # regenerar iconos desde una imagen
 - La **UI y el theming** se desarrollan y prueban en macOS con mocks
   (`MockSource`, `MockSystemControls`). Un mando real (Xbox/DualSense) funciona en el Mac
   vía `gilrs`.
+- **Mandos en la PC de la sala (Windows): usar cable, no Bluetooth genérico.** Xbox real,
+  fightsticks en modo PC y DualSense por cable funcionan bien (ver `docs/input.md`); por
+  Bluetooth genérico de Windows (no el dongle Xbox Wireless) hoy **no** funcionan —
+  limitación conocida de la plataforma, detalle en `docs/input.md` y
+  `feature-fix-control-input.md`.
 - La **integración real** (Steam/GOG/Epic, Wi-Fi/BT/audio, suspensión en juego) es
   específica de Windows: se implementa detrás de los mismos traits y se compila/prueba en
   el **PC Windows** (`npm run tauri build` en Windows, o cross-compilation).

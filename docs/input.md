@@ -17,6 +17,25 @@ vkCancel | vkConfirm`.
    botones de acción → `type:"button"` con id crudo. Cubre **Xbox/XInput, DualSense y
    genéricos** con mapeos SDL, en Windows y macOS. **Varios mandos** controlan el mismo
    foco (cualquiera dispara).
+   - **Windows, mandos XInput-class por cable** (Xbox real, fightsticks en modo PC):
+     `gilrs` usa por defecto el backend **WGI** (Windows Gaming Input), que —según su
+     propia documentación— no reparte eventos de estos mandos sin que la ventana tenga
+     **foco real** del SO, algo que GM (pensado para correr **a pantalla completa**) no
+     siempre tiene. Se resuelve con un **poll de XInput suplementario**
+     (`input.rs::start_xinput_poll_thread`, solo Windows, vía `rusty-xinput`/
+     `XInputGetState`, sin ese requisito de foco) que cubre exactamente estos mandos
+     (`gilrs.gamepad(id).mapping_source() == Driver`); los mandos DirectInput/HID
+     (`SdlMappings`, ej. DualSense/genéricos por cable) no tienen este problema y siguen
+     por el camino normal de `gilrs`. Detalle completo del diagnóstico (con logs reales)
+     en `feature-fix-control-input.md` (raíz, gitignored).
+   - **Limitación conocida: mandos por Bluetooth genérico de Windows** (no por el dongle
+     Xbox Wireless) — tanto Xbox como DualSense por BT **no funcionan** hoy: quedan del
+     lado de WGI (`mapping_source=Driver`, sin foco no entregan nada) y el XInput clásico
+     (`XInputGetState`) no parece ver conexiones Bluetooth en absoluto (solo cable/dongle
+     Xbox Wireless). La única vía real sería la API **GameInput** de Microsoft (más
+     moderna, sin el límite de foco de WGI ni el de solo-cable de XInput clásico) — sin
+     binding maduro en Rust hoy, quedaría un binding FFI/COM propio, fuera de alcance por
+     ahora. **Mientras tanto: usar los mandos por cable** en la PC de la sala.
 2. **Teclado y mouse** (siempre) — mapean a acciones vía `src/lib/stores/keyBindings.js`,
    un store **independiente y configurable** en paralelo al de mando (mismo mecanismo de
    swap al reasignar). Las flechas son la única excepción: navegación fija, no remapeable
