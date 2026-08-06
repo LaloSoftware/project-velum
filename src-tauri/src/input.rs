@@ -103,6 +103,13 @@ pub fn start_gamepad_thread(app: AppHandle) {
             }
         };
 
+        // Diagnóstico de mandos no detectados (fix/control-input): sin este env var
+        // solo se loguean eventos "de una vez" (conexión/desconexión, botón/eje sin
+        // mapear la primera vez), deduplicados para no inundar la consola. Con
+        // GM_INPUT_DEBUG=1 se loguea también cada evento crudo (botón/eje conocido).
+        let verbose = std::env::var("GM_INPUT_DEBUG").is_ok();
+        let mut unmapped_logged: HashSet<String> = HashSet::new();
+
         // Direcciones sostenidas por d-pad y por stick (se unen para el auto-repeat).
         let mut dpad_down: HashSet<&'static str> = HashSet::new();
         let mut axis_dirs: HashSet<&'static str> = HashSet::new();
@@ -113,11 +120,36 @@ pub fn start_gamepad_thread(app: AppHandle) {
         let th = 0.55f32;
 
         loop {
-            while let Some(Event { event, .. }) = gilrs.next_event() {
+            while let Some(Event { id, event, .. }) = gilrs.next_event() {
+                if verbose {
+                    println!("[input] evento crudo id={id:?} {event:?}");
+                }
                 match event {
-                    EventType::ButtonPressed(b, _) => {
+                    EventType::Connected => {
+                        let gp = gilrs.gamepad(id);
+                        println!(
+                            "[input] Connected id={id:?} name={:?} os_name={:?} vendor={:?} product={:?} mapping_source={:?}",
+                            gp.name(),
+                            gp.os_name(),
+                            gp.vendor_id(),
+                            gp.product_id(),
+                            gp.mapping_source()
+                        );
+                    }
+                    EventType::Disconnected => {
+                        println!("[input] Disconnected id={id:?}");
+                    }
+                    EventType::Dropped => {
+                        println!("[input] Dropped id={id:?}");
+                    }
+                    EventType::ButtonPressed(b, code) => {
                         if let Some(name) = button_name(b) {
                             emit_button(&app, name, true);
+                        } else if b == Button::Unknown {
+                            let key = format!("{id:?}:{code:?}");
+                            if unmapped_logged.insert(key) {
+                                println!("[input] Button::Unknown id={id:?} code={code:?} (sin mapear)");
+                            }
                         }
                         if let Some(d) = dpad_dir(b) {
                             dpad_down.insert(d);
@@ -131,10 +163,16 @@ pub fn start_gamepad_thread(app: AppHandle) {
                             dpad_down.remove(d);
                         }
                     }
-                    EventType::AxisChanged(axis, value, _) => match axis {
+                    EventType::AxisChanged(axis, value, code) => match axis {
                         // gilrs: en el eje Y, arriba es positivo.
                         Axis::LeftStickX => update_axis(&mut axis_dirs, "left", "right", value, th),
                         Axis::LeftStickY => update_axis(&mut axis_dirs, "down", "up", value, th),
+                        Axis::Unknown => {
+                            let key = format!("{id:?}:{code:?}");
+                            if unmapped_logged.insert(key) {
+                                println!("[input] Axis::Unknown id={id:?} code={code:?} value={value} (sin mapear)");
+                            }
+                        }
                         _ => {}
                     },
                     _ => {}
