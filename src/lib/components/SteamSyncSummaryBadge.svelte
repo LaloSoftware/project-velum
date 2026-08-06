@@ -17,7 +17,7 @@
 
 {#if $steamSyncSummary && !$steamSyncing}
   <div class="summary">
-    <button class="row" on:click={toggleExpanded}>
+    <button class="row" on:click={toggleSyncSummaryExpanded}>
       <span class="dot" class:err={$steamSyncSummary.errors.length}></span>
       <div class="lines">
         <div>
@@ -33,7 +33,7 @@
       </div>
     </button>
 
-    {#if expanded}
+    {#if $syncSummaryExpanded}
       <div class="detail">
         <div class="detail-head">
           <span>Detalle de la sincronización</span>
