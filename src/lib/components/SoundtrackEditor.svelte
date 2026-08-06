@@ -50,8 +50,9 @@
   </div>
 
   <p class="warn">
-    ⚠ Preferí archivos comprimidos (MP3/OGG) y de tamaño moderado — uno muy pesado
-    puede afectar el rendimiento mientras suena.
+    ⚠ Se sugiere el uso de archivos comprimidos con tamaño moderado (MP3/OGG). El uso
+    de archivos demasiado pesados puede afectar el rendimiento de la aplicación
+    mientras se reproduce.
   </p>
 
   {#if entry.path}
