@@ -15,8 +15,9 @@ src-tauri/gen/schemas/
 # Artefacto de transferencia (se regenera con `npm run bundle`)
 gm.bundle
 
-# Estado local de impeccable live (sesiones, config de inyección)
-.impeccable/live/
+# Config/estado local de herramientas de desarrollo asistido (Claude Code, impeccable)
+.claude/
+.impeccable/
 
 # Planes de feature locales (no versionar)
 /feature-*.md
