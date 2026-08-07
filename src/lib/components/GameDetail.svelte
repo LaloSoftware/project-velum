@@ -816,7 +816,7 @@
     gap: 8px;
     align-items: flex-start;
     text-align: left;
-    max-width: 420px;
+    max-width: 480px;
     cursor: pointer;
     background: var(--gm-bg-elev);
     border-radius: var(--gm-radius-lg);
@@ -878,10 +878,19 @@
     flex-shrink: 0;
   }
   .ach-badge-name {
+    /* flex:1 + min-width:0: sin esto el texto (nombre del logro, puede ser
+       largo según el juego/idioma) no se achica dentro de .ach-badge-last y
+       se sale del badge en vez de recortarse — el overflow:hidden de abajo
+       no alcanza por sí solo en un flex item. */
+    flex: 1;
+    min-width: 0;
     font-size: 0.95rem;
     color: var(--gm-text-dim);
-    white-space: nowrap;
+    /* 2 líneas máximo, con "…" al final de la 2ª si no alcanza — en vez de
+       una sola línea truncada (se veía roto con nombres largos). */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 </style>
