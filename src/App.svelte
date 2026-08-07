@@ -17,7 +17,8 @@
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
-  import { initComboShortcuts, comboShortcuts } from "./lib/stores/comboShortcuts.js";
+  import { initComboShortcuts } from "./lib/stores/comboShortcuts.js";
+  import { radialMenu, openRadialMenu, initRadialMenu } from "./lib/stores/radialMenu.js";
   import { initVkBindings } from "./lib/stores/vkBindings.js";
   import {
     initSteamAccount,
@@ -113,6 +114,7 @@
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
   import ButtonPrompt from "./lib/components/ButtonPrompt.svelte";
+  import RadialMenu from "./lib/components/RadialMenu.svelte";
 
   const TABS = [
     { id: "home", label: "Inicio" },
@@ -121,25 +123,6 @@
     { id: "multimedia", label: "Multimedia" },
   ];
 
-  // Token corto por botón físico, para el hint del combo en el pie (footer).
-  // Los combos son de mando (no tienen atajo de teclado equivalente), así
-  // que su ButtonPrompt no recibe `action`.
-  const COMBO_TOKEN = {
-    south: "A",
-    east: "B",
-    north: "Y",
-    west: "X",
-    l1: "LB",
-    r1: "RB",
-    lt: "LT",
-    rt: "RT",
-    l3: "L3",
-    r3: "R3",
-    start: "Menú",
-    select: "Ver",
-    guide: "Home",
-  };
-  $: systemMenuCombo = $comboShortcuts.find((c) => c.id === "system-menu");
 
   let mainEl,
     overlayEl,
@@ -234,7 +217,8 @@
           $colorPicker ||
           $filtersModal ||
           $achievementsModal ||
-          $confirmUnlinkSteam
+          $confirmUnlinkSteam ||
+          $radialMenu
         )
           return;
         playNavPrimary();
@@ -250,7 +234,8 @@
           $colorPicker ||
           $filtersModal ||
           $achievementsModal ||
-          $confirmUnlinkSteam
+          $confirmUnlinkSteam ||
+          $radialMenu
         )
           return;
         playNavPrimary();
@@ -268,7 +253,8 @@
           $colorPicker ||
           $filtersModal ||
           $achievementsModal ||
-          $confirmUnlinkSteam
+          $confirmUnlinkSteam ||
+          $radialMenu
         )
           return;
         if ($view === "games" || $view === "apps") {
@@ -288,7 +274,8 @@
           $colorPicker ||
           $filtersModal ||
           $achievementsModal ||
-          $confirmUnlinkSteam
+          $confirmUnlinkSteam ||
+          $radialMenu
         )
           return;
         if ($overlay === "config") {
@@ -309,7 +296,8 @@
           $colorPicker ||
           $filtersModal ||
           $achievementsModal ||
-          $confirmUnlinkSteam
+          $confirmUnlinkSteam ||
+          $radialMenu
         )
           return;
         if ($overlay === "qam") {
@@ -319,8 +307,9 @@
         playMenuOpen();
         return openOverlay("qam");
       case "openSystemMenu":
-        // Atajo de teclado/mouse (configurable) equivalente al combo de mando
-        // (ver stores/comboShortcuts.js) — no hay botón "Guía" en teclado.
+        // Atajo de teclado/mouse (configurable), abre la lista de siempre —
+        // no hay botón "Home/Guide" en teclado para el menú radial de mando
+        // (ver "openRadialMenu" abajo y stores/radialMenu.js).
         if (
           $vk.open ||
           $detailGame ||
@@ -332,10 +321,33 @@
           $colorPicker ||
           $filtersModal ||
           $achievementsModal ||
-          $confirmUnlinkSteam
+          $confirmUnlinkSteam ||
+          $radialMenu
         )
           return;
         return openSystemQuickMenu();
+      case "openRadialMenu":
+        // Disparado por input/index.js al presionar "guide" (Home/PS) — mismas
+        // guardas que "openSystemMenu" (no se abre sobre otro modal). Cerrar es
+        // aparte: input/index.js llama a closeRadialMenu() directo al soltar
+        // Home o al resolver una de las 8 posiciones (stores/radialMenu.js),
+        // sin pasar por dispatch().
+        if (
+          $vk.open ||
+          $detailGame ||
+          $contextMenu ||
+          $confirmDelete ||
+          $shutdownConfirm ||
+          $systemQuickMenu ||
+          $popover ||
+          $colorPicker ||
+          $filtersModal ||
+          $achievementsModal ||
+          $confirmUnlinkSteam ||
+          $radialMenu
+        )
+          return;
+        return openRadialMenu();
       case "tabLeft":
         if ($vk.open) return; // sin match propio de teclado virtual: no-op
         playNavPrimary();
@@ -388,7 +400,8 @@
       !$systemQuickMenu &&
       !$filtersModal &&
       !$achievementsModal &&
-      !$confirmUnlinkSteam
+      !$confirmUnlinkSteam &&
+      !$radialMenu
     );
   }
 
@@ -479,7 +492,8 @@
       $colorPicker ||
       $filtersModal ||
       $achievementsModal ||
-      $confirmUnlinkSteam
+      $confirmUnlinkSteam ||
+      $radialMenu
     )
       return;
     const idx = TABS.findIndex((t) => t.id === $view);
@@ -590,6 +604,7 @@
       initUiPrefs(),
       initSystemActions(),
       initComboShortcuts(),
+      initRadialMenu(),
       initVkBindings(),
       initSteamAccount(),
     ]);
@@ -677,24 +692,17 @@
         <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
         <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
         <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
-        {#if systemMenuCombo?.enabled && systemMenuCombo.buttons.length === 2}
-          <span>
-            {#if $inputSource === "keymouse"}
-              <!-- El combo es solo de mando; en teclado/mouse se muestra el
-                   atajo alterno configurable (ver ShortcutsSection > Funciones). -->
-              <ButtonPrompt action="openSystemMenu" />
-            {:else}
-              <ButtonPrompt
-                token={COMBO_TOKEN[systemMenuCombo.buttons[0]] || systemMenuCombo.buttons[0]}
-                button={systemMenuCombo.buttons[0]}
-              />+<ButtonPrompt
-                token={COMBO_TOKEN[systemMenuCombo.buttons[1]] || systemMenuCombo.buttons[1]}
-                button={systemMenuCombo.buttons[1]}
-              />
-            {/if}
-            Menú de sistema
-          </span>
-        {/if}
+        <span>
+          {#if $inputSource === "keymouse"}
+            <!-- Home no existe en teclado; en teclado/mouse se muestra el
+                 atajo alterno configurable (ver ShortcutsSection > Funciones). -->
+            <ButtonPrompt action="openSystemMenu" />
+          {:else}
+            <!-- Mantener Home abre el menú radial (mando, ver RadialMenu.svelte). -->
+            <ButtonPrompt token="Home" button="guide" />
+          {/if}
+          Menú de sistema
+        </span>
       </footer>
     {/if}
   </div>
@@ -790,6 +798,10 @@
   <PlayingOverlay />
   <SteamSyncIndicator />
   <SteamSyncSummaryBadge />
+  <!-- Menú radial de sistema (mando, mantener Home): overlay puramente
+       presentacional, no participa del scope de navegación (ver dispatch()
+       "openRadialMenu" e input/index.js). -->
+  {#if $radialMenu}<RadialMenu />{/if}
 </div>
 
 <!-- Menú contextual de tarjeta y desplegable de <Select>: fuera de .app para que

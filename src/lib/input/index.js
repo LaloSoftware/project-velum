@@ -20,6 +20,7 @@ import { inputSource } from "../stores/inputSource.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 import { comboShortcuts } from "../stores/comboShortcuts.js";
 import { resolveVk } from "../stores/vkBindings.js";
+import { radialMenu, closeRadialMenu, runRadialInput } from "../stores/radialMenu.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
 // El resto de teclado/mouse vive en `stores/keyBindings.js` (configurable).
@@ -139,6 +140,24 @@ function handleRaw(ev) {
     // libera bien el estado si el usuario suelta un botón a medio capturar.
     // No dispara acciones ahí porque checkear combos no depende de captureFn.
     trackComboButton(ev.name, ev.pressed);
+    // "Home/Guide" abre el menú radial de sistema directo al presionarse (ya
+    // no tiene acción individual ni es modificador de combo, ver
+    // comboShortcuts.js) y lo cierra al soltarse — mirado ANTES de
+    // `if (!ev.pressed) return` de abajo para no perderse el flanco de
+    // soltar. closeRadialMenu() es un no-op seguro si ya estaba cerrado.
+    if (ev.name === "guide") {
+      if (ev.pressed) dispatchFn("openRadialMenu"); // pasa por App.svelte::dispatch (guards + $session)
+      else closeRadialMenu();
+      return;
+    }
+  }
+  // Mientras el radial está abierto, congela TODO lo demás (navegación y
+  // botones por igual) salvo las 8 posiciones fijas o el botón de cancelar
+  // configurado — runRadialInput (stores/radialMenu.js) decide qué hacer con
+  // cada botón; cualquier otro evento se descarta sin llegar a resolve().
+  if (get(radialMenu)) {
+    if (ev.pressed && ev.type === "button") runRadialInput(ev.name);
+    return;
   }
   // El resto de la lógica actúa solo en press.
   if (!ev.pressed) return;
@@ -311,6 +330,10 @@ function initBrowserGamepad() {
           handleRaw({ type: "button", name: raw, pressed: true });
         } else if (!down && pressed[key]) {
           pressed[key] = false;
+          // Flanco de soltar: antes no se emitía (nada lo necesitaba). El
+          // menú radial (guide) y los rawListeners de "mantener" (sesión de
+          // juego) sí dependen de este evento para cerrar/detectar el release.
+          handleRaw({ type: "button", name: raw, pressed: false });
         }
       });
 

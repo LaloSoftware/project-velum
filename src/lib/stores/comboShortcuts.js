@@ -6,21 +6,15 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
  * Distinto de bindings.js (un botón -> una acción): aquí un combo dispara una
  * acción de sistema cuando TODOS sus botones crudos están presionados juntos.
  * Ver detección en input/index.js (heldButtons/checkCombos).
+ *
+ * Sin combos por defecto: los dos que existían (Home+Start -> menú de sistema,
+ * Home+L3 -> detalle de sync de Steam) se retiraron al reemplazar Home por el
+ * menú radial (ver stores/radialMenu.js) — Home ya no es modificador de combo,
+ * abre el radial directo al presionarse. La infraestructura de combos se deja
+ * intacta por si se agrega uno nuevo a futuro (lista vacía = sin efecto).
  */
 
-const DEFAULT_COMBOS = [
-  // Home (guide) + Start: abre el menú rápido de sistema (ver SystemQuickMenu).
-  { id: "system-menu", label: "Menú de sistema", buttons: ["guide", "start"], action: "openSystemMenu", enabled: true },
-  // Home (guide) + L3: expande/colapsa el detalle del badge de sync de Steam
-  // (SteamSyncSummaryBadge) — solo válido mientras la notificación esté viva.
-  {
-    id: "steam-sync-summary",
-    label: "Detalle de sincronización (Steam)",
-    buttons: ["guide", "l3"],
-    action: "steamSyncSummary",
-    enabled: true,
-  },
-];
+const DEFAULT_COMBOS = [];
 
 export const comboShortcuts = writable(DEFAULT_COMBOS.map((c) => ({ ...c })));
 

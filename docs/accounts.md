@@ -334,14 +334,18 @@ tumba la sincronización de los demás.
 muestra en `SteamSyncSummaryBadge.svelte` — un badge flotante (misma esquina
 que `SteamSyncIndicator`, se turnan porque uno es mientras sincroniza y el
 otro después) con las 4 métricas de un vistazo y un temporizador de auto-cierre
-(20s, `stores/steamAccount.js::showSyncSummary`); al hacer click (o con el
-combo de mando **Guide + L3**, ver `docs/input.md`) se expande/colapsa el
-detalle con el log de errores (appid + mensaje), pausando el auto-cierre
-mientras se lee (`syncSummaryExpanded`/`toggleSyncSummaryExpanded()` en
-`stores/steamAccount.js`, estado compartido entre click y combo). El combo
-solo tiene efecto mientras el badge sigue vivo — no es un modal que bloquee
-el resto de la app, así que no participa del sistema de navegación por
-mando más allá de ese combo puntual.
+(20s, `stores/steamAccount.js::showSyncSummary`); al hacer **click** se
+expande/colapsa el detalle con el log de errores (appid + mensaje), pausando
+el auto-cierre mientras se lee (`syncSummaryExpanded`/
+`toggleSyncSummaryExpanded()` en `stores/steamAccount.js`). No es un modal
+que bloquee el resto de la app, así que no participa del sistema de
+navegación por mando.
+
+Hasta la Fase 9n había también un atajo de mando (combo **Guide + L3**) para lo
+mismo — se retiró al reemplazar Home por el menú radial de sistema (ver
+`docs/input.md`); la acción `steamSyncSummary` sigue existiendo en
+`App.svelte -> dispatch` (por si se le asigna un atajo nuevo más adelante) pero
+hoy no tiene ningún botón/tecla que la dispare — solo el click en el badge.
 
 ### Errores confirmados y corregidos (segunda ronda de prueba real)
 

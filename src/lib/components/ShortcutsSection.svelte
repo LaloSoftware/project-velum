@@ -30,21 +30,26 @@
     createCustomShortcut,
     deleteCustomShortcut,
   } from "../stores/customShortcuts.js";
+  import { QUICK_MENU_ACTIONS } from "../stores/systemActions.js";
   import {
-    comboShortcuts,
-    setComboButtons,
-    setComboEnabled,
-    resetCombos,
-  } from "../stores/comboShortcuts.js";
+    RADIAL_POSITIONS,
+    radialSlots,
+    radialCancelButton,
+    setRadialSlot,
+    setRadialCancelButton,
+  } from "../stores/radialMenu.js";
   import { VK_ACTIONS, vkBindings, assignVkAction, resetVkBindings } from "../stores/vkBindings.js";
   import Select from "./Select.svelte";
+
+  const RADIAL_ACTION_OPTS = [
+    { value: "", label: "Ninguna" },
+    ...QUICK_MENU_ACTIONS.map((a) => ({ value: a.id, label: a.label })),
+  ];
 
   // listening: { action, mode: "km" | "pad" | "vk" } | null
   let listening = null;
   let timer = null;
   let capturingReturn = false; // captura del botón de "volver al launcher"
-  let listeningCombo = null; // id del combo en captura, o null
-  let capturedCombo = []; // botones ya capturados del combo en curso
 
   // Atajo personalizado en edición: { name, mods: {ctrl,alt,shift,meta}, code } | null.
   // Selector manual en vez de "pulsa la combinación en vivo": Windows no deja
@@ -161,35 +166,6 @@
     showToast("Atajos restaurados por defecto");
   }
 
-  // Botones (etiqueta) asignados a un combo, en el orden guardado.
-  function comboLabel(combo) {
-    if (!combo.buttons.length) return "—";
-    return combo.buttons.map((b) => BUTTON_LABELS[b] || b).join(" + ");
-  }
-
-  function stopListeningCombo() {
-    listeningCombo = null;
-    capturedCombo = [];
-    clearCapture();
-    clearTimeout(timer);
-  }
-
-  function rebindCombo(combo) {
-    listeningCombo = combo.id;
-    capturedCombo = [];
-    setCapture((rawButton) => {
-      if (capturedCombo.includes(rawButton)) return; // ignora repetir el mismo botón
-      capturedCombo = [...capturedCombo, rawButton];
-      if (capturedCombo.length >= 2) {
-        setComboButtons(combo.id, capturedCombo);
-        stopListeningCombo();
-        showToast("Combo actualizado");
-      }
-    });
-    clearTimeout(timer);
-    timer = setTimeout(stopListeningCombo, 8000);
-  }
-
   async function addCustomShortcut() {
     const name = await openKeyboard("", "Nombre del atajo");
     if (!name) return;
@@ -220,7 +196,6 @@
 
   onDestroy(() => {
     stopListening();
-    stopListeningCombo();
     newShortcut = null;
   });
 </script>
@@ -336,39 +311,47 @@
     {/if}
   </div>
 
-  <div class="minihead">Combo de botones</div>
+  <div class="minihead">Menú radial de sistema (mando)</div>
   <p class="dim">
-    Mantén varios botones a la vez para disparar una acción, sin navegar hasta el
-    menú correspondiente. "Home" es el botón base de todos los combos por defecto.
+    Mantén presionado "Home/Guide" para abrir un menú a pantalla completa con 8
+    posiciones fijas — 4 sobre los botones de cara, 4 sobre hombros/gatillos.
+    Congela el resto de la navegación mientras está abierto. Suelta Home sin
+    elegir ninguna (o presiona el botón de cancelar configurado abajo) para
+    cerrarlo sin hacer nada.
   </p>
   <div class="rows">
-    {#each $comboShortcuts as c (c.id)}
+    {#each RADIAL_POSITIONS as pos (pos)}
       <div class="row">
-        <span class="label">{c.label}</span>
-        <span class="btn">{comboLabel(c)}</span>
-        <button class="rebind" data-focusable tabindex="-1" on:click={() => rebindCombo(c)}>
-          Reasignar
-        </button>
-        <button
-          class="toggle"
-          class:on={c.enabled}
-          data-focusable
-          tabindex="-1"
-          on:click={() => setComboEnabled(c.id, !c.enabled)}
-        >
-          {c.enabled ? "ON" : "OFF"}
-        </button>
+        <span class="label">{BUTTON_LABELS[pos]}</span>
+        <div class="ctrl">
+          <Select
+            value={$radialSlots[pos] ?? ""}
+            options={RADIAL_ACTION_OPTS}
+            onChange={(v) => setRadialSlot(pos, v || null)}
+          />
+        </div>
       </div>
     {/each}
+    <div class="row">
+      <span class="label">Cancelar con</span>
+      <div class="ctrl">
+        <Select
+          value={$radialCancelButton ?? ""}
+          options={[
+            { value: "", label: "Soltar Home" },
+            ...RADIAL_POSITIONS.map((p) => ({ value: p, label: BUTTON_LABELS[p] })),
+          ]}
+          onChange={(v) => setRadialCancelButton(v || null)}
+        />
+      </div>
+    </div>
   </div>
-  <button class="reset" data-focusable tabindex="-1" on:click={resetCombos}>
-    Restaurar por defecto
-  </button>
 
   <div class="minihead">Menú de sistema (teclado/mouse)</div>
   <p class="dim">
-    Atajo alterno para abrir el mismo menú sin mando — no hay botón "Guía" en
-    teclado, así que se asigna aparte del combo de arriba.
+    Atajo alterno para abrir la misma lista de acciones sin mando — no hay
+    botón "Home/Guide" en teclado, así que se asigna aparte del menú radial de
+    arriba (que sí es solo de mando).
   </p>
   <div class="rows">
     <div class="row">
@@ -428,21 +411,6 @@
             : listening.mode === "vk"
               ? VK_ACTIONS.find((a) => a.id === listening.action)?.label
               : ACTIONS.find((a) => a.id === listening.action)?.label}»
-      </div>
-    </div>
-  </div>
-{/if}
-
-{#if listeningCombo}
-  <div class="capture">
-    <div class="box">
-      <div class="big">
-        {capturedCombo.length === 0
-          ? "Pulsa el primer botón del combo…"
-          : "Pulsa el segundo botón (distinto del primero)…"}
-      </div>
-      <div class="dim">
-        para «{$comboShortcuts.find((c) => c.id === listeningCombo)?.label}»
       </div>
     </div>
   </div>
@@ -548,22 +516,6 @@
   }
   .rebind.danger {
     color: var(--gm-danger);
-  }
-  .toggle {
-    cursor: pointer;
-    min-width: 66px;
-    padding: 8px 0;
-    border-radius: 999px;
-    background: var(--gm-surface-2);
-    color: var(--gm-text-dim);
-    font-weight: 800;
-  }
-  .toggle.on {
-    background: var(--gm-success);
-    color: #04140d;
-  }
-  .toggle:focus {
-    box-shadow: var(--gm-focus-ring);
   }
   .add {
     cursor: pointer;
