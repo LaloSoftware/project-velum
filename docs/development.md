@@ -86,3 +86,9 @@ git switch release && git merge --no-ff dev && git tag v0.1.0
 - El frontend compila con avisos de a11y silenciados a propósito en las capas cuya
   interacción real es por nuestro sistema de foco (no por semántica de ratón).
 - `src-tauri/target/` y `node_modules/` están en `.gitignore`.
+- `src/main.js` filtra "ResizeObserver loop completed with undelivered
+  notifications" del reporte de errores en pantalla (`ErrorBanner.svelte`) —
+  es una advertencia benigna y conocida del motor del WebView (típicamente
+  tras una ráfaga de resize, como entrar/salir de pantalla completa), GM no
+  usa `ResizeObserver` en ningún lado. Sigue logueada como `console.warn`,
+  solo no interrumpe con el banner.

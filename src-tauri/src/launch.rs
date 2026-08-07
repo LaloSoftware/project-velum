@@ -173,6 +173,18 @@ pub async fn uninstall_game(id: String, target: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Abre Steam en la página de instalación de un juego de la cuenta vinculada
+/// que no está instalado localmente (los "fantasmas" de `mergeSteamGhosts`,
+/// ver `docs/accounts.md`) — no es una sesión de juego (no toca `PlayState`
+/// ni el vigía de proceso, a diferencia de `launch_game`): el usuario decide
+/// instalar o no desde la propia ventana de Steam.
+#[tauri::command]
+pub fn steam_open_install(appid: i64) -> Result<(), String> {
+    let target = format!("steam://install/{appid}");
+    println!("[launch] abrir Steam para instalar appid {appid} -> {target}");
+    open_target(&target).map_err(|e| e.to_string())
+}
+
 /// Abre un destino: URI de protocolo (`steam://…`), ejecutable o acceso `.lnk`.
 fn open_target(target: &str) -> std::io::Result<()> {
     use std::process::Command;

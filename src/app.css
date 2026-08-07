@@ -20,6 +20,10 @@
   --gm-accent-2: #7aa7ff;
   --gm-danger: #ff5d5d;
   --gm-success: #52d69a;
+  /* Resaltado de "juego 100% completado" (logros) — aparte de --gm-success
+     (que también colorea cualquier toggle ON) para que un perfil pueda
+     recolorear uno sin afectar el otro. Mismo valor por defecto. */
+  --gm-complete: #52d69a;
 
   /* Scrollbar (thumb) acorde al tema. Un tema puede sobreescribirlo. */
   --gm-scrollbar: color-mix(in srgb, var(--gm-text-dim) 45%, transparent);

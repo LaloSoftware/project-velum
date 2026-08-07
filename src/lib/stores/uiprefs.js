@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import { loadAppConfig } from "./appConfig.js";
 import { activeProfileId, getActive, updateActive, initProfiles } from "./profiles.js";
+import { BUILTIN_THEMES } from "../theming/themes.js";
 
 /*
  * Preferencias visuales de interfaz (persistentes):
@@ -26,6 +27,8 @@ export const GAME_VIEW_FIELDS = [
   { key: "steamLastPlayed", label: "Última vez jugado según Steam" },
   { key: "achievements", label: "Logros como badge (si no, sección)" },
   { key: "achievementsBadgeFixed", label: "Fijar el badge de logros en la esquina", default: false },
+  { key: "showGlobalPct", label: "Mostrar % global de obtención (logros)", default: false },
+  { key: "revealHiddenAchievements", label: "Mostrar logros ocultos (spoiler)", default: false },
 ];
 
 function defaultGameView() {
@@ -35,6 +38,13 @@ function defaultGameView() {
 export const hideCardText = writable(false);
 export const hideLibraryButton = writable(false);
 export const hideFooter = writable(false);
+// Resaltado de "juego 100% completado" (tarjeta y badge de logros del
+// Detalle, color compartido --gm-complete) — dos interruptores INDEPENDIENTES
+// (antes uno solo controlaba las dos cosas a la vez): la insignia de texto
+// "100%" y el brillo/glow alrededor. Cada uno apagable por separado si uno de
+// los dos choca con el resto del tema del usuario mientras el otro no.
+export const completedBadgeEnabled = writable(true);
+export const completedGlowEnabled = writable(true);
 export const gameView = writable(defaultGameView());
 
 // Escala de interfaz: multiplicador continuo sobre el tamaño original de
@@ -48,6 +58,24 @@ export const uiScale = writable(UI_SCALE_DEFAULT);
 
 // Migración de instalaciones previas ("small"/"original"/"large").
 const LEGACY_UI_SCALE = { small: 0.85, original: 1, large: 1.25 };
+
+// Fondo configurable detrás de la sección de metadatos del Detalle (título/
+// plataforma/meta/acciones, hoy flota sobre el hero sin fondo propio). No es
+// un GAME_VIEW_FIELDS (ese array es solo para toggles booleanos de la lista
+// genérica; acá hace falta además un slider) — dos stores propios, mismo
+// patrón que uiScale/hideCardText.
+export const metaBgVisible = writable(true);
+export const META_BG_OPACITY_MIN = 0;
+export const META_BG_OPACITY_MAX = 100;
+// Default distinto según el tema sea oscuro o claro (menos opacidad en
+// oscuro: el degradado del hero ya oscurece bastante de por sí; más en claro,
+// donde el texto es oscuro y necesita más respaldo contra la imagen).
+const META_BG_OPACITY_DEFAULT = { dark: 30, light: 50 };
+export const metaBgOpacity = writable(META_BG_OPACITY_DEFAULT.dark);
+
+function themeKind(baseTheme) {
+  return BUILTIN_THEMES[baseTheme]?.kind || "dark";
+}
 
 // Cantidad de tarjetas en la tira "Reciente" de Inicio.
 export const HOME_CARD_COUNT_DEFAULT = 12;
@@ -160,6 +188,8 @@ function syncFromActiveProfile() {
   hideCardText.set(p.hideCardText ?? false);
   hideLibraryButton.set(p.hideLibraryButton ?? false);
   hideFooter.set(p.hideFooter ?? false);
+  completedBadgeEnabled.set(p.completedBadgeEnabled ?? true);
+  completedGlowEnabled.set(p.completedGlowEnabled ?? true);
   gameView.set(p.gameView ? { ...defaultGameView(), ...p.gameView } : defaultGameView());
   uiScale.set(
     Number.isFinite(p.uiScale)
@@ -188,6 +218,12 @@ function syncFromActiveProfile() {
   tabsAlign.set(TABS_ALIGN_OPTIONS.some((o) => o.value === p.tabsAlign) ? p.tabsAlign : "left");
   clockPosition.set(
     CLOCK_POSITION_OPTIONS.some((o) => o.value === p.clockPosition) ? p.clockPosition : "right"
+  );
+  metaBgVisible.set(p.metaBgVisible ?? true);
+  metaBgOpacity.set(
+    Number.isFinite(p.metaBgOpacity)
+      ? Math.min(META_BG_OPACITY_MAX, Math.max(META_BG_OPACITY_MIN, p.metaBgOpacity))
+      : META_BG_OPACITY_DEFAULT[themeKind(p.baseTheme)]
   );
 }
 
@@ -282,6 +318,16 @@ export async function setHideFooter(v) {
   hideFooter.set(val);
   await updateActive({ hideFooter: val });
 }
+export async function setCompletedBadgeEnabled(v) {
+  const val = !!v;
+  completedBadgeEnabled.set(val);
+  await updateActive({ completedBadgeEnabled: val });
+}
+export async function setCompletedGlowEnabled(v) {
+  const val = !!v;
+  completedGlowEnabled.set(val);
+  await updateActive({ completedGlowEnabled: val });
+}
 
 export async function setGameViewField(key, v) {
   gameView.update((g) => ({ ...g, [key]: !!v }));
@@ -293,6 +339,19 @@ export async function setUiScale(v) {
   if (!Number.isFinite(n)) return;
   uiScale.set(n);
   await updateActive({ uiScale: n });
+}
+
+export async function setMetaBgVisible(v) {
+  const val = !!v;
+  metaBgVisible.set(val);
+  await updateActive({ metaBgVisible: val });
+}
+
+export async function setMetaBgOpacity(v) {
+  const n = Math.min(META_BG_OPACITY_MAX, Math.max(META_BG_OPACITY_MIN, Number(v)));
+  if (!Number.isFinite(n)) return;
+  metaBgOpacity.set(n);
+  await updateActive({ metaBgOpacity: n });
 }
 
 export async function setHomeCardCount(n) {

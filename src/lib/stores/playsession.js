@@ -3,7 +3,7 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { loadGames } from "./games.js";
 import { recordPlay } from "./playtimes.js";
 import { syncNow } from "./steamAccount.js";
-import { launchGame, focusGame, isTauri } from "../ipc/index.js";
+import { launchGame, focusGame, isTauri, steamOpenInstall } from "../ipc/index.js";
 import { onRawButton } from "../input/index.js";
 import { showToast, reportError } from "./ui.js";
 import {
@@ -81,6 +81,31 @@ export async function startPlay(game) {
   } catch (e) {
     reportError(e, "playsession:startPlay");
     // Si falla el lanzamiento, no dejar el launcher atascado en reposo.
+    await endPlay();
+  }
+}
+
+// Abrir Steam para instalar un "fantasma" (Fase 9, ver docs/accounts.md) usa
+// la MISMA suspensión que un juego real (overlay + bloqueo de input) — sin
+// esto, el poll de XInput suplementario (fix/control-input) sigue leyendo el
+// mando sin importar qué ventana tenga el foco: al confirmar la instalación
+// con el control, ese mismo botón le llegaba TAMBIÉN a GM en segundo plano y
+// disparaba downloadFromSteam() de nuevo, reabriendo la misma página de Steam.
+// No usa launchGame (no hay installDir que vigilar, el juego no está
+// instalado todavía) — el regreso es manual, igual que cualquier juego sin
+// vigía de proceso resuelto (mantener el botón de volver).
+export async function startSteamDownload(game, appid) {
+  if (get(session)) {
+    await focusGame();
+    return;
+  }
+  try {
+    wasFullscreen = await isFullscreen();
+    session.set({ game, mode: "steam-download" });
+    await steamOpenInstall(appid);
+    await minimizeWindow();
+  } catch (e) {
+    reportError(e, "playsession:startSteamDownload");
     await endPlay();
   }
 }

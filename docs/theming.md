@@ -95,6 +95,56 @@ Ajustes → Sonidos: sonido de inicio configurable (`stores/sounds.js`, lista cu
 el arranque (`applyStartup()`). Si el WebView bloquea autoplay con audio, falla en
 silencio y no interrumpe el arranque.
 
+## Fondo de metadatos (Detalle)
+
+Ajustes → Apariencia → "Fondo de metadatos (Detalle)": toggle (`metaBgVisible`,
+default `true`) + slider de opacidad 0-100% (`metaBgOpacity`, `stores/uiprefs.js`,
+persistente por perfil) para el fondo detrás del título/plataforma/meta del
+Detalle (hoy flota sobre el hero, la legibilidad venía solo del degradado fijo
+`.art::after`). Default de opacidad según el tema activo (`BUILTIN_THEMES[...]
+.kind`, mismo lookup que `pickTheme()`): **30% en temas oscuros, 50% en
+claros** — un tema oscuro ya tiene bastante contraste por el degradado; uno
+claro necesita más respaldo para el texto oscuro sobre una imagen ocupada. El
+color base es `--gm-bg-elev` (no un negro fijo) compuesto con la opacidad vía
+`color-mix()`, así que se adapta solo al tema/perfil activo.
+
+**Legibilidad de raíz (ajuste tras prueba real, no solo este fondo opcional)**:
+`.art::after` (el degradado permanente detrás de TODA la metadata, con o sin
+el fondo de arriba activo) usaba `rgba(0,0,0,0.72)` fijo — en temas claros el
+texto pasa a oscuro (`--gm-text`) pero ese degradado seguía siendo negro,
+quedando texto oscuro sobre un velo oscuro sin importar la opacidad del fondo
+configurable. Ahora usa `color-mix(in srgb, var(--gm-bg) 82%, transparent)`
+(tematizado) — resuelve el contraste de raíz en vez de compensar solo con el
+fondo opcional. De paso, `.store`/`.meta`/`.meta.dim` (`GameDetail.svelte`)
+subieron de tamaño (pensado para verse desde el sofá/TV, no solo de cerca).
+
+## Resaltado de 100% completado (logros)
+
+Ajustes → Apariencia → "Resaltado de 100% completado (logros)". Un color
+compartido (`--gm-complete`, token en `app.css` — mismo valor por defecto que
+`--gm-success` pero **independiente**: un perfil puede recolorear uno sin
+afectar el otro, ya que `--gm-success` también colorea cualquier toggle "ON"
+de la app), ordenado **primero** en la sección para transmitir que es el
+color de todo lo que sigue. Debajo, **dos interruptores independientes**
+(`completedBadgeEnabled`/`completedGlowEnabled`, `stores/uiprefs.js`, default
+`true` los dos — antes uno solo, `completedHighlightEnabled`, controlaba las
+dos cosas a la vez):
+
+- **Insignia "100%"** (`completedBadgeEnabled`): la etiqueta de texto —
+  `.complete-badge` en la tarjeta (`GameCard.svelte`) y `.ach-badge-tag` en el
+  badge de logros del Detalle (`GameDetail.svelte`, agregado en este ajuste
+  para tener el mismo tipo de insignia que la tarjeta).
+- **Brillo** (`completedGlowEnabled`): el glow/`box-shadow` alrededor de la
+  tarjeta y del badge de logros.
+
+Marca los juegos con `unlocked === total` (logros de Steam). La barra de
+progreso del modal de logros (`AchievementsModal.svelte`,
+`.progress-fill.complete`) se recolorea si **cualquiera** de los dos
+interruptores está activo (no tiene insignia/brillo propios, solo refleja el
+mismo resaltado). El badge de logros del Detalle también se agrandó en este
+ajuste (`.ach-badge`: más padding, ícono e insignia más grandes) para que se
+note más.
+
 ## Pendiente / a evaluar a futuro
 
 **Cálculo de contraste genérico** en vez del descarte fijo actual de "Color de

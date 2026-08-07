@@ -49,6 +49,12 @@
     {/if}
   </div>
 
+  <p class="warn">
+    ⚠ Se sugiere el uso de archivos comprimidos con tamaño moderado (MP3/OGG). El uso
+    de archivos demasiado pesados puede afectar el rendimiento de la aplicación
+    mientras se reproduce.
+  </p>
+
   {#if entry.path}
     <div class="filename">{fileName}</div>
     <div class="sizerow">
@@ -137,5 +143,9 @@
   .hint {
     color: var(--gm-text-dim);
     font-size: 0.75rem;
+  }
+  .warn {
+    color: var(--gm-danger);
+    font-size: 0.8rem;
   }
 </style>

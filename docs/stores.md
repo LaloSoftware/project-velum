@@ -148,6 +148,11 @@ vincular la cuenta de Steam de una persona para traer su biblioteca **completa**
 (instalados y no instalados) + logros/horas jugadas. El cruce instalado/no-instalado
 usa el mismo `Game.id` (`steam:{appid}`) que produce `SteamSource` arriba.
 
+En la vista Juegos, "Filtros y orden" tiene una sección **"Instalación"**
+(`stores/library.js::installFilter`, persistente: Todos/Instalados/No
+instalados) para aislar los "fantasmas" sin tener que buscarlos a simple
+vista entre el resto de la biblioteca.
+
 ## Pendiente
 
 - **Epic** (`.item` en `…/Epic/EpicGamesLauncher/Data/Manifests`), **vincular-cuenta**

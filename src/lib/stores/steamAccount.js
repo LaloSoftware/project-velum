@@ -11,6 +11,7 @@ import {
   steamLibraryCache,
   steamSyncAchievements,
   steamAchievements,
+  steamAchievementsSummary,
 } from "../ipc/index.js";
 
 /*
@@ -147,6 +148,24 @@ export async function mergeCachedSteamGhosts() {
   } catch (e) {
     console.warn("[gm:steam] no se pudo leer el caché de biblioteca al arrancar", e);
   }
+  await loadAchievementSummaries();
+}
+
+// Resumen unlocked/total de logros por juego (appid -> {unlocked, total}),
+// para marcar en las tarjetas los juegos 100% completados sin abrir el
+// Detalle de cada uno (ver GameCard.svelte). Lee del caché SQLite, sin red —
+// se recarga al arrancar (junto con mergeCachedSteamGhosts) y tras cada sync.
+export const steamAchievementSummaries = writable(new Map());
+
+export async function loadAchievementSummaries() {
+  const acc = get(steamAccount);
+  if (!acc || !isTauri) return;
+  try {
+    const rows = await steamAchievementsSummary(acc.steamid);
+    steamAchievementSummaries.set(new Map(rows.map((r) => [r.appid, r])));
+  } catch (e) {
+    console.warn("[gm:steam] no se pudo leer el resumen de logros", e);
+  }
 }
 
 export async function linkAccount(profileInput, apiKey) {
@@ -217,6 +236,7 @@ export async function syncNow({ silent = false, full = false } = {}) {
       // flotante avisa del resumen (y de los errores, si hubo) sin
       // interrumpir con un toast/error modal disruptivo.
       showSyncSummary(achSummary);
+      await loadAchievementSummaries();
     } else {
       console.log("[gm:steam] sin juegos nuevos/con cambios de playtime — se omite sincronizar logros");
     }

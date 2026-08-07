@@ -10,9 +10,9 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 // Acciones asignables (con etiqueta para la UI de remapeo).
 export const ACTIONS = [
   { id: "accept", label: "Aceptar / Jugar" },
-  { id: "north", label: "Detalle · Espacio (teclado)" },
+  { id: "north", label: "Detalle" },
   { id: "back", label: "Volver / Cancelar" },
-  { id: "west", label: "Borrar (teclado)" },
+  { id: "west", label: "Menú de tarjeta (alterno)" },
   { id: "menu", label: "Menú Configuración" },
   { id: "quick", label: "Menú Sistema (QAM)" },
   { id: "tabLeft", label: "Pestaña anterior" },

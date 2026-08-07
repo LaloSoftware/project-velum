@@ -10,12 +10,20 @@
     setDetailSections,
     openAchievements,
   } from "../stores/ui.js";
-  import { startPlay } from "../stores/playsession.js";
+  import { startPlay, startSteamDownload } from "../stores/playsession.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
-  import { gameView, GAME_VIEW_FIELDS, setGameViewField } from "../stores/uiprefs.js";
+  import {
+    gameView,
+    GAME_VIEW_FIELDS,
+    setGameViewField,
+    metaBgVisible,
+    metaBgOpacity,
+    completedBadgeEnabled,
+    completedGlowEnabled,
+  } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
   import { steamAccount, steamSyncing, steamSyncSummary, loadAchievements } from "../stores/steamAccount.js";
@@ -76,8 +84,14 @@
     : 0;
   // El "próximo a desbloquear" puede ser un logro spoiler (`hidden`) — no
   // reventar el nombre/ícono real en el badge/sección, mismo criterio que
-  // AchievementsModal.
-  $: badgeIsSpoiler = !!(badgeAchievement && badgeAchievement.hidden && !badgeAchievement.achieved);
+  // AchievementsModal (salvo que el jugador haya activado "Mostrar logros
+  // ocultos").
+  $: badgeIsSpoiler = !!(
+    badgeAchievement &&
+    badgeAchievement.hidden &&
+    !badgeAchievement.achieved &&
+    !$gameView.revealHiddenAchievements
+  );
   $: badgeName = badgeIsSpoiler ? "Logro oculto" : badgeAchievement?.displayName || badgeAchievement?.apiname;
   $: badgeIcon = badgeIsSpoiler
     ? null
@@ -87,6 +101,14 @@
   // menú paginado — nunca las dos a la vez, y solo si de verdad hay datos.
   $: showAchievementsBadge = $gameView.achievements && hasAchievementsData;
   $: showAchievementsSection = !$gameView.achievements && hasAchievementsData;
+  // 100% completado — insignia de texto y brillo son interruptores
+  // independientes (mismos tokens/criterio que GameCard.svelte).
+  $: achievementsComplete = steamAchievementsList.length > 0 && unlockedCount === steamAchievementsList.length;
+  $: showAchBadgeComplete = achievementsComplete && $completedBadgeEnabled;
+  $: showAchGlowComplete = achievementsComplete && $completedGlowEnabled;
+  // Últimos 3 logros desbloqueados, para la variante "sección" (más espacio
+  // disponible ahí que en el badge flotante — ver showAchievementsSection).
+  $: recentUnlocked = steamAchievementsList.filter((a) => a.achieved).slice(0, 3);
 
   // Secciones del menú paginado: "logros" se antepone a las fijas cuando
   // corresponde mostrarla (ver showAchievementsSection). Se expone vía store
@@ -194,29 +216,49 @@
   }
 
   $: notInstalled = game?.installed === false;
+  // Juego de Steam de la cuenta vinculada, no instalado local: en vez del
+  // botón "Jugar" desactivado, uno que abre Steam en la página de este juego
+  // para instalarlo (steam://install/<appid>, ver launch.rs).
+  $: canDownloadFromSteam = notInstalled && game?.store === "steam" && !!$steamAccount;
 
   async function play() {
     if (notInstalled) return;
     await startPlay(game);
   }
+
+  // Misma suspensión que un juego real (overlay + bloqueo de input) — ver
+  // stores/playsession.js::startSteamDownload para el porqué (si no, el poll
+  // de XInput suplementario sigue leyendo el mando en segundo plano mientras
+  // Steam tiene el foco, y confirmar la instalación con el control reabría
+  // esta misma acción).
+  async function downloadFromSteam() {
+    await startSteamDownload(game, steamAppid);
+  }
 </script>
 
 {#snippet achievementBadge()}
-  <!-- Badge de logros: último obtenido o próximo a desbloquear + progreso.
-       Sube si hay una sync en curso para no solaparse con SteamSyncIndicator
-       (misma esquina, fixed a nivel de toda la app). -->
+  <!-- Badge de logros: encabezado, progreso y (abajo) el último obtenido o
+       próximo a desbloquear. Sube si hay una sync en curso para no solaparse
+       con SteamSyncIndicator (misma esquina, fixed a nivel de toda la app).
+       Al 100%: insignia de texto y brillo son interruptores independientes
+       (Ajustes → Apariencia → "Resaltado de 100% completado"), mismo color
+       compartido que la tarjeta (GameCard.svelte). -->
   <button
     class="ach-badge"
     class:raised={$steamSyncing || !!$steamSyncSummary}
+    class:complete={showAchGlowComplete}
     data-focusable
     tabindex="-1"
     on:click={() => openAchievements(steamAppid, game.title)}
   >
-    {#if badgeIcon}<img class="ach-badge-icon" src={badgeIcon} alt="" />{/if}
-    <div class="ach-badge-text">
-      <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
+    {#if showAchBadgeComplete}
+      <span class="ach-badge-tag" title="Logros 100% completados">100%</span>
+    {/if}
+    <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
+    <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
+    <div class="ach-badge-last">
+      {#if badgeIcon}<img class="ach-badge-icon" src={badgeIcon} alt="" />{/if}
       <div class="ach-badge-name">{badgeName}</div>
-      <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
     </div>
   </button>
 {/snippet}
@@ -244,7 +286,7 @@
     {#if showAchievementsBadge && !$gameView.achievementsBadgeFixed}
       {@render achievementBadge()}
     {/if}
-    <div class="content">
+    <div class="content" style="--meta-bg-opacity: {$metaBgVisible ? $metaBgOpacity : 0}">
       {#if $gameView.platform}<span class="store">{STORE_LABEL[game.store] || game.store}</span>{/if}
       {#if $gameView.title}<h1>{game.title}</h1>{/if}
       {#if $gameView.lastPlayed}<p class="meta">{fmtLast(game.lastPlayed)}</p>{/if}
@@ -254,28 +296,42 @@
       {#if $gameView.steamLastPlayed && steamAppid && $steamAccount}<p class="meta dim">{formatSteamLastPlayed(steamLastPlayedAt)}</p>{/if}
 
       <div class="actions">
-        <button
-          class="play"
-          class:disabled={notInstalled}
-          data-focusable={!$detailExpanded && !notInstalled ? "" : undefined}
-          data-focus-default={!notInstalled}
-          tabindex="-1"
-          title={notInstalled ? `Instálalo desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo` : undefined}
-          on:click={play}
-        >
-          ▶ Jugar
-        </button>
+        {#if canDownloadFromSteam}
+          <button
+            class="play"
+            data-focusable={!$detailExpanded ? "" : undefined}
+            data-focus-default
+            tabindex="-1"
+            on:click={downloadFromSteam}
+          >
+            ⬇ Descargar desde Steam
+          </button>
+        {:else}
+          <button
+            class="play"
+            class:disabled={notInstalled}
+            data-focusable={!$detailExpanded && !notInstalled ? "" : undefined}
+            data-focus-default={!notInstalled}
+            tabindex="-1"
+            title={notInstalled ? `Instálalo desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo` : undefined}
+            on:click={play}
+          >
+            ▶ Jugar
+          </button>
+        {/if}
         <button
           class="back"
           data-focusable={!$detailExpanded ? "" : undefined}
-          data-focus-default={notInstalled ? "" : undefined}
+          data-focus-default={notInstalled && !canDownloadFromSteam ? "" : undefined}
           tabindex="-1"
           on:click={back}
         >
           Volver
         </button>
       </div>
-      {#if notInstalled}
+      {#if canDownloadFromSteam}
+        <p class="install-hint">Se abre Steam en la página de este juego para instalarlo.</p>
+      {:else if notInstalled}
         <p class="install-hint">
           Instálalo desde {STORE_LABEL[game.store] || game.store} para poder jugarlo.
         </p>
@@ -303,7 +359,23 @@
           {#if sections[$detailSection] === "logros"}
             <section class="msection" data-focus-group="logros" data-detail-top>
               <h3>Logros de {STORE_LABEL[game.store] || game.store}</h3>
-              {#if badgeAchievement}
+              <!-- Más espacio disponible acá que en el badge flotante — se
+                   muestran hasta 3 desbloqueados en vez de solo el último.
+                   Si todavía no hay ninguno, se cae al próximo a desbloquear
+                   (badgeAchievement), igual que antes. -->
+              {#if recentUnlocked.length}
+                {#each recentUnlocked as a (a.apiname)}
+                  <div class="ach-inline">
+                    {#if (!a.achieved && a.iconGrayUrl) || a.iconUrl}
+                      <img class="ach-inline-icon" src={(!a.achieved && a.iconGrayUrl) || a.iconUrl} alt="" />
+                    {/if}
+                    <div>
+                      <div class="ach-inline-name">{a.displayName || a.apiname}</div>
+                      <div class="ach-inline-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
+                    </div>
+                  </div>
+                {/each}
+              {:else if badgeAchievement}
                 <div class="ach-inline">
                   {#if badgeIcon}<img class="ach-inline-icon" src={badgeIcon} alt="" />{/if}
                   <div>
@@ -430,12 +502,29 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.72));
+    /* Antes rgba(0,0,0,0.72) fijo: en temas claros el texto pasa a oscuro
+       (--gm-text) pero este degradado seguía siendo negro, quedando texto
+       oscuro sobre un velo oscuro — mala lectura sin importar el fondo de
+       metadatos. --gm-bg (ya tematizado, oscuro o claro) resuelve el
+       contraste de raíz en vez de compensar solo con la opacidad del fondo
+       configurable. */
+    background: linear-gradient(
+      180deg,
+      transparent 30%,
+      color-mix(in srgb, var(--gm-bg) 82%, transparent)
+    );
   }
   .content {
     position: relative;
     z-index: 1;
     max-width: 720px;
+    padding: 20px 24px;
+    border-radius: var(--gm-radius-lg);
+    /* Fondo configurable (Ajustes → "Fondo de metadatos"): --meta-bg-opacity
+       es un número 0-100 fijado inline desde $metaBgOpacity (0 si
+       $metaBgVisible está apagado) — se adapta al tema/perfil activo en vez
+       de un negro fijo, igual que el resto de superficies elevadas. */
+    background: color-mix(in srgb, var(--gm-bg-elev) calc(var(--meta-bg-opacity, 0) * 1%), transparent);
   }
   /* Logo superpuesto al hero, posicionado por preset 3×3 (ver ArtEditor). */
   .hero-logo {
@@ -456,7 +545,7 @@
     color: var(--gm-accent-2);
     letter-spacing: 1px;
     text-transform: uppercase;
-    font-size: 0.85rem;
+    font-size: 1rem;
   }
   h1 {
     font-size: 3rem;
@@ -464,12 +553,13 @@
     font-weight: var(--gm-title-weight);
   }
   .meta {
-    margin: 2px 0;
+    margin: 4px 0;
+    font-size: 1.15rem;
     color: var(--gm-text);
   }
   .meta.dim {
     color: var(--gm-text-dim);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
   }
   .actions {
     margin-top: 26px;
@@ -660,60 +750,90 @@
     box-shadow: var(--gm-focus-ring);
   }
 
-  /* Badge de logros (Fase 9f): esquina inferior derecha del Detalle, mismo
-     estilo "chip" que el resto de la app. Sube (.raised) si hay una sync en
-     curso, para no solaparse con SteamSyncIndicator (misma esquina, pero
-     fixed a nivel de toda la app, z-index 90). */
+  /* Badge de logros (Fase 9f, agrandado/reordenado en el ajuste de logros):
+     esquina inferior derecha del Detalle, mismo estilo "chip" que el resto de
+     la app. Orden: encabezado → progreso → último logro (icono+nombre) abajo.
+     Sube (.raised) si hay una sync en curso, para no solaparse con
+     SteamSyncIndicator (misma esquina, pero fixed a nivel de toda la app,
+     z-index 90). Al 100%: insignia de texto (.ach-badge-tag, abajo) y brillo
+     (.complete) son interruptores independientes, mismo color compartido que
+     GameCard.svelte. */
   .ach-badge {
     position: absolute;
     right: var(--gm-pad);
     bottom: 18px;
     z-index: 5;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    max-width: 320px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    text-align: left;
+    max-width: 420px;
     cursor: pointer;
     background: var(--gm-bg-elev);
     border-radius: var(--gm-radius-lg);
-    padding: 10px 16px;
+    padding: 18px 26px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     /* transform, no "bottom": anima solo compositing (sin layout thrash). */
     transition: transform 0.2s ease;
   }
   .ach-badge.raised {
-    transform: translateY(-52px);
+    transform: translateY(-64px);
+  }
+  /* Brillo al 100% — interruptor independiente de la insignia de texto
+     (Ajustes → Apariencia → "Resaltado de 100% completado"). */
+  .ach-badge.complete {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.35),
+      0 0 0 2px var(--gm-complete),
+      0 0 18px 3px color-mix(in srgb, var(--gm-complete) 55%, transparent);
   }
   .ach-badge:focus {
     box-shadow: var(--gm-focus-ring);
   }
-  .ach-badge-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    flex-shrink: 0;
-  }
-  .ach-badge-text {
-    min-width: 0;
-    text-align: left;
+  /* Insignia de texto al 100% — interruptor independiente del brillo de
+     arriba, mismo estilo que el badge "100%" de GameCard.svelte. */
+  .ach-badge-tag {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gm-complete) 85%, black);
+    color: #04140d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
   .ach-badge-title {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     color: var(--gm-accent-2);
   }
-  .ach-badge-name {
+  .ach-badge-progress {
+    font-size: 1rem;
     font-weight: 700;
-    font-size: 0.9rem;
     color: var(--gm-text);
+  }
+  .ach-badge-last {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .ach-badge-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .ach-badge-name {
+    font-size: 0.95rem;
+    color: var(--gm-text-dim);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .ach-badge-progress {
-    font-size: 0.78rem;
-    color: var(--gm-text-dim);
   }
 </style>

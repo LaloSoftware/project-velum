@@ -1,7 +1,14 @@
 <script>
   import { filtersModal, closeFilters } from "../stores/ui.js";
   import { onlyGames, onlyApps } from "../stores/games.js";
-  import { filterList, activeFilter, setFilter } from "../stores/library.js";
+  import {
+    filterList,
+    activeFilter,
+    setFilter,
+    installFilter,
+    INSTALL_FILTER_OPTIONS,
+    setInstallFilter,
+  } from "../stores/library.js";
   import {
     sortGames,
     sortApps,
@@ -51,6 +58,23 @@
                 on:click={() => pickCategory(c.id)}
               >
                 {c.label}
+              </button>
+            {/each}
+          </div>
+        </section>
+
+        <section class="block">
+          <h3>Instalación</h3>
+          <div class="cats">
+            {#each INSTALL_FILTER_OPTIONS as o (o.value)}
+              <button
+                class="cat"
+                class:sel={$installFilter === o.value}
+                data-focusable
+                tabindex="-1"
+                on:click={() => setInstallFilter(o.value)}
+              >
+                {o.label}
               </button>
             {/each}
           </div>

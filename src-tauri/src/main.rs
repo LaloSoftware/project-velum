@@ -47,6 +47,7 @@ fn main() {
             launch::launch_game,
             launch::focus_game,
             launch::uninstall_game,
+            launch::steam_open_install,
             assets::read_image,
             assets::read_audio,
             config::load_config,
@@ -59,6 +60,7 @@ fn main() {
             steam_api::library::steam_library,
             steam_api::achievements::steam_sync_achievements,
             steam_api::achievements::steam_achievements,
+            steam_api::achievements::steam_achievements_summary,
             steam_api::global_achievements::steam_global_achievement_percentages,
         ])
         .run(tauri::generate_context!())
