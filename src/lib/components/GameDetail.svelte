@@ -26,7 +26,13 @@
   } from "../stores/uiprefs.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
-  import { steamAccount, steamSyncing, steamSyncSummary, loadAchievements } from "../stores/steamAccount.js";
+  import {
+    steamAccount,
+    steamSyncing,
+    steamSyncSummary,
+    loadAchievements,
+    syncGameNow,
+  } from "../stores/steamAccount.js";
   import { steamLibraryCache } from "../ipc/index.js";
 
   export let game;
@@ -111,11 +117,17 @@
   $: recentUnlocked = steamAchievementsList.filter((a) => a.achieved).slice(0, 3);
 
   // Secciones del menú paginado: "logros" se antepone a las fijas cuando
-  // corresponde mostrarla (ver showAchievementsSection). Se expone vía store
-  // (DETAIL_SECTIONS) porque App.svelte necesita el conteo para saber cuándo
-  // "abajo" debe pasar a la siguiente sección (detailDown()).
+  // corresponde mostrarla (ver showAchievementsSection); "sync" se agrega al
+  // final si hay cuenta de Steam vinculada y el juego es de Steam (ver
+  // canSyncAchievements, más abajo). Se expone vía store (DETAIL_SECTIONS)
+  // porque App.svelte necesita el conteo para saber cuándo "abajo" debe pasar
+  // a la siguiente sección (detailDown()).
   const BASE_SECTIONS = ["grupos", "imagenes", "soundtrack", "vista"];
-  $: sections = showAchievementsSection ? ["logros", ...BASE_SECTIONS] : BASE_SECTIONS;
+  $: sections = [
+    ...(showAchievementsSection ? ["logros"] : []),
+    ...BASE_SECTIONS,
+    ...(canSyncAchievements ? ["sync"] : []),
+  ];
   $: setDetailSections(sections);
 
   // `sections` puede cambiar de composición mientras el usuario ya está
@@ -220,6 +232,14 @@
   // botón "Jugar" desactivado, uno que abre Steam en la página de este juego
   // para instalarlo (steam://install/<appid>, ver launch.rs).
   $: canDownloadFromSteam = notInstalled && game?.store === "steam" && !!$steamAccount;
+  // Sección "Steam" del menú (sincronizar logros de este juego puntual):
+  // mismo criterio que canDownloadFromSteam, sin depender de si está instalado.
+  $: canSyncAchievements = steamAppid && !!$steamAccount;
+
+  async function syncThisGame() {
+    await syncGameNow(steamAppid);
+    steamAchievementsList = await loadAchievements(steamAppid);
+  }
 
   async function play() {
     if (notInstalled) return;
@@ -422,6 +442,26 @@
             <section class="msection" data-focus-group="soundtrack" data-detail-top>
               <h3>Soundtrack</h3>
               <SoundtrackEditor {game} />
+            </section>
+          {:else if sections[$detailSection] === "sync"}
+            <section class="msection" data-focus-group="sync" data-detail-top>
+              <h3>Steam</h3>
+              <p class="meta dim">Fuerza una resincronización de los logros de este juego con Steam.</p>
+              <!-- Sin `disabled` nativo mientras sincroniza: un botón enfocado
+                   que pasa a disabled pierde el foco del DOM (document.activeElement
+                   cae a <body>) y rompe la navegación por mando hasta el
+                   próximo movimiento direccional — mismo bug que el botón
+                   "Sincronizar ahora" de Cuentas. syncGameNow ya se guarda
+                   contra reentradas por su cuenta. -->
+              <button
+                class="chip"
+                class:syncing={$steamSyncing}
+                data-focusable
+                tabindex="-1"
+                on:click={syncThisGame}
+              >
+                {$steamSyncing ? "Sincronizando…" : "🔄 Sincronizar logros"}
+              </button>
             </section>
           {:else}
             <section class="msection" data-focus-group="vista-juego" data-detail-top>
@@ -713,6 +753,12 @@
   }
   .msection .chip:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  /* Estado ocupado del botón de sync (sección "Steam") — sin `disabled`
+     nativo a propósito, ver comentario junto al botón en el markup. */
+  .msection .chip.syncing {
+    opacity: 0.6;
+    cursor: default;
   }
 
   /* Toggles de "Vista de juego" (mismo patrón que Ajustes > Apariencia). */

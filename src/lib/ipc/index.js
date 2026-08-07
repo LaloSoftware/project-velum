@@ -230,8 +230,8 @@ export async function steamSyncLibrary(steamid, includePlayedFreeGames) {
 export async function steamLibraryCache(steamid) {
   return invoke("steam_library", { steamid });
 }
-export async function steamSyncAchievements(steamid, appids) {
-  return invoke("steam_sync_achievements", { steamid, appids });
+export async function steamSyncAchievements(steamid, appids, force = false) {
+  return invoke("steam_sync_achievements", { steamid, appids, force });
 }
 export async function steamAchievements(steamid, appid) {
   return invoke("steam_achievements", { steamid, appid });

@@ -248,6 +248,34 @@ export async function syncNow({ silent = false, full = false } = {}) {
   }
 }
 
+// Sincroniza logros de UN solo juego (sección "Steam" del Detalle) — mismo
+// camino que syncNow pero sin steamSyncLibrary/GetOwnedGames (no hace falta
+// releer toda la biblioteca solo para revisar el juego que el jugador ya
+// tiene abierto) y con `force: true`: al ser un solo juego no hay problema de
+// costo en red, así que se ignora schema_cache por completo (ver `force` en
+// steam_sync_achievements/sync_one_game) en vez de confiar en cualquier
+// negativo cacheado — la vía manual para no esperar el recheck automático
+// (p. ej. un juego predescargado que recién lanzó y ganó logros).
+export async function syncGameNow(appid) {
+  const acc = get(steamAccount);
+  if (!acc || get(steamSyncing)) return;
+  steamSyncing.set(true);
+  steamSyncProgress.set(null);
+  try {
+    await listenSteamProgress();
+    const achSummary = await steamSyncAchievements(acc.steamid, [appid], true);
+    progressUnlisten?.();
+    showToast(`Logros actualizados en ${achSummary.achievementsSynced} juego(s)`);
+    showSyncSummary(achSummary);
+    await loadAchievementSummaries();
+  } catch (e) {
+    reportError(e, "steamAccount:syncGameNow");
+  } finally {
+    steamSyncing.set(false);
+    steamSyncProgress.set(null);
+  }
+}
+
 // Logros cacheados de un juego (ya con nombre/descripción/ícono resueltos por
 // el backend) — los consume GameDetail.svelte.
 export async function loadAchievements(appid) {
