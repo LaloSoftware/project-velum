@@ -13,6 +13,7 @@
     homeScrollMode,
     homeReading,
     homeCardAlign,
+    homeBgFade,
   } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
@@ -148,7 +149,11 @@
 
 <section class="home" style="justify-content: {isVertical ? blockJustify : 'flex-start'}">
   {#if bgUrl}
-    <div class="bg" style="background-image: url('{bgUrl}')" transition:fade={{ duration: 280 }}></div>
+    <div
+      class="bg"
+      style="background-image: url('{bgUrl}'); opacity: {$homeBgFade / 100}"
+      transition:fade={{ duration: 280 }}
+    ></div>
   {/if}
 
   <div
@@ -210,14 +215,16 @@
        (posición del bloque izquierda/centro/derecha). */
   }
   /* Fondo hero a pantalla completa, difuminado arriba/abajo hacia el tema
-     (la máscara lo desvanece a transparente y deja ver el wallpaper del tema). */
+     (la máscara lo desvanece a transparente y deja ver el wallpaper del tema).
+     La opacidad va inline (style, ver markup) — configurable por el usuario
+     vía homeBgFade (Ajustes → Apariencia → "Difuminado de fondo"), 55%
+     (0.55) es el valor por default que antes estaba fijo acá. */
   .bg {
     position: absolute;
     inset: 0;
     background-size: cover;
     background-position: center 22%;
     z-index: 0;
-    opacity: 0.55;
     -webkit-mask-image: linear-gradient(
       to bottom,
       transparent 0%,

@@ -175,6 +175,37 @@ export const CLOCK_POSITION_OPTIONS = [
 ];
 export const clockPosition = writable("right");
 
+// Posición en pantalla de las notificaciones flotantes (por ahora: mando
+// conectado/desconectado, GamepadNotice.svelte; ver Ajustes → Notificaciones).
+// Preset de 8 posiciones (grid 3×3 sin el centro-centro, que taparía
+// contenido) — mismo esquema de códigos que el preset 3×3 del logo en
+// ArtEditor.svelte (LOGO_POSITIONS: tl/tc/tr/ml/mr/bl/bc/br), reutilizado acá
+// para que el picker visual sea el mismo patrón.
+export const NOTIFY_POSITIONS = [
+  { code: "tl", label: "Arriba izquierda" },
+  { code: "tc", label: "Arriba centro" },
+  { code: "tr", label: "Arriba derecha" },
+  { code: "ml", label: "Centro izquierda" },
+  { code: "mr", label: "Centro derecha" },
+  { code: "bl", label: "Abajo izquierda" },
+  { code: "bc", label: "Abajo centro" },
+  { code: "br", label: "Abajo derecha" },
+];
+// "br" (esquina inferior derecha): mismo lugar donde ya viven el indicador de
+// sync de Steam y su resumen (SteamSyncIndicator/SteamSyncSummaryBadge), para
+// no sorprender a instalaciones existentes con el default.
+export const notifyPosition = writable("br");
+
+// Difuminado del fondo (hero) de Inicio — intensidad de opacidad de la foto
+// antes de desvanecerse al wallpaper del tema (Home.svelte .bg); más alto =
+// fondo más visible/nítido, más bajo = más difuminado/tenue. Mismo patrón que
+// metaBgOpacity (slider 0-100 persistido por perfil), aplicado a Inicio en
+// vez de al fondo de metadatos del Detalle.
+export const HOME_BG_FADE_MIN = 0;
+export const HOME_BG_FADE_MAX = 100;
+const HOME_BG_FADE_DEFAULT = 55; // valor que ya traía Home.svelte hardcodeado
+export const homeBgFade = writable(HOME_BG_FADE_DEFAULT);
+
 // Cada campo de "Apariencia" se guarda en el perfil activo (ver profiles.js).
 // syncFromActiveProfile() aplica los campos del perfil activo a estos stores
 // (con sus defaults si el perfil todavía no los tiene) y se reejecuta sola
@@ -224,6 +255,12 @@ function syncFromActiveProfile() {
     Number.isFinite(p.metaBgOpacity)
       ? Math.min(META_BG_OPACITY_MAX, Math.max(META_BG_OPACITY_MIN, p.metaBgOpacity))
       : META_BG_OPACITY_DEFAULT[themeKind(p.baseTheme)]
+  );
+  notifyPosition.set(NOTIFY_POSITIONS.some((o) => o.code === p.notifyPosition) ? p.notifyPosition : "br");
+  homeBgFade.set(
+    Number.isFinite(p.homeBgFade)
+      ? Math.min(HOME_BG_FADE_MAX, Math.max(HOME_BG_FADE_MIN, p.homeBgFade))
+      : HOME_BG_FADE_DEFAULT
   );
 }
 
@@ -416,4 +453,17 @@ export async function setClockPosition(v) {
   if (!CLOCK_POSITION_OPTIONS.some((o) => o.value === v)) return;
   clockPosition.set(v);
   await updateActive({ clockPosition: v });
+}
+
+export async function setNotifyPosition(code) {
+  if (!NOTIFY_POSITIONS.some((o) => o.code === code)) return;
+  notifyPosition.set(code);
+  await updateActive({ notifyPosition: code });
+}
+
+export async function setHomeBgFade(v) {
+  const n = Math.min(HOME_BG_FADE_MAX, Math.max(HOME_BG_FADE_MIN, Number(v)));
+  if (!Number.isFinite(n)) return;
+  homeBgFade.set(n);
+  await updateActive({ homeBgFade: n });
 }

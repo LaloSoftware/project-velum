@@ -36,6 +36,14 @@ vkCancel | vkConfirm`.
      moderna, sin el límite de foco de WGI ni el de solo-cable de XInput clásico) — sin
      binding maduro en Rust hoy, quedaría un binding FFI/COM propio, fuera de alcance por
      ahora. **Mientras tanto: usar los mandos por cable** en la PC de la sala.
+   - **Notificación de mando conectado/desconectado**: `input.rs` también emite
+     `gm://gamepad-connection` (`{ name, connected }`) en `Connected`/`Disconnected` de
+     `gilrs` — solo desde `start_gamepad_thread`, no desde el poll de XInput (`Connected`
+     de `gilrs` ya llega para mandos Driver/XInput-class aunque sus botones no, ver arriba;
+     emitir también desde el poll duplicaría el aviso del mismo mando físico). Consumido en
+     `src/lib/input/index.js::initTauriGamepad()` → `stores/gamepads.js` →
+     `GamepadNotice.svelte` (posición configurable en Ajustes → Notificaciones, ver
+     `docs/theming.md`).
 2. **Teclado y mouse** (siempre) — mapean a acciones vía `src/lib/stores/keyBindings.js`,
    un store **independiente y configurable** en paralelo al de mando (mismo mecanismo de
    swap al reasignar). Las flechas son la única excepción: navegación fija, no remapeable

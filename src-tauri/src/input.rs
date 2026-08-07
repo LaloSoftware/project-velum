@@ -44,6 +44,22 @@ fn emit_dir(app: &AppHandle, name: &str) {
     );
 }
 
+#[derive(Clone, Serialize)]
+struct GamepadConnectionEvent {
+    name: String,
+    connected: bool,
+}
+
+/// Notificación flotante de "mando conectado/desconectado" en el frontend
+/// (`GamepadNotice.svelte`) — solo se emite desde `start_gamepad_thread`
+/// (gilrs), no desde `start_xinput_poll_thread`: `Connected`/`Disconnected`
+/// de gilrs ya llega para mandos clase XInput/Driver en Windows aunque sus
+/// botones no (ver comentario grande más abajo), así que emitir también desde
+/// el hilo de XInput duplicaría la notificación del mismo mando físico.
+fn emit_gamepad_connection(app: &AppHandle, name: String, connected: bool) {
+    let _ = app.emit("gm://gamepad-connection", GamepadConnectionEvent { name, connected });
+}
+
 /// Nombre crudo del botón de acción (el frontend lo mapea a una acción).
 fn button_name(b: Button) -> Option<&'static str> {
     Some(match b {
@@ -151,9 +167,11 @@ pub fn start_gamepad_thread(app: AppHandle) {
                             gp.product_id(),
                             gp.mapping_source()
                         );
+                        emit_gamepad_connection(&app, gp.name().to_string(), true);
                     }
                     EventType::Disconnected => {
                         println!("[input] Disconnected id={id:?}");
+                        emit_gamepad_connection(&app, gilrs.gamepad(id).name().to_string(), false);
                     }
                     EventType::Dropped => {
                         println!("[input] Dropped id={id:?}");

@@ -17,6 +17,7 @@ import { isTauri } from "../ipc/index.js";
 import { resolve } from "../stores/bindings.js";
 import { resolveKeyBinding } from "../stores/keyBindings.js";
 import { inputSource } from "../stores/inputSource.js";
+import { showGamepadNotice } from "../stores/gamepads.js";
 import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 import { comboShortcuts } from "../stores/comboShortcuts.js";
 import { resolveVk } from "../stores/vkBindings.js";
@@ -294,6 +295,12 @@ async function initTauriGamepad() {
   try {
     const { listen } = await import("@tauri-apps/api/event");
     await listen("gm://input", (event) => handleRaw(event.payload));
+    // Notificación flotante de conectado/desconectado (GamepadNotice.svelte) —
+    // evento aparte de "gm://input" (ese es solo navegación/botones crudos).
+    await listen("gm://gamepad-connection", (event) => {
+      const { name, connected } = event.payload;
+      showGamepadNotice(name, connected);
+    });
   } catch (err) {
     console.warn("No se pudo suscribir a eventos de mando de Tauri:", err);
   }
