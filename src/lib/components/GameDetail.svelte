@@ -90,13 +90,15 @@
     : 0;
   // El "próximo a desbloquear" puede ser un logro spoiler (`hidden`) — no
   // reventar el nombre/ícono real en el badge/sección, mismo criterio que
-  // AchievementsModal (salvo que el jugador haya activado "Mostrar logros
-  // ocultos").
+  // AchievementsModal: se revela con "Mostrar logros ocultos" o con "Ver %
+  // global" (si ya estás viendo estadísticas globales del logro, no tiene
+  // sentido seguir ocultando su nombre).
   $: badgeIsSpoiler = !!(
     badgeAchievement &&
     badgeAchievement.hidden &&
     !badgeAchievement.achieved &&
-    !$gameView.revealHiddenAchievements
+    !$gameView.revealHiddenAchievements &&
+    !$gameView.showGlobalPct
   );
   $: badgeName = badgeIsSpoiler ? "Logro oculto" : badgeAchievement?.displayName || badgeAchievement?.apiname;
   $: badgeIcon = badgeIsSpoiler
