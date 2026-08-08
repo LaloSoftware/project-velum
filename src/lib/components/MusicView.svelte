@@ -4,7 +4,14 @@
   import { playlists, createPlaylist } from "../stores/playlists.js";
   import { playAlbum, playPlaylist } from "../stores/musicPlayer.js";
   import { openKeyboard } from "../stores/keyboard.js";
-  import { showToast, reportError, musicFooterMode } from "../stores/ui.js";
+  import {
+    showToast,
+    reportError,
+    musicFooterMode,
+    musicDetail,
+    openMusicDetail,
+    closeMusicDetail,
+  } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
   import { focusFirstIn } from "../input/navigation.js";
   import MusicAlbumDetail from "./MusicAlbumDetail.svelte";
@@ -12,20 +19,36 @@
   import NowPlayingView from "./NowPlayingView.svelte";
 
   let tab = "albums"; // "albums" | "playlists" | "nowplaying"
-  let activeAlbum = null;
-  let activePlaylist = null;
   let gridEl;
+
+  // Álbum/lista abierto: en el store global `musicDetail` (no estado local) —
+  // así el atajo "atrás" (handleBack en App.svelte) lo reconoce y solo cierra
+  // el detalle en vez de caer al fallback de ir a Inicio.
+  $: activeAlbum = $musicDetail?.type === "album" ? $musicDetail.item : null;
+  $: activePlaylist = $musicDetail?.type === "playlist" ? $musicDetail.item : null;
 
   onMount(() => {
     syncLibraryRoots();
   });
+  onDestroy(() => {
+    musicFooterMode.set(null);
+    closeMusicDetail();
+  });
 
   // Footer de atajos (App.svelte): refleja lo que A/Y hacen realmente en cada
-  // pantalla de Música (ver docs/input.md / plan de fixes). Se resetea al
-  // desmontar — cubre solo/automáticamente salir a Imágenes/Videos o de
-  // Multimedia entera.
+  // pantalla de Música (ver docs/input.md / plan de fixes).
   $: musicFooterMode.set(activeAlbum ? "album" : activePlaylist ? "playlist" : tab === "nowplaying" ? null : "grid");
-  onDestroy(() => musicFooterMode.set(null));
+
+  // Reenfoca la grilla cuando el detalle se cierra desde CUALQUIER lado (el
+  // botón "← Volver" o el atajo global "atrás", ambos pasan por
+  // closeMusicDetail/musicDetail=null) — un solo punto en vez de duplicar el
+  // focusFirstIn en cada vía de cierre.
+  let wasDetailOpen = false;
+  $: {
+    const open = !!$musicDetail;
+    if (wasDetailOpen && !open) tick().then(() => focusFirstIn(gridEl));
+    wasDetailOpen = open;
+  }
 
   function hue(str) {
     let h = 0;
@@ -77,20 +100,19 @@
   }
 
   async function openAlbum(album) {
-    activeAlbum = album;
+    openMusicDetail("album", album);
     await tick();
     focusFirstIn(gridEl);
   }
   async function openPlaylist(pl) {
-    activePlaylist = pl;
+    openMusicDetail("playlist", pl);
     await tick();
     focusFirstIn(gridEl);
   }
-  async function backToGrid() {
-    activeAlbum = null;
-    activePlaylist = null;
-    await tick();
-    focusFirstIn(gridEl);
+  // El reenfoque a la grilla lo hace el bloque reactivo de arriba
+  // (wasDetailOpen) — funciona igual venga de acá o del atajo "atrás".
+  function backToGrid() {
+    closeMusicDetail();
   }
 
   async function selectTab(id) {

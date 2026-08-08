@@ -69,6 +69,8 @@
     appError,
     clearAppError,
     musicFooterMode,
+    musicDetail,
+    closeMusicDetail,
     goto,
     openOverlay,
     closeOverlay,
@@ -484,6 +486,11 @@
       return a?.focus({ preventScroll: true });
     }
     if ($overlay) return closeOverlay();
+    // Álbum/lista abierto dentro de Música (Multimedia) — sin esto, "atrás"
+    // no reconocía este estado (vivía local en MusicView.svelte) y caía
+    // directo al fallback de abajo, mandando a Inicio en vez de solo salir
+    // del álbum/disco.
+    if ($musicDetail) return closeMusicDetail();
     if ($view !== "home") return goto("home");
   }
 

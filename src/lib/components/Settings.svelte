@@ -665,14 +665,18 @@
     box-shadow: var(--gm-focus-ring);
   }
   /* Mismo criterio que .sizerow (abajo): width:100% para que el contenedor
-     ocupe casi toda la fila y la navegación vertical con el mando caiga
-     directo en los botones en vez de saltarlos — antes esto era un bloque
-     angosto alineado a la izquierda, fuera del patrón .rows/.row de la
-     sección, y rompía el "abajo" hacia/desde los sliders vecinos (Opacidad,
-     Difuminado) obligando a corregir con "izquierda". */
+     ocupe casi toda la fila. Pero eso solo alinea el CONTENEDOR — la
+     navegación por geometría usa el rectángulo del botón enfocable en sí, y
+     con justify-content por defecto (flex-start) los botones quedaban
+     agrupados pegados a la izquierda, lejos del centro del slider vecino
+     (su <input> sí ocupa casi todo el ancho, flex:1) — ese desalineamiento
+     horizontal seguía haciendo que "arriba"/"abajo" saltara la fila.
+     flex-end los pega al borde derecho, igual que .sizeval/.toggle/
+     .colorfield en las filas de alrededor, consistente entre todas. */
   .wallpaper-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 16px;
     width: 100%;
   }
