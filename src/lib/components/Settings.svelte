@@ -443,19 +443,22 @@
       tira) por una imagen fija para todos los juegos. No afecta las carátulas de las
       tarjetas ni el Detalle de cada juego.
     </p>
-    <div class="wallpaper-row">
-      {#if wallpaperPreview}
-        <img class="wallpaper-preview" src={wallpaperPreview} alt="" />
-      {/if}
-      <div class="chips">
-        <button class="chip" data-focusable tabindex="-1" on:click={pickHomeWallpaper}>
-          {$homeWallpaperPath ? "Cambiar imagen…" : "Elegir imagen…"}
-        </button>
-        {#if $homeWallpaperPath}
-          <button class="chip danger" data-focusable tabindex="-1" on:click={removeHomeWallpaper}>
-            Quitar
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">Imagen</span>
+        <div class="wallpaper-actions">
+          {#if wallpaperPreview}
+            <img class="wallpaper-preview" src={wallpaperPreview} alt="" />
+          {/if}
+          <button class="chip" data-focusable tabindex="-1" on:click={pickHomeWallpaper}>
+            {$homeWallpaperPath ? "Cambiar imagen…" : "Elegir imagen…"}
           </button>
-        {/if}
+          {#if $homeWallpaperPath}
+            <button class="chip danger" data-focusable tabindex="-1" on:click={removeHomeWallpaper}>
+              Quitar
+            </button>
+          {/if}
+        </div>
       </div>
     </div>
 
@@ -661,10 +664,17 @@
   .chip:focus {
     box-shadow: var(--gm-focus-ring);
   }
-  .wallpaper-row {
+  /* Mismo criterio que .sizerow (abajo): width:100% para que el contenedor
+     ocupe casi toda la fila y la navegación vertical con el mando caiga
+     directo en los botones en vez de saltarlos — antes esto era un bloque
+     angosto alineado a la izquierda, fuera del patrón .rows/.row de la
+     sección, y rompía el "abajo" hacia/desde los sliders vecinos (Opacidad,
+     Difuminado) obligando a corregir con "izquierda". */
+  .wallpaper-actions {
     display: flex;
     align-items: center;
     gap: 16px;
+    width: 100%;
   }
   .wallpaper-preview {
     width: 120px;
