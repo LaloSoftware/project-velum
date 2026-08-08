@@ -138,7 +138,10 @@ el picker de Configuración de atajos ya incluye ambos registros combinados.
   radial está abierto, arriba/abajo ajustan el volumen del reproductor de música e
   izquierda/derecha saltan a la pista anterior/siguiente, sin cerrar el radial (a
   diferencia de una posición del rombo) — resuelto directo en `handleRaw()`, no pasa
-  por `runRadialInput()`.
+  por `runRadialInput()`. Con reproducción activa (`$musicPlayer.current`), el centro
+  del rombo muestra un panel con el título de la pista, una barra de volumen y el hint
+  "▲▼ Volumen · ◀▶ Pista" (`RadialMenu.svelte`) — puramente visual, refleja el mismo
+  estado que ya movían estos atajos.
 - **Cerrar**: soltar Home siempre cierra sin ejecutar nada (no se puede quedar
   "atascado"). Además, en **Configuración de atajos** se puede elegir un botón de
   cancelar explícito (`radialCancelButton`) que cierra igual mientras se mantiene Home

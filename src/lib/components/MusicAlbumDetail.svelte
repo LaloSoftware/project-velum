@@ -1,7 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { listAudioFiles } from "../ipc/index.js";
-  import { musicPlayer, playAlbum, playAlbumFrom, invalidateAlbumTracks } from "../stores/musicPlayer.js";
+  import { musicPlayer, playAlbum, playAlbumFrom, getAlbumScan, invalidateAlbumTracks } from "../stores/musicPlayer.js";
   import { renameAlbum, removeAlbum } from "../stores/musicLibrary.js";
   import { playlists, createPlaylist, addTrackToPlaylist, removeTrackFromPlaylist } from "../stores/playlists.js";
   import { openKeyboard } from "../stores/keyboard.js";
@@ -10,16 +9,26 @@
   export let album;
   export let onBack = () => {};
 
-  let tracks = [];
+  let scan = { tracks: [], discs: [] };
   let loading = true;
+
+  // Numeración continua a través de todo el álbum (sueltas + discos en
+  // orden), igual que muestra Steam para OSTs multi-disco.
+  $: rows = (() => {
+    let n = 0;
+    const loose = scan.tracks.map((t) => ({ ...t, num: ++n }));
+    const discs = scan.discs.map((d) => ({ ...d, tracks: d.tracks.map((t) => ({ ...t, num: ++n })) }));
+    return { loose, discs };
+  })();
+  $: hasTracks = scan.tracks.length > 0 || scan.discs.some((d) => d.tracks.length);
 
   async function load() {
     loading = true;
     try {
-      tracks = await listAudioFiles(album.id);
+      scan = await getAlbumScan(album);
     } catch (e) {
       reportError(e, "MusicAlbumDetail:load");
-      tracks = [];
+      scan = { tracks: [], discs: [] };
     } finally {
       loading = false;
     }
@@ -113,7 +122,7 @@
       class="chip primary"
       data-focusable
       tabindex="-1"
-      disabled={!tracks.length}
+      disabled={!hasTracks}
       on:click={() => playAlbum(album)}
     >
       ▶ Reproducir álbum
@@ -122,34 +131,48 @@
       class="chip"
       data-focusable
       tabindex="-1"
-      disabled={!tracks.length}
+      disabled={!hasTracks}
       on:click={() => playAlbum(album, { shuffle: true })}
     >
       🔀 Aleatorio
     </button>
   </div>
 
-  <div class="tracks" data-focus-group="tracks">
+  {#snippet trackRow(t)}
+    <button
+      class="track"
+      class:current={$musicPlayer.current?.path === t.path}
+      data-focusable
+      tabindex="-1"
+      on:click={() => playAlbumFrom(album, t.path)}
+      on:gmdetail={(e) => addToListMenu(t, e.currentTarget)}
+    >
+      <span class="tnum">{t.num}</span>
+      <span class="tname">{t.name}</span>
+      {#if $musicPlayer.current?.path === t.path}
+        <span class="tplaying">{$musicPlayer.playing ? "▶" : "⏸"}</span>
+      {/if}
+    </button>
+  {/snippet}
+
+  <!-- Sin data-focus-group propio a propósito: agrupar la lista de pistas
+       anida un grupo dentro del "panel" de MultimediaView y rompe la
+       navegación geométrica hacia abajo (ver docs/input.md). La geometría
+       normal de una lista vertical ya resuelve "abajo" sin agrupar. -->
+  <div class="tracks">
     {#if loading}
       <p class="dim">Cargando…</p>
-    {:else if !tracks.length}
+    {:else if !hasTracks}
       <p class="dim">No se encontraron archivos de audio en esta carpeta.</p>
     {:else}
-      {#each tracks as t, i (t.path)}
-        <button
-          class="track"
-          class:current={$musicPlayer.current?.path === t.path}
-          data-focusable
-          tabindex="-1"
-          on:click={() => playAlbumFrom(album, t.path)}
-          on:gmdetail={(e) => addToListMenu(t, e.currentTarget)}
-        >
-          <span class="tnum">{i + 1}</span>
-          <span class="tname">{t.name}</span>
-          {#if $musicPlayer.current?.path === t.path}
-            <span class="tplaying">{$musicPlayer.playing ? "▶" : "⏸"}</span>
-          {/if}
-        </button>
+      {#each rows.loose as t (t.path)}
+        {@render trackRow(t)}
+      {/each}
+      {#each rows.discs as d (d.name)}
+        <div class="disc-header">{d.name}</div>
+        {#each d.tracks as t (t.path)}
+          {@render trackRow(t)}
+        {/each}
       {/each}
     {/if}
   </div>
@@ -226,6 +249,17 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+  }
+  .disc-header {
+    margin: 10px 0 2px;
+    padding: 8px 14px;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
   .track {
     cursor: pointer;

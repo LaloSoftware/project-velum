@@ -37,6 +37,12 @@ export const confirmDelete = writable(null);
 // Confirmación de apagar el sistema (capa modal), desde Configuración.
 export const shutdownConfirm = writable(false);
 
+// Modo del footer de atajos dentro de Multimedia → Música (ver App.svelte):
+// null (grilla de Imágenes/Videos, sin A/Y) | "grid" | "album" | "playlist".
+// Lo mantiene MusicView.svelte, reseteado a null en su onDestroy — cubre solo
+// los 3 casos al salir de Música/Multimedia.
+export const musicFooterMode = writable(null);
+
 // Menú rápido de sistema: minimizar/maximizar/pantalla completa/cerrar/
 // apagar, accesible por combo de botones o atajo de teclado/mouse
 // configurable (ver stores/comboShortcuts.js).

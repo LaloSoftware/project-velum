@@ -1,7 +1,7 @@
 import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { audioUrl } from "../util/asset.js";
-import { listAudioFiles } from "../ipc/index.js";
+import { scanAlbum } from "../ipc/index.js";
 
 /*
  * Reproductor de música (biblioteca personal, Multimedia → Música) — store
@@ -102,19 +102,40 @@ async function startQueue(queue, source, startIndex, shuffle) {
   await loadAndPlay(queue[startIndex]);
 }
 
-// Cache en memoria de pistas ya listadas por álbum — evita re-escanear la
-// carpeta en cada reproducción dentro de la misma sesión (la carpeta real
-// sigue siendo la fuente de verdad; ver invalidateAlbumTracks).
-const albumTracksCache = new Map();
-async function tracksForAlbum(album) {
-  if (albumTracksCache.has(album.id)) return albumTracksCache.get(album.id);
-  const files = await listAudioFiles(album.id);
-  const tracks = files.map((f) => ({ path: f.path, title: f.name, albumId: album.id, albumName: album.name }));
-  albumTracksCache.set(album.id, tracks);
-  return tracks;
+// Cache en memoria del escaneo completo de cada álbum (tracks + discos) —
+// evita re-escanear la carpeta en cada reproducción dentro de la misma sesión
+// (la carpeta real sigue siendo la fuente de verdad; ver invalidateAlbumTracks).
+// Un solo fetch, dos usos: la UI agrupada (MusicAlbumDetail) consume el scan
+// tal cual, y tracksForAlbum deriva de acá la cola plana para reproducción.
+const albumScanCache = new Map();
+export async function getAlbumScan(album) {
+  if (albumScanCache.has(album.id)) return albumScanCache.get(album.id);
+  const scan = await scanAlbum(album.id);
+  albumScanCache.set(album.id, scan);
+  return scan;
 }
 export function invalidateAlbumTracks(albumId) {
-  albumTracksCache.delete(albumId);
+  albumScanCache.delete(albumId);
+}
+
+// Cola plana para reproducción: pistas sueltas primero, luego cada disco en
+// orden — numeración/orden continuos, igual que se muestran agrupadas en
+// MusicAlbumDetail.svelte.
+async function tracksForAlbum(album) {
+  const scan = await getAlbumScan(album);
+  const flat = [
+    ...scan.tracks.map((t) => ({ path: t.path, title: t.name, albumId: album.id, albumName: album.name })),
+    ...scan.discs.flatMap((d) =>
+      d.tracks.map((t) => ({
+        path: t.path,
+        title: t.name,
+        albumId: album.id,
+        albumName: album.name,
+        discName: d.name,
+      }))
+    ),
+  ];
+  return flat;
 }
 
 export async function playAlbum(album, { shuffle = false } = {}) {
@@ -182,6 +203,15 @@ export function toggleShuffle() {
       shuffleOrder: shuffledIndices(st.queue.length, st.index),
     }));
   }
+}
+
+// Mueve la posición de la pista actual (slider de progreso en NowPlayingView).
+export function seek(time) {
+  if (!audioEl || !get(musicPlayer).current) return;
+  const t = Math.max(0, Math.min(audioEl.duration || 0, Number(time)));
+  if (!Number.isFinite(t)) return;
+  audioEl.currentTime = t;
+  musicPlayer.update((s) => ({ ...s, currentTime: t }));
 }
 
 export async function setVolume(v) {

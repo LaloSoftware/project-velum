@@ -118,11 +118,21 @@ export async function openUrl(target) {
   }
 }
 
-// Lista los archivos de audio de una carpeta (un solo nivel — ver
-// media.rs::list_audio_files). Módulo Multimedia → Música.
-export async function listAudioFiles(path) {
+// Escanea un álbum de música: pistas sueltas + discos (subcarpetas) — ver
+// media.rs::scan_album. Módulo Multimedia → Música.
+export async function scanAlbum(path) {
   try {
-    return await invoke("list_audio_files", { path });
+    return await invoke("scan_album", { path });
+  } catch {
+    return { tracks: [], discs: [] };
+  }
+}
+
+// Lista las subcarpetas directas de una "carpeta raíz" (ver
+// media.rs::list_subfolders) — cada una se agrega como álbum automáticamente.
+export async function listSubfolders(path) {
+  try {
+    return await invoke("list_subfolders", { path });
   } catch {
     return [];
   }

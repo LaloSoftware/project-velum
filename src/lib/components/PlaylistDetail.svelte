@@ -62,7 +62,9 @@
     </button>
   </div>
 
-  <div class="tracks" data-focus-group="tracks">
+  <!-- Sin data-focus-group propio a propósito — ver MusicAlbumDetail.svelte
+       (mismo bug de foco anidado, ver docs/input.md). -->
+  <div class="tracks">
     {#if !current.trackIds.length}
       <p class="dim">Sin pistas todavía — agrégalas desde el detalle de un álbum ("Agregar a lista").</p>
     {:else}

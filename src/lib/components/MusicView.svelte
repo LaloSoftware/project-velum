@@ -1,19 +1,31 @@
 <script>
-  import { tick } from "svelte";
-  import { musicAlbums, addAlbumFolder } from "../stores/musicLibrary.js";
+  import { onMount, onDestroy, tick } from "svelte";
+  import { musicAlbums, addAlbumFolder, addLibraryRoot, syncLibraryRoots } from "../stores/musicLibrary.js";
   import { playlists, createPlaylist } from "../stores/playlists.js";
   import { playAlbum, playPlaylist } from "../stores/musicPlayer.js";
   import { openKeyboard } from "../stores/keyboard.js";
-  import { showToast, reportError } from "../stores/ui.js";
+  import { showToast, reportError, musicFooterMode } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
   import { focusFirstIn } from "../input/navigation.js";
   import MusicAlbumDetail from "./MusicAlbumDetail.svelte";
   import PlaylistDetail from "./PlaylistDetail.svelte";
+  import NowPlayingView from "./NowPlayingView.svelte";
 
-  let tab = "albums"; // "albums" | "playlists"
+  let tab = "albums"; // "albums" | "playlists" | "nowplaying"
   let activeAlbum = null;
   let activePlaylist = null;
   let gridEl;
+
+  onMount(() => {
+    syncLibraryRoots();
+  });
+
+  // Footer de atajos (App.svelte): refleja lo que A/Y hacen realmente en cada
+  // pantalla de Música (ver docs/input.md / plan de fixes). Se resetea al
+  // desmontar — cubre solo/automáticamente salir a Imágenes/Videos o de
+  // Multimedia entera.
+  $: musicFooterMode.set(activeAlbum ? "album" : activePlaylist ? "playlist" : tab === "nowplaying" ? null : "grid");
+  onDestroy(() => musicFooterMode.set(null));
 
   function hue(str) {
     let h = 0;
@@ -36,6 +48,23 @@
       }
     } catch (e) {
       reportError(e, "MusicView:pickFolder");
+    }
+  }
+
+  // Carpeta raíz: cada subcarpeta directa se agrega sola como álbum (auto-
+  // descubrimiento, ver musicLibrary.js::syncLibraryRoots) — pensado para
+  // rutas tipo "C:/Usuarios/Música/" con varias OSTs copiadas adentro.
+  async function pickRootFolder() {
+    if (!isTauri) return showToast("Selección de carpetas solo en la app");
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const dir = await open({ directory: true });
+      if (dir) {
+        await addLibraryRoot(dir);
+        showToast("Carpeta raíz agregada");
+      }
+    } catch (e) {
+      reportError(e, "MusicView:pickRootFolder");
     }
   }
 
@@ -84,13 +113,20 @@
       <button class="tab" class:active={tab === "playlists"} data-focusable tabindex="-1" on:click={() => selectTab("playlists")}>
         Listas
       </button>
+      <button class="tab" class:active={tab === "nowplaying"} data-focusable tabindex="-1" on:click={() => selectTab("nowplaying")}>
+        Reproducción
+      </button>
     </div>
 
     {#if tab === "albums"}
       <div class="grid">
         <button class="card add" data-focusable tabindex="-1" on:click={pickFolder}>
           <span class="add-ico">＋</span>
-          <span class="add-label">Agregar carpeta</span>
+          <span class="add-label">Agregar álbum</span>
+        </button>
+        <button class="card add" data-focusable tabindex="-1" on:click={pickRootFolder}>
+          <span class="add-ico">＋</span>
+          <span class="add-label">Agregar carpeta raíz</span>
         </button>
         {#each $musicAlbums as a (a.id)}
           <button
@@ -106,9 +142,9 @@
         {/each}
       </div>
       {#if !$musicAlbums.length}
-        <p class="dim hint">Agrega una carpeta con música — cada carpeta se convierte en un álbum.</p>
+        <p class="dim hint">Agrega una carpeta con música — cada carpeta se convierte en un álbum. O agrega una carpeta raíz y cada subcarpeta se convierte en un álbum automáticamente.</p>
       {/if}
-    {:else}
+    {:else if tab === "playlists"}
       <div class="grid">
         <button class="card add" data-focusable tabindex="-1" on:click={newPlaylist}>
           <span class="add-ico">＋</span>
@@ -131,6 +167,8 @@
       {#if !$playlists.length}
         <p class="dim hint">Crea una lista para combinar pistas de distintos álbumes.</p>
       {/if}
+    {:else}
+      <NowPlayingView />
     {/if}
   {/if}
 </div>

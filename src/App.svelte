@@ -68,6 +68,7 @@
     closeConfirmUnlinkSteam,
     appError,
     clearAppError,
+    musicFooterMode,
     goto,
     openOverlay,
     closeOverlay,
@@ -168,6 +169,27 @@
   $: musicIndicatorCover = $musicPlayer.current
     ? `linear-gradient(150deg, hsl(${hueOf($musicPlayer.current.title)} 55% 42%), hsl(${(hueOf($musicPlayer.current.title) + 40) % 360} 60% 22%))`
     : "";
+  $: musicIndicatorProgress = $musicPlayer.duration ? ($musicPlayer.currentTime / $musicPlayer.duration) * 100 : 0;
+
+  // Footer de atajos dentro de Multimedia → Música: A/Y hacen cosas distintas
+  // según la pantalla (grilla/álbum/lista) — ver stores/ui.js::musicFooterMode
+  // (lo mantiene MusicView.svelte). Fuera de Multimedia, igual que siempre.
+  $: inMultimedia = $view === "multimedia";
+  $: footerAcceptLabel = !inMultimedia
+    ? "Jugar"
+    : $musicFooterMode === "grid"
+      ? "Abrir"
+      : $musicFooterMode === "album" || $musicFooterMode === "playlist"
+        ? "Reproducir pista"
+        : null;
+  $: footerSecondaryLabel = !inMultimedia
+    ? "Detalle"
+    : $musicFooterMode === "grid"
+      ? "Reproducir"
+      : $musicFooterMode === "album"
+        ? "Agregar a lista"
+        : null;
+  $: showFooterX = !inMultimedia;
 
   // Auto-ocultar el cursor del mouse cuando se usa mando/teclado: se oculta en
   // cada acción de input procesada (ver dispatch) y reaparece con el mouse.
@@ -691,6 +713,7 @@
       <div class="music-indicator" title={$musicPlayer.current.title}>
         <span class="mi-swatch" style="background: {musicIndicatorCover}"></span>
         <span class="mi-title">{$musicPlayer.current.title}</span>
+        <span class="mi-progress"><span class="mi-progress-fill" style="width: {musicIndicatorProgress}%"></span></span>
       </div>
     {/snippet}
 
@@ -725,9 +748,9 @@
 
     {#if !$hideFooter}
       <footer class="hints">
-        <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
-        <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
-        <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
+        {#if footerAcceptLabel}<span><ButtonPrompt token="A" button="south" action="accept" /> {footerAcceptLabel}</span>{/if}
+        {#if footerSecondaryLabel}<span><ButtonPrompt token="Y" button="north" action="north" /> {footerSecondaryLabel}</span>{/if}
+        {#if showFooterX}<span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>{/if}
         {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
         {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
         <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
@@ -923,11 +946,13 @@
     font-variant-numeric: tabular-nums;
   }
   .music-indicator {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
     max-width: 220px;
+    padding-bottom: 5px;
     pointer-events: none;
   }
   .mi-swatch {
@@ -943,6 +968,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .mi-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    overflow: hidden;
+  }
+  .mi-progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--gm-accent);
   }
   .content {
     flex: 1;

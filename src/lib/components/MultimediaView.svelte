@@ -24,7 +24,6 @@
 <div class="multimedia">
   <div class="main">
     <aside class="side" data-focus-group="side">
-      <h2>Multimedia</h2>
       {#each SECTIONS as s, i (s.id)}
         <button
           class="sec"
@@ -72,11 +71,6 @@
     flex-direction: column;
     gap: 8px;
     overflow-y: auto;
-  }
-  .side h2 {
-    margin: 0 0 14px;
-    font-size: 1.4rem;
-    font-weight: var(--gm-title-weight);
   }
   .sec {
     cursor: pointer;
