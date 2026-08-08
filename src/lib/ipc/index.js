@@ -130,11 +130,40 @@ export async function scanAlbum(path) {
 
 // Lista las subcarpetas directas de una "carpeta raíz" (ver
 // media.rs::list_subfolders) — cada una se agrega como álbum automáticamente.
+// Genérica: la reusan Música, Imágenes y Videos.
 export async function listSubfolders(path) {
   try {
     return await invoke("list_subfolders", { path });
   } catch {
     return [];
+  }
+}
+
+// Lista los archivos de imagen/video de una carpeta (un solo nivel — ver
+// media.rs::list_image_files/list_video_files). Módulo Multimedia.
+export async function listImageFiles(path) {
+  try {
+    return await invoke("list_image_files", { path });
+  } catch {
+    return [];
+  }
+}
+export async function listVideoFiles(path) {
+  try {
+    return await invoke("list_video_files", { path });
+  } catch {
+    return [];
+  }
+}
+
+// Concede al protocolo asset acceso a una carpeta de video (ver
+// media.rs::allow_video_folder) — necesario antes de poder reproducir algo
+// de ahí con videoUrl()/convertFileSrc.
+export async function allowVideoFolder(path) {
+  try {
+    return await invoke("allow_video_folder", { path });
+  } catch {
+    console.info(`[mock] allow_video_folder: ${path}`);
   }
 }
 

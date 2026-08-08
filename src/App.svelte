@@ -17,6 +17,8 @@
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
   import { initMusicLibrary } from "./lib/stores/musicLibrary.js";
+  import { initImageLibrary } from "./lib/stores/imageLibrary.js";
+  import { initVideoLibrary } from "./lib/stores/videoLibrary.js";
   import { initPlaylists } from "./lib/stores/playlists.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts } from "./lib/stores/comboShortcuts.js";
@@ -71,6 +73,16 @@
     musicFooterMode,
     musicDetail,
     closeMusicDetail,
+    imagesFooterMode,
+    imageAlbumOpen,
+    closeImageAlbum,
+    imageViewer,
+    closeImageViewer,
+    videoFooterMode,
+    videoAlbumOpen,
+    closeVideoAlbum,
+    videoPlayer,
+    closeVideoPlayer,
     goto,
     openOverlay,
     closeOverlay,
@@ -173,9 +185,15 @@
     : "";
   $: musicIndicatorProgress = $musicPlayer.duration ? ($musicPlayer.currentTime / $musicPlayer.duration) * 100 : 0;
 
-  // Footer de atajos dentro de Multimedia → Música: A/Y hacen cosas distintas
-  // según la pantalla (grilla/álbum/lista) — ver stores/ui.js::musicFooterMode
-  // (lo mantiene MusicView.svelte). Fuera de Multimedia, igual que siempre.
+  // Footer de atajos dentro de Multimedia: A/Y hacen cosas distintas según la
+  // sección y la pantalla (grilla/álbum/lista/visor) — ver
+  // stores/ui.js::musicFooterMode/imagesFooterMode/videoFooterMode (cada
+  // sub-vista mantiene el suyo; a lo sumo uno es no-nulo a la vez, porque
+  // solo un sub-panel de Multimedia está montado). Fuera de Multimedia,
+  // igual que siempre. El visor de imágenes y el reproductor de video no
+  // usan A/Y (sus acciones son botones propios en pantalla) — de ahí que
+  // ninguno de los dos tenga un modo "viewer"/"player" propio, alcanza con
+  // "grid"/"album" en los tres.
   $: inMultimedia = $view === "multimedia";
   $: footerAcceptLabel = !inMultimedia
     ? "Jugar"
@@ -183,7 +201,13 @@
       ? "Abrir"
       : $musicFooterMode === "album" || $musicFooterMode === "playlist"
         ? "Reproducir pista"
-        : null;
+        : $imagesFooterMode === "grid" || $videoFooterMode === "grid"
+          ? "Abrir"
+          : $imagesFooterMode === "album"
+            ? "Ver"
+            : $videoFooterMode === "album"
+              ? "Reproducir"
+              : null;
   $: footerSecondaryLabel = !inMultimedia
     ? "Detalle"
     : $musicFooterMode === "grid"
@@ -486,11 +510,18 @@
       return a?.focus({ preventScroll: true });
     }
     if ($overlay) return closeOverlay();
-    // Álbum/lista abierto dentro de Música (Multimedia) — sin esto, "atrás"
-    // no reconocía este estado (vivía local en MusicView.svelte) y caía
-    // directo al fallback de abajo, mandando a Inicio en vez de solo salir
-    // del álbum/disco.
+    // Álbum/lista/visor/reproductor abierto dentro de Multimedia — sin esto,
+    // "atrás" no reconocía estos estados (vivían local en cada componente) y
+    // caía directo al fallback de abajo, mandando a Inicio en vez de solo
+    // cerrar un nivel. Orden: lo más "adentro" primero (visor/reproductor
+    // antes que el álbum que lo contiene) — a lo sumo una de las 3
+    // secciones de Multimedia está montada a la vez, así que no hay
+    // ambigüedad entre música/imágenes/video acá.
     if ($musicDetail) return closeMusicDetail();
+    if ($imageViewer) return closeImageViewer();
+    if ($imageAlbumOpen) return closeImageAlbum();
+    if ($videoPlayer) return closeVideoPlayer();
+    if ($videoAlbumOpen) return closeVideoAlbum();
     if ($view !== "home") return goto("home");
   }
 
@@ -649,6 +680,8 @@
       initLibrary(),
       initGroups(),
       initMusicLibrary(),
+      initImageLibrary(),
+      initVideoLibrary(),
       initPlaylists(),
       initCustomShortcuts(),
       initHidden(),

@@ -71,12 +71,30 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
   `seek()`), indicador solo informativo en el header (`App.svelte`, slot libre entre
   pestañas/reloj, con una barra de progreso delgada). Tiene precedencia sobre
   `soundtrackPlayer.js` (el soundtrack por-juego no suena si la música está activa).
+- `stores/imageLibrary.js` / `stores/videoLibrary.js` — mismo modelo que
+  `musicLibrary.js` (álbum = carpeta + carpetas raíz con auto-descubrimiento), sin
+  discos ni playlists. Imágenes se listan con `media.rs::list_image_files` y se
+  muestran vía `read_image` (igual que carátulas). Video usa `list_video_files`
+  (solo MP4/WebM) y se reproduce por streaming real vía el protocolo `asset` de
+  Tauri (`videoUrl()` en `util/asset.js`, `convertFileSrc`) en vez de cargarlo a
+  memoria — `allow_video_folder` concede el scope en runtime sobre cada álbum/raíz
+  conocido, re-concedido en cada sesión desde `initVideoLibrary()` (no persiste
+  solo). Ninguno de los dos sigue sonando/reproduciendo fuera de su visor —sin
+  driver-store persistente ni indicador de header, a diferencia de música.
+- `stores/ui.js` — además del estado general, cada sub-sección de Multimedia
+  guarda ahí su "álbum abierto"/"visor abierto" (`musicDetail`,
+  `imageAlbumOpen`/`imageViewer`, `videoAlbumOpen`/`videoPlayer`) en vez de estado
+  local del componente — necesario para que `handleBack()` en `App.svelte`
+  reconozca qué cerrar con "atrás" en vez de caer al fallback de ir a Inicio (bug
+  real ya encontrado y corregido para música, aplicado desde el diseño en
+  imágenes/video). También el modo del footer de atajos por sección
+  (`musicFooterMode`/`imagesFooterMode`/`videoFooterMode`).
 
 ## Vistas y capas de UI (z-index)
 
 - **Pestañas** (vista base): **Inicio** (recientes) · **Juegos** (todos, filtro/buscar/
-  abrir launchers) · **Aplicaciones** · **Multimedia** (Música real; Imágenes/Videos
-  "próximamente", mismo shell de navegación listo para cuando se implementen).
+  abrir launchers) · **Aplicaciones** · **Multimedia** (Música/Imágenes/Videos —
+  mismo modelo de biblioteca en las 3, sidebar con las 3 secciones).
 - **Overlays** (botones dedicados): **Configuración** (Apariencia / Inicio / Atajos /
   Filtros / Ocultos / Iconos de botones, con navegación por regiones y una fila fija de
   controles de ventana vía `lib/util/window.js`) y **Sistema/QAM** (acordeón por foco;

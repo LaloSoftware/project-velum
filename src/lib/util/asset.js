@@ -1,10 +1,14 @@
 /*
- * Resuelve rutas de imagen para la WebView.
+ * Resuelve rutas de imagen/audio/video locales para la WebView.
  *   - URLs ya cargables (http/https/data/blob) → se devuelven tal cual (p. ej.
  *     carátulas remotas de GOG).
- *   - Rutas de fichero locales (carátulas de Steam en disco) → se piden al
- *     backend (`read_image`), que devuelve un `data:` URI. Es más fiable que el
- *     protocolo asset + scope. El resultado se cachea por ruta.
+ *   - Imagen/audio: rutas de fichero locales → se piden al backend
+ *     (`read_image`/`read_audio`), que devuelve un `data:` URI (cacheado por
+ *     ruta). Es más fiable que el protocolo asset + scope para archivos
+ *     chicos — así se descartó ese protocolo para imágenes en su momento.
+ *   - Video: mismo protocolo asset (`videoUrl`, más abajo) — un archivo de
+ *     cientos de MB/GB no puede cargarse entero a memoria como data URI sin
+ *     reventar recursos, necesita streaming real.
  *   - En modo web (sin Tauri) → null (el llamador cae a su placeholder).
  */
 
@@ -61,4 +65,23 @@ export async function audioUrl(path) {
     });
   audioCache.set(path, p);
   return p;
+}
+
+// Video (Multimedia → Videos): a diferencia de imagen/audio, NO se carga a
+// memoria como data URI (un archivo de cientos de MB/GB reventaría memoria
+// y tardaría en arrancar) — usa el protocolo `asset` de Tauri, que streamea
+// directo desde disco con seek real. La carpeta debe estar autorizada de
+// antemano (`allowVideoFolder`, ver stores/videoLibrary.js) o el `<video>`
+// recibe un 403. Sin caché (no hace falta: convertFileSrc es síncrono/local
+// una vez cargado el módulo, no una llamada a Rust).
+let _convertFileSrc = null;
+export async function videoUrl(path) {
+  if (!path) return null;
+  if (READY.test(path)) return path;
+  if (!isTauri) return null;
+  if (!_convertFileSrc) {
+    const core = await import("@tauri-apps/api/core");
+    _convertFileSrc = core.convertFileSrc;
+  }
+  return _convertFileSrc(path);
 }

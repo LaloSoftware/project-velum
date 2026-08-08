@@ -1,12 +1,21 @@
-//! Escaneo de álbumes de música (Multimedia → Música, ver
-//! `stores/musicLibrary.js`). Un álbum = una carpeta: los archivos de audio
-//! directos son pistas "sueltas"; cada subcarpeta se trata como un "Disco"
-//! (álbumes multi-disco tipo OST de Steam, CD1/CD2/Disco 1/Disco 2 — mismo
-//! criterio que usa la propia tienda de Steam, sin recursión más allá de ese
-//! único nivel). Pistas repetidas en distinto formato dentro de la misma
-//! carpeta (p. ej. `Song.mp3` + `Song.flac`) se agrupan en una sola
-//! `TrackInfo`. Mismas extensiones que ya usa `SoundtrackEditor.svelte`
-//! (soundtrack por-juego).
+//! Escaneo de bibliotecas de Multimedia (Música/Imágenes/Videos) — mismo
+//! modelo de negocio en las 3: álbum = carpeta, con "carpeta raíz" opcional
+//! (`list_subfolders`, cada subcarpeta directa se agrega sola como álbum).
+//!
+//! **Música**: los archivos de audio directos de un álbum son pistas
+//! "sueltas"; cada subcarpeta se trata como un "Disco" (álbumes multi-disco
+//! tipo OST de Steam, CD1/CD2/Disco 1/Disco 2 — mismo criterio que usa la
+//! propia tienda de Steam, sin recursión más allá de ese único nivel).
+//! Pistas repetidas en distinto formato dentro de la misma carpeta (p. ej.
+//! `Song.mp3` + `Song.flac`) se agrupan en una sola `TrackInfo`. Mismas
+//! extensiones que ya usa `SoundtrackEditor.svelte` (soundtrack por-juego).
+//!
+//! **Imágenes/Videos**: listado simple de un nivel (`list_image_files`/
+//! `list_video_files`, sin discos ni dedup — no hace falta, ver el plan de
+//! la sesión). Video usa el protocolo `asset` de Tauri para reproducirse
+//! (streaming real, sin cargar el archivo a memoria como `read_image`/
+//! `read_audio`) — `allow_video_folder` concede el scope en runtime sobre la
+//! carpeta que el usuario agrega.
 
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -179,6 +188,86 @@ pub fn list_subfolders(path: String) -> Result<Vec<FolderInfo>, String> {
     Ok(out)
 }
 
+// ---------------------------------------------------------------------
+// Imágenes/Videos: listado simple de un nivel (sin discos ni dedup).
+// ---------------------------------------------------------------------
+
+// Mismas extensiones que ya acepta `assets::read_image` — listar algo que
+// después no se puede mostrar sería peor que no listarlo.
+const IMAGE_EXT: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "ico", "bmp"];
+// Lo único que <video> reproduce nativamente sin dependencias nuevas
+// (decoder de MKV/AVI/etc. quedaría fuera de alcance) — cubre capturas de
+// Steam/NVIDIA, que graban en MP4 por default.
+const VIDEO_EXT: &[&str] = &["mp4", "webm"];
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaFileInfo {
+    pub path: String,
+    /// Nombre de archivo sin extensión — mismo criterio que `TrackInfo::name`.
+    pub name: String,
+}
+
+/// Lista los archivos de `dir` cuya extensión esté en `exts` (un solo nivel,
+/// sin recursión), ordenados alfabéticamente. Carpeta inexistente/sin
+/// permisos → lista vacía en vez de error.
+fn list_files_by_ext(dir: &Path, exts: &[&str]) -> Vec<MediaFileInfo> {
+    let rd = match std::fs::read_dir(dir) {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+
+    let mut out: Vec<MediaFileInfo> = rd
+        .flatten()
+        .filter_map(|e| {
+            let p = e.path();
+            if !p.is_file() {
+                return None;
+            }
+            let matches = p
+                .extension()
+                .and_then(|x| x.to_str())
+                .map(|x| exts.iter().any(|ext| x.eq_ignore_ascii_case(ext)))
+                .unwrap_or(false);
+            if !matches {
+                return None;
+            }
+            let name = p.file_stem()?.to_str()?.to_string();
+            Some(MediaFileInfo {
+                path: p.to_string_lossy().to_string(),
+                name,
+            })
+        })
+        .collect();
+
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out
+}
+
+#[tauri::command]
+pub fn list_image_files(path: String) -> Result<Vec<MediaFileInfo>, String> {
+    Ok(list_files_by_ext(Path::new(&path), IMAGE_EXT))
+}
+
+#[tauri::command]
+pub fn list_video_files(path: String) -> Result<Vec<MediaFileInfo>, String> {
+    Ok(list_files_by_ext(Path::new(&path), VIDEO_EXT))
+}
+
+/// Concede al protocolo `asset` acceso a `path` (una carpeta de video que el
+/// usuario agregó a su biblioteca) para que `convertFileSrc()` pueda
+/// streamearla directo del disco — sin esto, el `<video>` del frontend
+/// recibe un 403 del protocolo asset. No persiste entre reinicios de la app
+/// por sí solo: se vuelve a conceder en cada sesión para cada álbum/raíz de
+/// video conocido (ver `stores/videoLibrary.js::initVideoLibrary`).
+#[tauri::command]
+pub fn allow_video_folder(path: String, app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Manager;
+    app.asset_protocol_scope()
+        .allow_directory(&path, false)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -278,5 +367,29 @@ mod tests {
         let result = list_subfolders(dir.path().to_string_lossy().to_string()).unwrap();
         let names: Vec<_> = result.iter().map(|f| f.name.as_str()).collect();
         assert_eq!(names, vec!["Celeste OST", "Zelda OST"]);
+    }
+
+    #[test]
+    fn list_image_files_filters_by_extension_and_sorts() {
+        let dir = TempDir::new("images");
+        for name in ["b.png", "A.JPG", "notes.txt", "c.webp"] {
+            fs::write(dir.path().join(name), b"x").unwrap();
+        }
+        let result = list_image_files(dir.path().to_string_lossy().to_string()).unwrap();
+        let names: Vec<_> = result.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names, vec!["A", "b", "c"]);
+    }
+
+    #[test]
+    fn list_video_files_only_mp4_webm_no_recursion() {
+        let dir = TempDir::new("videos");
+        fs::create_dir_all(dir.path().join("subfolder")).unwrap();
+        fs::write(dir.path().join("subfolder").join("hidden.mp4"), b"x").unwrap();
+        for name in ["clip.mp4", "other.webm", "raw.mkv"] {
+            fs::write(dir.path().join(name), b"x").unwrap();
+        }
+        let result = list_video_files(dir.path().to_string_lossy().to_string()).unwrap();
+        let names: Vec<_> = result.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names, vec!["clip", "other"]);
     }
 }
