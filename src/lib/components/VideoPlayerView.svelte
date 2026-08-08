@@ -193,6 +193,10 @@
     align-items: center;
     gap: 8px;
     width: 140px;
+    /* Con el thumb del slider a volumen completo, queda pegado al borde
+       derecho de .volrow — sin este margen se solapa/queda por debajo del
+       botón de play, que va justo al lado en .controls. */
+    margin-right: 12px;
   }
   .vol-slider {
     flex: 1;
