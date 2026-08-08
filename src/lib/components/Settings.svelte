@@ -27,6 +27,10 @@
     META_BG_OPACITY_MAX,
     setMetaBgVisible,
     setMetaBgOpacity,
+    homeBgFade,
+    HOME_BG_FADE_MIN,
+    HOME_BG_FADE_MAX,
+    setHomeBgFade,
     completedBadgeEnabled,
     completedGlowEnabled,
     setCompletedBadgeEnabled,
@@ -367,6 +371,31 @@
             on:input={(e) => setMetaBgOpacity(e.target.value)}
           />
           <span class="sizeval">{$metaBgOpacity}%</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>Difuminado de fondo (Inicio)</h2>
+    <p class="dim">
+      Qué tan visible se ve la foto de fondo de Inicio antes de desvanecerse hacia el
+      wallpaper del tema — más bajo, más difuminado/tenue.
+    </p>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">Difuminado</span>
+        <div class="sizerow">
+          <input
+            type="range"
+            class="size-slider"
+            data-focusable
+            tabindex="-1"
+            min={HOME_BG_FADE_MIN}
+            max={HOME_BG_FADE_MAX}
+            step="5"
+            value={$homeBgFade}
+            on:input={(e) => setHomeBgFade(e.target.value)}
+          />
+          <span class="sizeval">{$homeBgFade}%</span>
         </div>
       </div>
     </div>

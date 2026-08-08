@@ -118,6 +118,27 @@ configurable. Ahora usa `color-mix(in srgb, var(--gm-bg) 82%, transparent)`
 fondo opcional. De paso, `.store`/`.meta`/`.meta.dim` (`GameDetail.svelte`)
 subieron de tamaño (pensado para verse desde el sofá/TV, no solo de cerca).
 
+## Difuminado de fondo (Inicio)
+
+Ajustes → Apariencia → "Difuminado de fondo (Inicio)": slider 0-100%
+(`homeBgFade`, `stores/uiprefs.js`, persistente por perfil, default 55) que
+controla la opacidad del hero de fondo de `Home.svelte` (`.bg`, antes fija en
+`0.55`) antes de desvanecerse al wallpaper del tema vía `mask-image`. Más
+bajo = fondo más tenue/difuminado; más alto = foto más visible.
+
+## Notificaciones (posición)
+
+Ajustes → Notificaciones: picker visual 3×3 (sin el centro-centro, taparía
+contenido) para dónde aparecen los avisos flotantes en pantalla —
+`notifyPosition`/`NOTIFY_POSITIONS` en `stores/uiprefs.js`, mismos códigos
+`tl/tc/tr/ml/mr/bl/bc/br` que el preset de posición del logo en
+`ArtEditor.svelte`. `src/lib/util/notifyPosition.js` traduce el código a
+`position: fixed` inline; cualquier notificación flotante que la respete lo
+usa así (hoy: `GamepadNotice.svelte`, mando conectado/desconectado — ver
+`docs/input.md`). Default `"br"` (esquina inferior derecha), mismo lugar
+donde ya viven `SteamSyncIndicator`/`SteamSyncSummaryBadge` (esos dos siguen
+fijos a esa esquina, no leen la preferencia todavía).
+
 ## Resaltado de 100% completado (logros)
 
 Ajustes → Apariencia → "Resaltado de 100% completado (logros)". Un color

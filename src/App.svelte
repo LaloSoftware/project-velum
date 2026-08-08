@@ -111,6 +111,7 @@
   import Toast from "./lib/components/Toast.svelte";
   import SteamSyncIndicator from "./lib/components/SteamSyncIndicator.svelte";
   import SteamSyncSummaryBadge from "./lib/components/SteamSyncSummaryBadge.svelte";
+  import GamepadNotice from "./lib/components/GamepadNotice.svelte";
   import ErrorBanner from "./lib/components/ErrorBanner.svelte";
   import PlayingOverlay from "./lib/components/PlayingOverlay.svelte";
   import ButtonPrompt from "./lib/components/ButtonPrompt.svelte";
@@ -798,6 +799,7 @@
   <PlayingOverlay />
   <SteamSyncIndicator />
   <SteamSyncSummaryBadge />
+  <GamepadNotice />
   <!-- Menú radial de sistema (mando, mantener Home): overlay puramente
        presentacional, no participa del scope de navegación (ver dispatch()
        "openRadialMenu" e input/index.js). -->
