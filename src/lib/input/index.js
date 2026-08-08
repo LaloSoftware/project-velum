@@ -22,6 +22,7 @@ import { vk, vkType, vkBackspace, vkDone } from "../stores/keyboard.js";
 import { comboShortcuts } from "../stores/comboShortcuts.js";
 import { resolveVk } from "../stores/vkBindings.js";
 import { radialMenu, closeRadialMenu, runRadialInput } from "../stores/radialMenu.js";
+import { musicPlayer, setVolume, next as nextTrack, previous as previousTrack } from "../stores/musicPlayer.js";
 
 // Direcciones: navegación FIJA por teclado, no remapeable (igual que el d-pad).
 // El resto de teclado/mouse vive en `stores/keyBindings.js` (configurable).
@@ -156,7 +157,17 @@ function handleRaw(ev) {
   // botones por igual) salvo las 8 posiciones fijas o el botón de cancelar
   // configurado — runRadialInput (stores/radialMenu.js) decide qué hacer con
   // cada botón; cualquier otro evento se descarta sin llegar a resolve().
+  // Excepción: el d-pad (sin uso en el rombo — sus 8 posiciones son botones de
+  // cara + hombros/gatillos) controla volumen/pista del reproductor de música
+  // directo, SIN cerrar el radial (a diferencia de una posición del rombo).
   if (get(radialMenu)) {
+    if (ev.type === "dir") {
+      if (ev.name === "up") setVolume(Math.min(1, get(musicPlayer).volume + 0.05));
+      else if (ev.name === "down") setVolume(Math.max(0, get(musicPlayer).volume - 0.05));
+      else if (ev.name === "left") previousTrack();
+      else if (ev.name === "right") nextTrack();
+      return;
+    }
     if (ev.pressed && ev.type === "button") runRadialInput(ev.name);
     return;
   }

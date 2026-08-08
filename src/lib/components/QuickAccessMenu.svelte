@@ -3,11 +3,13 @@
   import QamSystemSection from "./QamSystemSection.svelte";
   import QamShortcutsSection from "./QamShortcutsSection.svelte";
   import QamUtilitiesSection from "./QamUtilitiesSection.svelte";
+  import QamMusicSection from "./QamMusicSection.svelte";
   import { focusFirstIn } from "../input/navigation.js";
   import { steamAccount } from "../stores/steamAccount.js";
 
   const BASE_SECTIONS = [
     { id: "system", icon: "⚙️", label: "Sistema" },
+    { id: "music", icon: "🎵", label: "Música" },
     { id: "shortcuts", icon: "⌨️", label: "Atajos" },
   ];
   // "Utilidades" (accesos directos de Steam/GOG) solo con cuenta de Steam
@@ -48,6 +50,8 @@
   <div class="content" data-focus-group="panel" bind:this={contentEl}>
     {#if section === "system"}
       <QamSystemSection />
+    {:else if section === "music"}
+      <QamMusicSection />
     {:else if section === "utilities"}
       <QamUtilitiesSection />
     {:else}

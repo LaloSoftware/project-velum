@@ -16,6 +16,8 @@
     hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { initMusicLibrary } from "./lib/stores/musicLibrary.js";
+  import { initPlaylists } from "./lib/stores/playlists.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { radialMenu, openRadialMenu, initRadialMenu } from "./lib/stores/radialMenu.js";
@@ -66,6 +68,9 @@
     closeConfirmUnlinkSteam,
     appError,
     clearAppError,
+    musicFooterMode,
+    musicDetail,
+    closeMusicDetail,
     goto,
     openOverlay,
     closeOverlay,
@@ -87,6 +92,7 @@
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
   import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
   import { initSoundtrackPlayer } from "./lib/stores/soundtrackPlayer.js";
+  import { initMusicPlayer, musicPlayer } from "./lib/stores/musicPlayer.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
   import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
@@ -142,6 +148,50 @@
 
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
   $: uiScaleFactor = $uiScale;
+
+  // Indicador de música en el header (Multimedia → Música): la barra superior
+  // tiene 3 slots (left/center/right) y hoy solo conviven ahí tabsNav
+  // ($tabsAlign) y clock ($clockPosition, nunca "center") — con 2 elementos en
+  // 3 slots siempre queda al menos uno completamente libre. Prioridad si hay
+  // más de uno libre: center → right → left.
+  function freeHeaderSlot(tabsAlign, clockPosition) {
+    const occupied = { left: false, center: false, right: false };
+    occupied[tabsAlign] = true;
+    if (clockPosition === "left" || clockPosition === "right") occupied[clockPosition] = true;
+    if (!occupied.center) return "center";
+    if (!occupied.right) return "right";
+    return "left";
+  }
+  $: musicSlot = freeHeaderSlot($tabsAlign, $clockPosition);
+  function hueOf(str) {
+    let h = 0;
+    for (let i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+    return h;
+  }
+  $: musicIndicatorCover = $musicPlayer.current
+    ? `linear-gradient(150deg, hsl(${hueOf($musicPlayer.current.title)} 55% 42%), hsl(${(hueOf($musicPlayer.current.title) + 40) % 360} 60% 22%))`
+    : "";
+  $: musicIndicatorProgress = $musicPlayer.duration ? ($musicPlayer.currentTime / $musicPlayer.duration) * 100 : 0;
+
+  // Footer de atajos dentro de Multimedia → Música: A/Y hacen cosas distintas
+  // según la pantalla (grilla/álbum/lista) — ver stores/ui.js::musicFooterMode
+  // (lo mantiene MusicView.svelte). Fuera de Multimedia, igual que siempre.
+  $: inMultimedia = $view === "multimedia";
+  $: footerAcceptLabel = !inMultimedia
+    ? "Jugar"
+    : $musicFooterMode === "grid"
+      ? "Abrir"
+      : $musicFooterMode === "album" || $musicFooterMode === "playlist"
+        ? "Reproducir pista"
+        : null;
+  $: footerSecondaryLabel = !inMultimedia
+    ? "Detalle"
+    : $musicFooterMode === "grid"
+      ? "Reproducir"
+      : $musicFooterMode === "album"
+        ? "Agregar a lista"
+        : null;
+  $: showFooterX = !inMultimedia;
 
   // Auto-ocultar el cursor del mouse cuando se usa mando/teclado: se oculta en
   // cada acción de input procesada (ver dispatch) y reaparece con el mouse.
@@ -436,6 +486,11 @@
       return a?.focus({ preventScroll: true });
     }
     if ($overlay) return closeOverlay();
+    // Álbum/lista abierto dentro de Música (Multimedia) — sin esto, "atrás"
+    // no reconocía este estado (vivía local en MusicView.svelte) y caía
+    // directo al fallback de abajo, mandando a Inicio en vez de solo salir
+    // del álbum/disco.
+    if ($musicDetail) return closeMusicDetail();
     if ($view !== "home") return goto("home");
   }
 
@@ -593,6 +648,8 @@
       initStartup(),
       initLibrary(),
       initGroups(),
+      initMusicLibrary(),
+      initPlaylists(),
       initCustomShortcuts(),
       initHidden(),
       initPrompts(),
@@ -616,6 +673,7 @@
     await applyStartup();
     playStartupSound();
     initSoundtrackPlayer();
+    initMusicPlayer();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
@@ -656,17 +714,30 @@
       <div class="clock">{now.toLocaleTimeString().slice(0, 5)}</div>
     {/snippet}
 
+    {#snippet musicIndicator()}
+      <!-- Solo informativo (no focusable): vive fuera de todo data-focus-group,
+           los controles reales están en el QAM → Música. -->
+      <div class="music-indicator" title={$musicPlayer.current.title}>
+        <span class="mi-swatch" style="background: {musicIndicatorCover}"></span>
+        <span class="mi-title">{$musicPlayer.current.title}</span>
+        <span class="mi-progress"><span class="mi-progress-fill" style="width: {musicIndicatorProgress}%"></span></span>
+      </div>
+    {/snippet}
+
     <header class="topbar">
       <div class="topbar-slot left">
         {#if $tabsAlign === "left"}{@render tabsNav()}{/if}
         {#if $clockPosition === "left"}{@render clock()}{/if}
+        {#if musicSlot === "left" && $musicPlayer.current}{@render musicIndicator()}{/if}
       </div>
       <div class="topbar-slot center">
         {#if $tabsAlign === "center"}{@render tabsNav()}{/if}
+        {#if musicSlot === "center" && $musicPlayer.current}{@render musicIndicator()}{/if}
       </div>
       <div class="topbar-slot right">
         {#if $tabsAlign === "right"}{@render tabsNav()}{/if}
         {#if $clockPosition === "right"}{@render clock()}{/if}
+        {#if musicSlot === "right" && $musicPlayer.current}{@render musicIndicator()}{/if}
       </div>
     </header>
 
@@ -684,9 +755,9 @@
 
     {#if !$hideFooter}
       <footer class="hints">
-        <span><ButtonPrompt token="A" button="south" action="accept" /> Jugar</span>
-        <span><ButtonPrompt token="Y" button="north" action="north" /> Detalle</span>
-        <span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>
+        {#if footerAcceptLabel}<span><ButtonPrompt token="A" button="south" action="accept" /> {footerAcceptLabel}</span>{/if}
+        {#if footerSecondaryLabel}<span><ButtonPrompt token="Y" button="north" action="north" /> {footerSecondaryLabel}</span>{/if}
+        {#if showFooterX}<span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>{/if}
         {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
         {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
         <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
@@ -880,6 +951,45 @@
     font-weight: 700;
     color: var(--gm-text-dim);
     font-variant-numeric: tabular-nums;
+  }
+  .music-indicator {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 220px;
+    padding-bottom: 5px;
+    pointer-events: none;
+  }
+  .mi-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .mi-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--gm-text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mi-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    overflow: hidden;
+  }
+  .mi-progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--gm-accent);
   }
   .content {
     flex: 1;

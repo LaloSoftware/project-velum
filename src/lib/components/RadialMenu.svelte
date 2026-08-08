@@ -1,5 +1,6 @@
 <script>
   import { radialMenu, radialSlots, radialCancelButton, RADIAL_LABEL } from "../stores/radialMenu.js";
+  import { musicPlayer } from "../stores/musicPlayer.js";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
   // Token corto por posición, mismo criterio que el pie de App.svelte (los
@@ -40,6 +41,20 @@
           {/if}
         </div>
       {/each}
+      {#if $musicPlayer.current}
+        <!-- Reflejo visual de los atajos de d-pad (arriba/abajo volumen,
+             izquierda/derecha pista, ver input/index.js) — la lógica ya
+             funcionaba, faltaba mostrarla acá. -->
+        <div class="music-panel">
+          <div class="mp-title">{$musicPlayer.current.title}</div>
+          <div class="mp-vol">
+            <span class="mp-ico">🔊</span>
+            <div class="mp-bar"><div class="mp-fill" style="width: {Math.round($musicPlayer.volume * 100)}%"></div></div>
+            <span class="mp-pct">{Math.round($musicPlayer.volume * 100)}</span>
+          </div>
+          <div class="mp-hint">▲▼ Volumen · ◀▶ Pista</div>
+        </div>
+      {/if}
       <div class="hint">
         {cancelBtn ? "Suelta Home o presiona el botón de cancelar" : "Suelta Home para cancelar"}
       </div>
@@ -106,5 +121,54 @@
     white-space: nowrap;
     color: var(--gm-text-dim);
     font-size: 0.8rem;
+  }
+  .music-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(220px, 40vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+  .mp-title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--gm-text);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .mp-vol {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .mp-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    overflow: hidden;
+  }
+  .mp-fill {
+    height: 100%;
+    background: var(--gm-accent);
+  }
+  .mp-pct {
+    min-width: 28px;
+    text-align: right;
+    color: var(--gm-text-dim);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .mp-hint {
+    color: var(--gm-text-dim);
+    font-size: 0.75rem;
   }
 </style>

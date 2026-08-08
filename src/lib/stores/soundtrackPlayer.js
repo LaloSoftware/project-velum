@@ -3,6 +3,7 @@ import { view, detailGame, homeFeaturedGame } from "./ui.js";
 import { soundtrack } from "./soundtrackOverrides.js";
 import { audioUrl } from "../util/asset.js";
 import { session } from "./playsession.js";
+import { musicPlayer } from "./musicPlayer.js";
 
 /*
  * Reproduce en loop el soundtrack del juego "activo": el que se ve en
@@ -18,6 +19,12 @@ const activeGame = derived(
     $detailGame || ($view === "home" ? $homeFeaturedGame : null)
 );
 
+// Derivado a un booleano aparte (no suscribirse a `musicPlayer` completo):
+// ese store se reescribe en cada `timeupdate` (varias veces por segundo
+// mientras suena algo) — Svelte solo re-notifica un `derived` cuando el
+// valor calculado realmente cambia, así que esto sí queda barato.
+const musicPlaying = derived(musicPlayer, (s) => s.playing);
+
 let audioEl = null;
 let currentGameId = null;
 let currentPath = null;
@@ -31,32 +38,40 @@ function stop() {
   currentPath = null;
 }
 
-export function initSoundtrackPlayer() {
-  activeGame.subscribe(async (game) => {
-    const entry = game ? get(soundtrack)[game.id] : null;
-    const path = entry?.path || null;
+// Resuelve/aplica el soundtrack del juego activo — extraído aparte para
+// poder llamarlo tanto al cambiar de juego activo como al cambiar el estado
+// del reproductor de música (ver precedencia abajo).
+async function applyActiveGame(game) {
+  const entry = game ? get(soundtrack)[game.id] : null;
+  const path = entry?.path || null;
 
-    if (!path) {
-      stop();
-      currentGameId = null;
-      return;
-    }
-    if (game.id === currentGameId && path === currentPath) {
-      if (audioEl) audioEl.volume = entry.volume ?? 1;
-      return;
-    }
+  // Precedencia: si el reproductor de música (Multimedia → Música) está
+  // sonando, el soundtrack por-juego no suena — se tratan como audios
+  // exclusivos entre sí (ver stores/musicPlayer.js).
+  if (!path || get(musicPlaying)) {
     stop();
-    currentGameId = game.id;
-    currentPath = path;
-    const url = await audioUrl(path);
-    // El juego/ruta activos pudieron cambiar mientras se resolvía la URL.
-    if (currentGameId !== game.id || currentPath !== path) return;
-    if (!url) return;
-    audioEl = new Audio(url);
-    audioEl.loop = true;
-    audioEl.volume = entry.volume ?? 1;
-    audioEl.play().catch(() => {});
-  });
+    currentGameId = null;
+    return;
+  }
+  if (game.id === currentGameId && path === currentPath) {
+    if (audioEl) audioEl.volume = entry.volume ?? 1;
+    return;
+  }
+  stop();
+  currentGameId = game.id;
+  currentPath = path;
+  const url = await audioUrl(path);
+  // El juego/ruta activos pudieron cambiar mientras se resolvía la URL.
+  if (currentGameId !== game.id || currentPath !== path) return;
+  if (!url) return;
+  audioEl = new Audio(url);
+  audioEl.loop = true;
+  audioEl.volume = entry.volume ?? 1;
+  audioEl.play().catch(() => {});
+}
+
+export function initSoundtrackPlayer() {
+  activeGame.subscribe((game) => applyActiveGame(game));
 
   // Ajustar volumen (o detener si se quita el path) sin esperar a que
   // cambie el juego activo, p. ej. mientras se mueve el slider en vivo.
@@ -78,8 +93,15 @@ export function initSoundtrackPlayer() {
   session.subscribe((s) => {
     if (s) {
       audioEl?.pause();
-    } else if (audioEl) {
+    } else if (audioEl && !get(musicPlaying)) {
       audioEl.play().catch(() => {});
     }
   });
+
+  // El reproductor de música puede empezar/parar sin que cambie el juego
+  // activo (p. ej. el usuario sigue en la misma tarjeta de Inicio) — sin
+  // esto, `activeGame.subscribe` de arriba no se reevalúa solo porque
+  // cambió `musicPlaying`, y el soundtrack seguiría sonando encima o
+  // tardaría en resumir hasta el próximo cambio de juego enfocado.
+  musicPlaying.subscribe(() => applyActiveGame(get(activeGame)));
 }

@@ -69,6 +69,50 @@
     />
     <span class="sizeval">{Math.round($soundSettings.notificationsVolume * 100)}%</span>
   </div>
+
+  <h2>Reproductor de música</h2>
+  <p class="dim">
+    Preferencias del reproductor de música (Multimedia → Música) frente al resto
+    de la app. Las 3 vienen habilitadas por defecto.
+  </p>
+  <div class="rows">
+    <div class="row">
+      <span class="rlabel">Detener la música al iniciar un juego</span>
+      <button
+        class="rowtoggle"
+        class:on={$soundSettings.stopMusicOnGame}
+        data-focusable
+        tabindex="-1"
+        on:click={() => updateSounds({ stopMusicOnGame: !$soundSettings.stopMusicOnGame })}
+      >
+        {$soundSettings.stopMusicOnGame ? "ON" : "OFF"}
+      </button>
+    </div>
+    <div class="row">
+      <span class="rlabel">Detener la música al iniciar una aplicación</span>
+      <button
+        class="rowtoggle"
+        class:on={$soundSettings.stopMusicOnApp}
+        data-focusable
+        tabindex="-1"
+        on:click={() => updateSounds({ stopMusicOnApp: !$soundSettings.stopMusicOnApp })}
+      >
+        {$soundSettings.stopMusicOnApp ? "ON" : "OFF"}
+      </button>
+    </div>
+    <div class="row">
+      <span class="rlabel">Silenciar sonidos de navegación al usar el reproductor de música</span>
+      <button
+        class="rowtoggle"
+        class:on={$soundSettings.muteNavDuringMusic}
+        data-focusable
+        tabindex="-1"
+        on:click={() => updateSounds({ muteNavDuringMusic: !$soundSettings.muteNavDuringMusic })}
+      >
+        {$soundSettings.muteNavDuringMusic ? "ON" : "OFF"}
+      </button>
+    </div>
+  </div>
 </section>
 
 <style>
@@ -108,6 +152,40 @@
     color: #04140d;
   }
   .toggle:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px 16px;
+  }
+  .rlabel {
+    flex: 1;
+    font-weight: 600;
+  }
+  .rowtoggle {
+    cursor: pointer;
+    min-width: 66px;
+    padding: 10px 0;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 800;
+    text-align: center;
+  }
+  .rowtoggle.on {
+    background: var(--gm-success);
+    color: #04140d;
+  }
+  .rowtoggle:focus {
     box-shadow: var(--gm-focus-ring);
   }
   .sizerow {

@@ -58,11 +58,25 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
   (orientación y comportamiento de la tira de Inicio, posición del bloque,
   alineación de tarjetas, textos, cantidad de tarjetas, alineación de pestañas,
   posición del reloj, escala de interfaz…), persistentes vía `appConfig`.
+- `stores/musicLibrary.js` / `stores/playlists.js` — biblioteca de álbumes (Multimedia
+  → Música: cada carpeta agregada = un álbum; las subcarpetas de un álbum se leen como
+  "discos", ver `media.rs::scan_album`) y listas de reproducción (pistas
+  denormalizadas, sobreviven aunque se quite el álbum de origen). También maneja
+  `musicLibraryRoots`: carpetas raíz cuyas subcarpetas directas se agregan solas como
+  álbumes (`syncLibraryRoots()`, corrido al entrar a Música).
+- `stores/musicPlayer.js` — driver de reproducción (sin componente propio, mismo
+  espíritu que `soundtrackPlayer.js` pero con cola/shuffle reales) — sigue sonando
+  fuera de Multimedia; controles reales en QAM → Música y en Música → "Reproducción"
+  (`NowPlayingView.svelte`, con arte por hash/metadatos/progreso interactivo vía
+  `seek()`), indicador solo informativo en el header (`App.svelte`, slot libre entre
+  pestañas/reloj, con una barra de progreso delgada). Tiene precedencia sobre
+  `soundtrackPlayer.js` (el soundtrack por-juego no suena si la música está activa).
 
 ## Vistas y capas de UI (z-index)
 
 - **Pestañas** (vista base): **Inicio** (recientes) · **Juegos** (todos, filtro/buscar/
-  abrir launchers) · **Aplicaciones**.
+  abrir launchers) · **Aplicaciones** · **Multimedia** (Música real; Imágenes/Videos
+  "próximamente", mismo shell de navegación listo para cuando se implementen).
 - **Overlays** (botones dedicados): **Configuración** (Apariencia / Inicio / Atajos /
   Filtros / Ocultos / Iconos de botones, con navegación por regiones y una fila fija de
   controles de ventana vía `lib/util/window.js`) y **Sistema/QAM** (acordeón por foco;

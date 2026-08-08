@@ -37,6 +37,26 @@ export const confirmDelete = writable(null);
 // Confirmación de apagar el sistema (capa modal), desde Configuración.
 export const shutdownConfirm = writable(false);
 
+// Modo del footer de atajos dentro de Multimedia → Música (ver App.svelte):
+// null (grilla de Imágenes/Videos, sin A/Y) | "grid" | "album" | "playlist".
+// Lo mantiene MusicView.svelte, reseteado a null en su onDestroy — cubre solo
+// los 3 casos al salir de Música/Multimedia.
+export const musicFooterMode = writable(null);
+
+// Álbum/lista abierto dentro de Música (Multimedia): { type: "album"|"playlist",
+// item } | null. Global (no estado local de MusicView.svelte) para que
+// handleBack() en App.svelte lo reconozca igual que $detailGame — si no,
+// "atrás" no encuentra nada que cerrar y cae al fallback de ir a Inicio en
+// vez de solo salir del álbum/disco. Reseteado en el onDestroy de
+// MusicView.svelte.
+export const musicDetail = writable(null);
+export function openMusicDetail(type, item) {
+  musicDetail.set({ type, item });
+}
+export function closeMusicDetail() {
+  musicDetail.set(null);
+}
+
 // Menú rápido de sistema: minimizar/maximizar/pantalla completa/cerrar/
 // apagar, accesible por combo de botones o atajo de teclado/mouse
 // configurable (ver stores/comboShortcuts.js).

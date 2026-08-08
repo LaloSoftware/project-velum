@@ -118,6 +118,26 @@ export async function openUrl(target) {
   }
 }
 
+// Escanea un álbum de música: pistas sueltas + discos (subcarpetas) — ver
+// media.rs::scan_album. Módulo Multimedia → Música.
+export async function scanAlbum(path) {
+  try {
+    return await invoke("scan_album", { path });
+  } catch {
+    return { tracks: [], discs: [] };
+  }
+}
+
+// Lista las subcarpetas directas de una "carpeta raíz" (ver
+// media.rs::list_subfolders) — cada una se agrega como álbum automáticamente.
+export async function listSubfolders(path) {
+  try {
+    return await invoke("list_subfolders", { path });
+  } catch {
+    return [];
+  }
+}
+
 export async function focusGame() {
   try {
     return await invoke("focus_game");
