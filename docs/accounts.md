@@ -165,6 +165,16 @@ disparaba el mismo botón de nuevo, reabriendo la misma página de Steam.
 `PlayingOverlay.svelte` muestra "⬇ Descargando desde Steam" en vez de
 "▶ Jugando a" para este caso (`$session.mode === "steam-download"`).
 
+**Mismo mecanismo para los accesos directos de Steam del QAM** (Select →
+Utilidades, `QamUtilitiesSection.svelte`: biblioteca, tienda, perfil…):
+`stores/playsession.js::startSteamUtility(label, target)`, no `openUrl`
+directo desde el componente — mismo motivo de arriba (el poll de XInput sigue
+leyendo el mando aunque Steam tenga el foco). A diferencia de
+`startSteamDownload`, no hay un juego puntual asociado, así que `session` no
+lleva `game` — solo `{ mode: "steam-utility", label }`; `PlayingOverlay.svelte`
+usa `session.label` (el nombre del acceso, ej. "Biblioteca") en vez de
+`session.game.title` para este modo.
+
 **Carátulas por CDN público** (`stores/games.js::steamCdnArt`): URLs
 deterministas por `appid`
 (`cdn.akamai.steamstatic.com/steam/apps/{appid}/{library_600x900.jpg |

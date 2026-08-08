@@ -1,10 +1,12 @@
 <script>
-  import { openUrl } from "../ipc/index.js";
+  import { startSteamUtility } from "../stores/playsession.js";
 
   // Accesos directos fijos a Steam (protocolo steam://, resuelto por el SO —
   // ver launch.rs::open_url). Mismo mecanismo que ya usa steam_open_install
   // (GameDetail.svelte, "Descargar desde Steam"), generalizado a un comando
-  // genérico en vez de uno específico por destino.
+  // genérico en vez de uno específico por destino. startSteamUtility (no
+  // openUrl directo) suspende el input de GM igual que un juego real mientras
+  // Steam tiene el foco — ver playsession.js::startSteamUtility.
   const STEAM_UTILITIES = [
     { icon: "📚", label: "Biblioteca", target: "steam://open/games" },
     { icon: "🛒", label: "Tienda", target: "steam://store" },
@@ -35,7 +37,7 @@
           data-focusable
           data-focus-default={i === 0 ? "" : undefined}
           tabindex="-1"
-          on:click={() => openUrl(u.target)}
+          on:click={() => startSteamUtility(u.label, u.target)}
         >
           {u.icon} {u.label}
         </button>
