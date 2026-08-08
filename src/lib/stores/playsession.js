@@ -3,7 +3,7 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { loadGames } from "./games.js";
 import { recordPlay } from "./playtimes.js";
 import { syncNow } from "./steamAccount.js";
-import { launchGame, focusGame, isTauri, steamOpenInstall } from "../ipc/index.js";
+import { launchGame, focusGame, isTauri, steamOpenInstall, openUrl } from "../ipc/index.js";
 import { onRawButton } from "../input/index.js";
 import { showToast, reportError } from "./ui.js";
 import {
@@ -106,6 +106,28 @@ export async function startSteamDownload(game, appid) {
     await minimizeWindow();
   } catch (e) {
     reportError(e, "playsession:startSteamDownload");
+    await endPlay();
+  }
+}
+
+// Accesos directos de Steam (QAM → Utilidades, ver QamUtilitiesSection.svelte)
+// usan la MISMA suspensión — mismo motivo que startSteamDownload de arriba: sin
+// bloquear input, el poll de XInput sigue leyendo el mando en segundo plano y
+// un botón presionado en Steam (ya con el foco) le llegaría también a GM.
+// Sin `game` (no hay uno puntual, son accesos genéricos): PlayingOverlay usa
+// `session.label` en vez de `session.game.title` para el modo "steam-utility".
+export async function startSteamUtility(label, target) {
+  if (get(session)) {
+    await focusGame();
+    return;
+  }
+  try {
+    wasFullscreen = await isFullscreen();
+    session.set({ mode: "steam-utility", label });
+    await openUrl(target);
+    await minimizeWindow();
+  } catch (e) {
+    reportError(e, "playsession:startSteamUtility");
     await endPlay();
   }
 }

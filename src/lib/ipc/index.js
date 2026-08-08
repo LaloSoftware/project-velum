@@ -108,6 +108,16 @@ export async function steamOpenInstall(appid) {
   }
 }
 
+// Abre una URL/URI externa (steam://…, http(s)://…) con el programa asociado
+// del sistema — accesos directos genéricos (QAM → Utilidades).
+export async function openUrl(target) {
+  try {
+    return await invoke("open_url", { target });
+  } catch {
+    console.info(`[mock] open_url: ${target}`);
+  }
+}
+
 export async function focusGame() {
   try {
     return await invoke("focus_game");

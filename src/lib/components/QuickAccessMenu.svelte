@@ -2,12 +2,19 @@
   import { tick } from "svelte";
   import QamSystemSection from "./QamSystemSection.svelte";
   import QamShortcutsSection from "./QamShortcutsSection.svelte";
+  import QamUtilitiesSection from "./QamUtilitiesSection.svelte";
   import { focusFirstIn } from "../input/navigation.js";
+  import { steamAccount } from "../stores/steamAccount.js";
 
-  const SECTIONS = [
+  const BASE_SECTIONS = [
     { id: "system", icon: "⚙️", label: "Sistema" },
     { id: "shortcuts", icon: "⌨️", label: "Atajos" },
   ];
+  // "Utilidades" (accesos directos de Steam/GOG) solo con cuenta de Steam
+  // vinculada — hoy es la única fuente de accesos útiles ahí.
+  $: SECTIONS = $steamAccount
+    ? [...BASE_SECTIONS, { id: "utilities", icon: "🧰", label: "Utilidades" }]
+    : BASE_SECTIONS;
   let section = "system";
   let contentEl;
 
@@ -41,6 +48,8 @@
   <div class="content" data-focus-group="panel" bind:this={contentEl}>
     {#if section === "system"}
       <QamSystemSection />
+    {:else if section === "utilities"}
+      <QamUtilitiesSection />
     {:else}
       <QamShortcutsSection />
     {/if}

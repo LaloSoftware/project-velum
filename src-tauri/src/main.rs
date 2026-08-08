@@ -48,6 +48,7 @@ fn main() {
             launch::focus_game,
             launch::uninstall_game,
             launch::steam_open_install,
+            launch::open_url,
             assets::read_image,
             assets::read_audio,
             config::load_config,
