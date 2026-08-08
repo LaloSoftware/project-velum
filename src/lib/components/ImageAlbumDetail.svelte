@@ -1,28 +1,22 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { listImageFiles } from "../ipc/index.js";
-  import { imageUrl } from "../util/asset.js";
   import { renameAlbum, removeAlbum } from "../stores/imageLibrary.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { reportError, imageViewer, openImageViewer, closeImageViewer } from "../stores/ui.js";
   import ImageViewer from "./ImageViewer.svelte";
+  import ImageThumb from "./ImageThumb.svelte";
 
   export let album;
   export let onBack = () => {};
 
   let images = [];
   let loading = true;
-  let thumbs = {}; // path → data URI (cache local del render, imageUrl ya cachea internamente)
 
   async function load() {
     loading = true;
     try {
       images = await listImageFiles(album.id);
-      for (const img of images) {
-        imageUrl(img.path).then((u) => {
-          if (u) thumbs = { ...thumbs, [img.path]: u };
-        });
-      }
     } catch (e) {
       reportError(e, "ImageAlbumDetail:load");
       images = [];
@@ -36,7 +30,6 @@
   onDestroy(() => closeImageViewer());
 
   async function refresh() {
-    thumbs = {};
     await load();
   }
 
@@ -84,9 +77,7 @@
             on:click={() => openImageViewer(album, i)}
             aria-label={img.name}
           >
-            {#if thumbs[img.path]}
-              <img src={thumbs[img.path]} alt={img.name} loading="lazy" />
-            {/if}
+            <ImageThumb path={img.path} name={img.name} />
           </button>
         {/each}
       </div>
@@ -163,11 +154,5 @@
   }
   .thumb:focus {
     box-shadow: var(--gm-focus-ring);
-  }
-  .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
   }
 </style>
