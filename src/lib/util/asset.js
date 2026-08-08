@@ -26,13 +26,42 @@ async function invoke(cmd, args) {
   return _invoke(cmd, args);
 }
 
+// Cola con límite de concurrencia para read_image — un álbum con muchas
+// imágenes dispararía cientos de lecturas simultáneas (cada una lee el
+// archivo completo + lo codifica a base64) si se piden todas de una.
+// ImageThumb.svelte ya evita pedir las que no se ven (lazyVisible.js), pero
+// el margen de precarga + una grilla grande puede dejar varias decenas
+// "visibles" al mismo tiempo — sin este límite, esas decenas igual se piden
+// todas juntas. Acá se procesan de a MAX_CONCURRENT por vez, en el orden en
+// que se encolan (scroll hacia abajo = llegan en orden), dando el efecto de
+// "cargar por lotes" en vez de todo de golpe.
+const MAX_CONCURRENT_IMAGE_LOADS = 5;
+let activeImageLoads = 0;
+const imageQueue = [];
+function runImageQueue() {
+  while (activeImageLoads < MAX_CONCURRENT_IMAGE_LOADS && imageQueue.length) {
+    const job = imageQueue.shift();
+    activeImageLoads++;
+    job().finally(() => {
+      activeImageLoads--;
+      runImageQueue();
+    });
+  }
+}
+function enqueueImageLoad(task) {
+  return new Promise((resolve, reject) => {
+    imageQueue.push(() => task().then(resolve, reject));
+    runImageQueue();
+  });
+}
+
 export async function imageUrl(path) {
   if (!path) return null;
   if (READY.test(path)) return path;
   if (!isTauri) return null;
   if (cache.has(path)) return cache.get(path);
 
-  const p = invoke("read_image", { path })
+  const p = enqueueImageLoad(() => invoke("read_image", { path }))
     .then((uri) => {
       cache.set(path, uri);
       return uri;
