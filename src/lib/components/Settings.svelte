@@ -11,6 +11,8 @@
   import { BUILTIN_THEMES, EXAMPLE_EXTERNAL_CSS, FONT_OPTIONS } from "../theming/themes.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { showToast, openColorPicker } from "../stores/ui.js";
+  import { isTauri } from "../ipc/index.js";
+  import { imageUrl } from "../util/asset.js";
   import {
     hideCardText,
     hideLibraryButton,
@@ -31,6 +33,9 @@
     HOME_BG_FADE_MIN,
     HOME_BG_FADE_MAX,
     setHomeBgFade,
+    homeWallpaperPath,
+    setHomeWallpaper,
+    clearHomeWallpaper,
     completedBadgeEnabled,
     completedGlowEnabled,
     setCompletedBadgeEnabled,
@@ -170,6 +175,38 @@
     const current = $homeTexts[field.key]?.text || "";
     const text = await openKeyboard(current, field.label);
     if (text !== null) await setHomeTextValue(field.key, text);
+  }
+
+  // Wallpaper general de Inicio — mismo patrón de diálogo nativo que
+  // ArtEditor.svelte::pick() (ruta absoluta, nunca se copia el archivo).
+  const WALLPAPER_IMG_EXT = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+  async function pickHomeWallpaper() {
+    if (!isTauri) return showToast("Selección de archivos solo en la app");
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const path = await open({ multiple: false, filters: [{ name: "Imágenes", extensions: WALLPAPER_IMG_EXT }] });
+    if (path) {
+      await setHomeWallpaper(path);
+      showToast("Wallpaper de Inicio actualizado");
+    }
+  }
+  async function removeHomeWallpaper() {
+    await clearHomeWallpaper();
+    showToast("Wallpaper de Inicio quitado");
+  }
+
+  // Vista previa del wallpaper (data URI, se recarga si cambia la ruta) —
+  // mismo mecanismo que las miniaturas de ArtEditor.svelte.
+  let wallpaperPreview = null;
+  let wallpaperPreviewFor = null;
+  $: if ($homeWallpaperPath !== wallpaperPreviewFor) {
+    wallpaperPreviewFor = $homeWallpaperPath;
+    wallpaperPreview = null;
+    if ($homeWallpaperPath) {
+      const path = $homeWallpaperPath;
+      imageUrl(path).then((u) => {
+        if (path === wallpaperPreviewFor) wallpaperPreview = u;
+      });
+    }
   }
   async function removeProfile() {
     if ($profiles.length <= 1) return showToast("No puedes borrar el único perfil");
@@ -400,6 +437,28 @@
       </div>
     </div>
 
+    <h2>Wallpaper de Inicio</h2>
+    <p class="dim">
+      Reemplaza el fondo de Inicio (la foto que cambia según el juego enfocado en la
+      tira) por una imagen fija para todos los juegos. No afecta las carátulas de las
+      tarjetas ni el Detalle de cada juego.
+    </p>
+    <div class="wallpaper-row">
+      {#if wallpaperPreview}
+        <img class="wallpaper-preview" src={wallpaperPreview} alt="" />
+      {/if}
+      <div class="chips">
+        <button class="chip" data-focusable tabindex="-1" on:click={pickHomeWallpaper}>
+          {$homeWallpaperPath ? "Cambiar imagen…" : "Elegir imagen…"}
+        </button>
+        {#if $homeWallpaperPath}
+          <button class="chip danger" data-focusable tabindex="-1" on:click={removeHomeWallpaper}>
+            Quitar
+          </button>
+        {/if}
+      </div>
+    </div>
+
     <h2>Resaltado de 100% completado (logros)</h2>
     <p class="dim">
       Marca los juegos con todos los logros desbloqueados (tarjeta y badge de logros
@@ -601,6 +660,19 @@
   }
   .chip:focus {
     box-shadow: var(--gm-focus-ring);
+  }
+  .wallpaper-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .wallpaper-preview {
+    width: 120px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface);
+    flex-shrink: 0;
   }
   .sizerow {
     display: flex;

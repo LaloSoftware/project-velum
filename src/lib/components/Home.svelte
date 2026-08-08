@@ -14,6 +14,7 @@
     homeReading,
     homeCardAlign,
     homeBgFade,
+    homeWallpaperPath,
   } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
@@ -35,7 +36,13 @@
 
   let bgUrl = null;
   let bgFor = null;
-  $: bgSrc = featured ? effectiveArt(featured, $overrides).hero || effectiveArt(featured, $overrides).cover : null;
+  // Wallpaper general de Inicio (Ajustes → Apariencia) tiene prioridad sobre el
+  // hero por-juego — reemplaza el fondo para TODOS los juegos, no solo el
+  // enfocado (ver stores/uiprefs.js::homeWallpaperPath, distinto del token
+  // --gm-wallpaper de toda la app). Las tarjetas de la tira no se tocan.
+  $: bgSrc =
+    $homeWallpaperPath ||
+    (featured ? effectiveArt(featured, $overrides).hero || effectiveArt(featured, $overrides).cover : null);
   $: if (bgSrc !== bgFor) {
     bgFor = bgSrc;
     bgUrl = null;

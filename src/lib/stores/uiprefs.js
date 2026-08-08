@@ -206,6 +206,18 @@ export const HOME_BG_FADE_MAX = 100;
 const HOME_BG_FADE_DEFAULT = 55; // valor que ya traía Home.svelte hardcodeado
 export const homeBgFade = writable(HOME_BG_FADE_DEFAULT);
 
+// Wallpaper general de Inicio — reemplaza el hero por-juego (el que cambia
+// según la tarjeta enfocada en la tira) por una imagen fija, SOLO en Inicio
+// (no afecta carátulas de tarjetas ni el Detalle). Distinto del token
+// `--gm-wallpaper`/`profile.wallpaper` (fondo de TODA la app, hoy un valor CSS
+// crudo tipo gradiente, sin UI de carga de imagen — ver theming/index.js) — no
+// se reusa ese campo a propósito, para no mezclar los dos conceptos.
+// Ruta de archivo absoluta (mismo patrón que artOverrides: nunca se copia el
+// binario, se resuelve a data: URI en el momento de mostrarla vía
+// util/asset.js::imageUrl()); `null` = sin wallpaper, usa el hero por-juego.
+// Sin toggle aparte: la sola presencia del path activa el wallpaper.
+export const homeWallpaperPath = writable(null);
+
 // Cada campo de "Apariencia" se guarda en el perfil activo (ver profiles.js).
 // syncFromActiveProfile() aplica los campos del perfil activo a estos stores
 // (con sus defaults si el perfil todavía no los tiene) y se reejecuta sola
@@ -262,6 +274,7 @@ function syncFromActiveProfile() {
       ? Math.min(HOME_BG_FADE_MAX, Math.max(HOME_BG_FADE_MIN, p.homeBgFade))
       : HOME_BG_FADE_DEFAULT
   );
+  homeWallpaperPath.set(typeof p.homeWallpaperPath === "string" ? p.homeWallpaperPath : null);
 }
 
 activeProfileId.subscribe((id) => {
@@ -466,4 +479,14 @@ export async function setHomeBgFade(v) {
   if (!Number.isFinite(n)) return;
   homeBgFade.set(n);
   await updateActive({ homeBgFade: n });
+}
+
+export async function setHomeWallpaper(path) {
+  homeWallpaperPath.set(path || null);
+  await updateActive({ homeWallpaperPath: path || null });
+}
+
+export async function clearHomeWallpaper() {
+  homeWallpaperPath.set(null);
+  await updateActive({ homeWallpaperPath: null });
 }

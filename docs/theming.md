@@ -126,6 +126,30 @@ controla la opacidad del hero de fondo de `Home.svelte` (`.bg`, antes fija en
 `0.55`) antes de desvanecerse al wallpaper del tema vía `mask-image`. Más
 bajo = fondo más tenue/difuminado; más alto = foto más visible.
 
+## Wallpaper de Inicio
+
+Ajustes → Apariencia → "Wallpaper de Inicio": imagen fija que reemplaza el
+fondo hero de `Home.svelte` (por defecto, la carátula/hero del juego enfocado
+en la tira "Reciente") para **todos** los juegos — solo afecta ese fondo
+grande; las carátulas de `GameCard` en la tira y el hero por-juego del Detalle
+no se tocan. `homeWallpaperPath` (`stores/uiprefs.js`, persistente por perfil,
+`null` = sin wallpaper): guarda la **ruta de archivo absoluta** elegida con el
+diálogo nativo (`@tauri-apps/plugin-dialog`, mismo mecanismo que
+`ArtEditor.svelte::pick()` — nunca se copia el binario), resuelta a `data:` URI
+en el momento de mostrarla vía `util/asset.js::imageUrl()`. Sin toggle aparte:
+la sola presencia del path activa el wallpaper (`Home.svelte`: `bgSrc =
+$homeWallpaperPath || <hero del juego enfocado>`); "Quitar" limpia el campo y
+vuelve al hero por-juego. Hereda el difuminado (`homeBgFade`, arriba) sin
+código extra — es solo una fuente alternativa para la misma capa `.bg`.
+
+**No confundir con el token `--gm-wallpaper`/`profile.wallpaper`** (perfil,
+`theming/index.js:35`): ese es el fondo de TODA la app (`App.svelte`,
+`GameDetail.svelte`), hoy solo acepta un valor CSS crudo (gradiente) escrito a
+mano en cada tema (`theming/themes.js`), sin UI de carga de imagen — es un
+concepto totalmente distinto que sigue sin implementar (infraestructura sin
+terminar). Se usó un nombre de campo separado (`homeWallpaperPath`) a
+propósito para no mezclarlos.
+
 ## Notificaciones (posición)
 
 Ajustes → Notificaciones: picker visual 3×3 (sin el centro-centro, taparía
