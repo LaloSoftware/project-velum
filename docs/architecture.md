@@ -65,7 +65,10 @@ Así, el resto del código no depende de Windows y el desarrollo en Mac no se bl
   abrir launchers) · **Aplicaciones**.
 - **Overlays** (botones dedicados): **Configuración** (Apariencia / Inicio / Atajos /
   Filtros / Ocultos / Iconos de botones, con navegación por regiones y una fila fija de
-  controles de ventana vía `lib/util/window.js`) y **Sistema/QAM** (acordeón por foco).
+  controles de ventana vía `lib/util/window.js`) y **Sistema/QAM** (acordeón por foco;
+  incluye **Utilidades** — accesos directos `steam://…` vía `launch::open_url`, solo
+  visible con cuenta de Steam vinculada — sección GOG vacía a propósito, ver
+  `QamUtilitiesSection.svelte`).
 - **Tarjetas**: menú contextual (`CardContextMenu`, atajo `context`) con jugar/detalle,
   grupos, ocultar y eliminar (`ConfirmDelete`, ejecuta el desinstalador — stub en mock).
 - **Selects**: las opciones de una sola elección (redes, salida de audio, tema, vista de

@@ -185,6 +185,17 @@ pub fn steam_open_install(appid: i64) -> Result<(), String> {
     open_target(&target).map_err(|e| e.to_string())
 }
 
+/// Abre una URL/URI externa con el programa asociado del sistema — accesos
+/// directos genéricos del frontend que no son "lanzar un juego" ni "instalar"
+/// (ej. QAM → Utilidades → Steam: biblioteca, tienda, perfil…, cada uno un
+/// `steam://…` fijo que ya conoce el frontend). Mismo `open_target` que usan
+/// `launch_game`/`steam_open_install`, sin registrar sesión ni vigía de proceso.
+#[tauri::command]
+pub fn open_url(target: String) -> Result<(), String> {
+    println!("[launch] abrir URL externa -> {target}");
+    open_target(&target).map_err(|e| e.to_string())
+}
+
 /// Abre un destino: URI de protocolo (`steam://…`), ejecutable o acceso `.lnk`.
 fn open_target(target: &str) -> std::io::Result<()> {
     use std::process::Command;
