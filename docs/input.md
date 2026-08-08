@@ -123,14 +123,22 @@ imitando la silueta física del mando. Cada posición puede tener asignada una d
 **Configuración de atajos → Menú radial de sistema (mando)**, un `<Select>` por
 posición (no hay flujo de captura: las 8 posiciones son fijas, no remapeables).
 Ejecutar una acción usa `runSystemAction(id)` (`stores/systemActions.js`), compartida
-con la lista de teclado/mouse de abajo — mismo mapa, sin duplicar.
+con la lista de teclado/mouse de abajo — mismo mapa, sin duplicar. `lt`/`rt` (antes
+libres de sobra) traen por default las 2 acciones del reproductor de música
+(`MUSIC_RADIAL_ACTIONS`/`runMusicRadialAction()`, `stores/musicPlayer.js`): "Detener
+música" y "Reproducir/pausar música" — reasignables igual que cualquier otra posición,
+el picker de Configuración de atajos ya incluye ambos registros combinados.
 
 - **Mientras está abierto, congela todo lo demás** (dirección y botones): ninguna
   navegación ni acción individual de la vista de abajo se dispara. Solo las 8
   posiciones (o el botón de cancelar configurado) hacen algo —
   `runRadialInput()`/`RADIAL_POSITIONS` en `stores/radialMenu.js`, resuelto en
   `input/index.js::handleRaw()` antes de llegar al `resolve()`/`isComboEngaged()`
-  normal.
+  normal. **Excepción — el d-pad** (sin uso en las 8 posiciones fijas): mientras el
+  radial está abierto, arriba/abajo ajustan el volumen del reproductor de música e
+  izquierda/derecha saltan a la pista anterior/siguiente, sin cerrar el radial (a
+  diferencia de una posición del rombo) — resuelto directo en `handleRaw()`, no pasa
+  por `runRadialInput()`.
 - **Cerrar**: soltar Home siempre cierra sin ejecutar nada (no se puede quedar
   "atascado"). Además, en **Configuración de atajos** se puede elegir un botón de
   cancelar explícito (`radialCancelButton`) que cierra igual mientras se mantiene Home

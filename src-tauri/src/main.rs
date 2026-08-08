@@ -6,6 +6,7 @@ mod config;
 mod input;
 mod launch;
 mod library;
+mod media;
 mod shortcuts;
 mod steam_api;
 mod system;
@@ -51,6 +52,7 @@ fn main() {
             launch::open_url,
             assets::read_image,
             assets::read_audio,
+            media::list_audio_files,
             config::load_config,
             config::save_config,
             shortcuts::run_shortcut,

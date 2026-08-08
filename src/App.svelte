@@ -16,6 +16,8 @@
     hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { initMusicLibrary } from "./lib/stores/musicLibrary.js";
+  import { initPlaylists } from "./lib/stores/playlists.js";
   import { initSystemActions } from "./lib/stores/systemActions.js";
   import { initComboShortcuts } from "./lib/stores/comboShortcuts.js";
   import { radialMenu, openRadialMenu, initRadialMenu } from "./lib/stores/radialMenu.js";
@@ -87,6 +89,7 @@
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
   import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
   import { initSoundtrackPlayer } from "./lib/stores/soundtrackPlayer.js";
+  import { initMusicPlayer, musicPlayer } from "./lib/stores/musicPlayer.js";
   import { session, initPlaySession } from "./lib/stores/playsession.js";
   import { focusGame } from "./lib/ipc/index.js";
   import { isFullscreen, onFullscreenChange } from "./lib/util/window.js";
@@ -142,6 +145,29 @@
 
   // Escala de interfaz (Ajustes > Apariencia): factor aplicado a toda la app vía `zoom`.
   $: uiScaleFactor = $uiScale;
+
+  // Indicador de música en el header (Multimedia → Música): la barra superior
+  // tiene 3 slots (left/center/right) y hoy solo conviven ahí tabsNav
+  // ($tabsAlign) y clock ($clockPosition, nunca "center") — con 2 elementos en
+  // 3 slots siempre queda al menos uno completamente libre. Prioridad si hay
+  // más de uno libre: center → right → left.
+  function freeHeaderSlot(tabsAlign, clockPosition) {
+    const occupied = { left: false, center: false, right: false };
+    occupied[tabsAlign] = true;
+    if (clockPosition === "left" || clockPosition === "right") occupied[clockPosition] = true;
+    if (!occupied.center) return "center";
+    if (!occupied.right) return "right";
+    return "left";
+  }
+  $: musicSlot = freeHeaderSlot($tabsAlign, $clockPosition);
+  function hueOf(str) {
+    let h = 0;
+    for (let i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+    return h;
+  }
+  $: musicIndicatorCover = $musicPlayer.current
+    ? `linear-gradient(150deg, hsl(${hueOf($musicPlayer.current.title)} 55% 42%), hsl(${(hueOf($musicPlayer.current.title) + 40) % 360} 60% 22%))`
+    : "";
 
   // Auto-ocultar el cursor del mouse cuando se usa mando/teclado: se oculta en
   // cada acción de input procesada (ver dispatch) y reaparece con el mouse.
@@ -593,6 +619,8 @@
       initStartup(),
       initLibrary(),
       initGroups(),
+      initMusicLibrary(),
+      initPlaylists(),
       initCustomShortcuts(),
       initHidden(),
       initPrompts(),
@@ -616,6 +644,7 @@
     await applyStartup();
     playStartupSound();
     initSoundtrackPlayer();
+    initMusicPlayer();
     await initInput(dispatch);
     await scheduleScope();
     const t = setInterval(() => (now = new Date()), 1000);
@@ -656,17 +685,29 @@
       <div class="clock">{now.toLocaleTimeString().slice(0, 5)}</div>
     {/snippet}
 
+    {#snippet musicIndicator()}
+      <!-- Solo informativo (no focusable): vive fuera de todo data-focus-group,
+           los controles reales están en el QAM → Música. -->
+      <div class="music-indicator" title={$musicPlayer.current.title}>
+        <span class="mi-swatch" style="background: {musicIndicatorCover}"></span>
+        <span class="mi-title">{$musicPlayer.current.title}</span>
+      </div>
+    {/snippet}
+
     <header class="topbar">
       <div class="topbar-slot left">
         {#if $tabsAlign === "left"}{@render tabsNav()}{/if}
         {#if $clockPosition === "left"}{@render clock()}{/if}
+        {#if musicSlot === "left" && $musicPlayer.current}{@render musicIndicator()}{/if}
       </div>
       <div class="topbar-slot center">
         {#if $tabsAlign === "center"}{@render tabsNav()}{/if}
+        {#if musicSlot === "center" && $musicPlayer.current}{@render musicIndicator()}{/if}
       </div>
       <div class="topbar-slot right">
         {#if $tabsAlign === "right"}{@render tabsNav()}{/if}
         {#if $clockPosition === "right"}{@render clock()}{/if}
+        {#if musicSlot === "right" && $musicPlayer.current}{@render musicIndicator()}{/if}
       </div>
     </header>
 
@@ -880,6 +921,28 @@
     font-weight: 700;
     color: var(--gm-text-dim);
     font-variant-numeric: tabular-nums;
+  }
+  .music-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 220px;
+    pointer-events: none;
+  }
+  .mi-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .mi-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--gm-text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .content {
     flex: 1;

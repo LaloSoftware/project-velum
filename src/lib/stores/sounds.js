@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { soundFor } from "../theming/sounds.js";
+import { musicPlayer } from "./musicPlayer.js";
 
 /*
  * Configuración de sonidos de la app: arranque, navegación y notificaciones.
@@ -30,6 +31,17 @@ const DEFAULTS = {
   navigationVolume: 1,
   notificationsEnabled: true,
   notificationsVolume: 1,
+  // Reproductor de música (Multimedia → Música) — los 3 habilitados por
+  // defecto. stopMusicOnGame/stopMusicOnApp separados a propósito: game.kind
+  // está disponible en playsession.js::startPlay, así que se puede distinguir.
+  // "Detener" = pausar sin auto-reanudar (musicPlayer.pauseForSession()), no
+  // un detener destructivo — al volver, la cola sigue intacta.
+  stopMusicOnGame: true,
+  stopMusicOnApp: true,
+  // Silencia SOLO la categoría "navigation" (mover/aceptar/cancelar/cambio de
+  // pestaña) mientras suena música — notificaciones/errores y abrir/cerrar
+  // menús (categoría "notifications") siguen sonando siempre.
+  muteNavDuringMusic: true,
 };
 
 export const soundSettings = writable({ ...DEFAULTS });
@@ -46,6 +58,9 @@ export async function updateSounds(patch) {
 
 function play(category, name, enabled, volume) {
   if (!enabled) return;
+  if (category === "navigation" && get(soundSettings).muteNavDuringMusic && get(musicPlayer).playing) {
+    return;
+  }
   const url = soundFor(category, name);
   if (!url) return;
   const audio = new Audio(url);

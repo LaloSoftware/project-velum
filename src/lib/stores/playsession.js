@@ -6,6 +6,8 @@ import { syncNow } from "./steamAccount.js";
 import { launchGame, focusGame, isTauri, steamOpenInstall, openUrl } from "../ipc/index.js";
 import { onRawButton } from "../input/index.js";
 import { showToast, reportError } from "./ui.js";
+import { soundSettings } from "./sounds.js";
+import { pauseForSession as pauseMusicForSession } from "./musicPlayer.js";
 import {
   isFullscreen,
   minimizeWindow,
@@ -27,6 +29,18 @@ export const playConfig = writable({ ...DEFAULT_PLAY });
 
 let wasFullscreen = false;
 let holdTimer = null;
+
+// "Detener la música al iniciar un juego/aplicación" (Ajustes → Sonidos,
+// habilitado por defecto) — pausa sin auto-reanudar (musicPlayer.pauseForSession),
+// no destructivo: la cola sigue intacta al volver. Separado por game/app
+// porque game.kind ya distingue ambos casos en startPlay. startSteamDownload/
+// startSteamUtility (accesos a Steam, sin `kind` real) se tratan como
+// "aplicación" por ser lo más parecido semánticamente.
+function maybePauseMusicFor(kind) {
+  const s = get(soundSettings);
+  const shouldPause = kind === "app" ? s.stopMusicOnApp : s.stopMusicOnGame;
+  if (shouldPause) pauseMusicForSession();
+}
 
 export async function initPlaySession() {
   const cfg = await loadAppConfig();
@@ -76,6 +90,7 @@ export async function startPlay(game) {
     wasFullscreen = await isFullscreen();
     recordPlay(game.id); // aparece en "Reciente" al instante
     session.set({ game }); // overlay + bloqueo de input inmediatos
+    maybePauseMusicFor(game.kind === "app" ? "app" : "game");
     await launchGame(game.id, game.launchTarget, game.installDir);
     await minimizeWindow();
   } catch (e) {
@@ -102,6 +117,7 @@ export async function startSteamDownload(game, appid) {
   try {
     wasFullscreen = await isFullscreen();
     session.set({ game, mode: "steam-download" });
+    maybePauseMusicFor("app");
     await steamOpenInstall(appid);
     await minimizeWindow();
   } catch (e) {
@@ -124,6 +140,7 @@ export async function startSteamUtility(label, target) {
   try {
     wasFullscreen = await isFullscreen();
     session.set({ mode: "steam-utility", label });
+    maybePauseMusicFor("app");
     await openUrl(target);
     await minimizeWindow();
   } catch (e) {

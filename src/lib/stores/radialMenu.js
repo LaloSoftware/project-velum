@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { QUICK_MENU_ACTIONS, runSystemAction } from "./systemActions.js";
+import { MUSIC_RADIAL_ACTIONS, runMusicRadialAction } from "./musicPlayer.js";
 
 /*
  * Menú radial de sistema (mando): mantener "Home/Guide" abre un overlay a
@@ -22,8 +23,9 @@ export const RADIAL_POSITIONS = ["south", "east", "north", "west", "l1", "r1", "
 
 export const radialMenu = writable(false);
 
-// posición -> id de QUICK_MENU_ACTIONS | null. Default: acciones más usadas en
-// las 6 posiciones "naturales", lt/rt libres de sobra.
+// posición -> id de QUICK_MENU_ACTIONS/MUSIC_RADIAL_ACTIONS | null. Default:
+// acciones más usadas en las 6 posiciones "naturales"; lt/rt (antes libres de
+// sobra) pasan a Música — reproducir/pausar y detener (ver musicPlayer.js).
 const DEFAULT_SLOTS = {
   north: "shutdown", // gesto hacia arriba, mismo criterio que "Apagar" primero en quickMenuOrder
   south: "closeApp",
@@ -31,8 +33,8 @@ const DEFAULT_SLOTS = {
   east: "maximize",
   l1: "exitFullscreen",
   r1: "enterFullscreen",
-  lt: null,
-  rt: null,
+  lt: "musicStop",
+  rt: "musicToggle",
 };
 
 export const radialSlots = writable({ ...DEFAULT_SLOTS });
@@ -88,8 +90,12 @@ export function runRadialInput(name) {
   if (!RADIAL_POSITIONS.includes(name)) return false; // botón sin función acá: se ignora, el radial sigue abierto
   const id = get(radialSlots)[name];
   closeRadialMenu();
-  if (id) runSystemAction(id);
+  if (id) {
+    if (!runMusicRadialAction(id)) runSystemAction(id);
+  }
   return true;
 }
 
-export const RADIAL_LABEL = Object.fromEntries(QUICK_MENU_ACTIONS.map((a) => [a.id, a.label]));
+export const RADIAL_LABEL = Object.fromEntries(
+  [...QUICK_MENU_ACTIONS, ...MUSIC_RADIAL_ACTIONS].map((a) => [a.id, a.label])
+);

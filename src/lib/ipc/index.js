@@ -118,6 +118,16 @@ export async function openUrl(target) {
   }
 }
 
+// Lista los archivos de audio de una carpeta (un solo nivel — ver
+// media.rs::list_audio_files). Módulo Multimedia → Música.
+export async function listAudioFiles(path) {
+  try {
+    return await invoke("list_audio_files", { path });
+  } catch {
+    return [];
+  }
+}
+
 export async function focusGame() {
   try {
     return await invoke("focus_game");

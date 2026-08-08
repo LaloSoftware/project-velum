@@ -38,12 +38,14 @@
     setRadialSlot,
     setRadialCancelButton,
   } from "../stores/radialMenu.js";
+  import { MUSIC_RADIAL_ACTIONS } from "../stores/musicPlayer.js";
   import { VK_ACTIONS, vkBindings, assignVkAction, resetVkBindings } from "../stores/vkBindings.js";
   import Select from "./Select.svelte";
 
   const RADIAL_ACTION_OPTS = [
     { value: "", label: "Ninguna" },
     ...QUICK_MENU_ACTIONS.map((a) => ({ value: a.id, label: a.label })),
+    ...MUSIC_RADIAL_ACTIONS.map((a) => ({ value: a.id, label: a.label })),
   ];
 
   // listening: { action, mode: "km" | "pad" | "vk" } | null
