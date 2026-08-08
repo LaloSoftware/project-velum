@@ -26,6 +26,35 @@ fn cache_path(app: &AppHandle) -> Result<PathBuf, String> {
 pub fn open(app: &AppHandle) -> Result<Connection, String> {
     let path = cache_path(app)?;
     let conn = Connection::open(&path).map_err(|e| e.to_string())?;
+    create_schema(&conn)?;
+
+    // Migración de instalaciones previas: `CREATE TABLE IF NOT EXISTS` no
+    // agrega columnas a una tabla que ya existía con un esquema más viejo (los
+    // campos de arriba son nuevos desde la Fase 9l). `ensure_column` es
+    // idempotente — no hace nada si la columna ya está.
+    ensure_column(&conn, "games", "rtime_last_played", "rtime_last_played INTEGER")?;
+    ensure_column(&conn, "games", "playtime_2weeks", "playtime_2weeks INTEGER NOT NULL DEFAULT 0")?;
+    ensure_column(
+        &conn,
+        "games",
+        "has_community_visible_stats",
+        "has_community_visible_stats INTEGER",
+    )?;
+    ensure_column(&conn, "achievement_schema", "icon_gray_url", "icon_gray_url TEXT")?;
+    ensure_column(
+        &conn,
+        "achievement_schema",
+        "hidden",
+        "hidden INTEGER NOT NULL DEFAULT 0",
+    )?;
+
+    Ok(conn)
+}
+
+/// Crea las tablas si no existen — separado de `open()` para poder montar el
+/// mismo esquema en una conexión `:memory:` desde los tests (sin depender de
+/// `AppHandle`/`app_config_dir`, que no existen fuera de un runtime Tauri).
+pub(crate) fn create_schema(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "
         CREATE TABLE IF NOT EXISTS games (
@@ -77,29 +106,7 @@ pub fn open(app: &AppHandle) -> Result<Connection, String> {
         );
         ",
     )
-    .map_err(|e| e.to_string())?;
-
-    // Migración de instalaciones previas: `CREATE TABLE IF NOT EXISTS` no
-    // agrega columnas a una tabla que ya existía con un esquema más viejo (los
-    // campos de arriba son nuevos desde la Fase 9l). `ensure_column` es
-    // idempotente — no hace nada si la columna ya está.
-    ensure_column(&conn, "games", "rtime_last_played", "rtime_last_played INTEGER")?;
-    ensure_column(&conn, "games", "playtime_2weeks", "playtime_2weeks INTEGER NOT NULL DEFAULT 0")?;
-    ensure_column(
-        &conn,
-        "games",
-        "has_community_visible_stats",
-        "has_community_visible_stats INTEGER",
-    )?;
-    ensure_column(&conn, "achievement_schema", "icon_gray_url", "icon_gray_url TEXT")?;
-    ensure_column(
-        &conn,
-        "achievement_schema",
-        "hidden",
-        "hidden INTEGER NOT NULL DEFAULT 0",
-    )?;
-
-    Ok(conn)
+    .map_err(|e| e.to_string())
 }
 
 /// Agrega una columna a una tabla ya existente si todavía no la tiene.

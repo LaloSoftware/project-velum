@@ -27,21 +27,12 @@
   $: complete =
     ($completedBadgeEnabled || $completedGlowEnabled) && list.length > 0 && unlockedCount === list.length;
 
-  // Botón "Mostrar/Ocultar logros ocultos" — sesión del modal, no persistente:
-  // arranca siempre desactivado cada vez que se abre (incluso reabriendo el
-  // mismo juego, $achievementsModal es un objeto nuevo cada vez que se llama
-  // openAchievements()). `revealHiddenAchievements` (Vista de juego/Ajustes)
-  // ya no revela nada por sí solo — ahora solo decide si este botón existe.
-  let revealed = false;
-  $: if ($achievementsModal) revealed = false;
-  function toggleRevealed() {
-    revealed = !revealed;
-  }
-
   // Logros "spoiler" (Steam los marca `hidden`): no revelar nombre/descripción
   // hasta desbloquearlos, igual que hace el cliente de Steam — salvo que el
-  // jugador haya activado el botón de arriba para esta sesión del modal.
-  $: isSpoiler = (a) => a.hidden && !a.achieved && !revealed;
+  // jugador haya activado "Mostrar logros ocultos" (Vista de juego/Ajustes) o
+  // "Ver % global": si ya está viendo estadísticas globales del logro, no
+  // tiene sentido seguir ocultando su nombre/descripción.
+  $: isSpoiler = (a) => a.hidden && !a.achieved && !$gameView.revealHiddenAchievements && !$gameView.showGlobalPct;
   const iconFor = (a) => (!a.achieved && a.iconGrayUrl) || a.iconUrl;
   // Solo atenuar si no hay ícono gris real — con uno real, ya se ve "apagado"
   // por sí mismo y oscurecerlo de más lo deja irreconocible.
@@ -76,6 +67,31 @@
   function toggleGlobal() {
     setGameViewField("showGlobalPct", !$gameView.showGlobalPct);
   }
+
+  // Orden de la lista — sesión del modal (se resetea cada vez que se abre,
+  // $achievementsModal es un objeto nuevo cada vez que se llama
+  // openAchievements()), no persistente. "date" es el orden que ya trae el
+  // backend (desbloqueados primero, luego por fecha de desbloqueo desc — ver
+  // `steam_achievements` en achievements.rs) y es el default. "global" ordena
+  // por % de jugadores que lo tienen (más raro primero) — elegirlo activa
+  // "Ver % global" si todavía no estaba, porque si no no hay con qué ordenar.
+  let sortMode = "date"; // "date" | "global"
+  $: if ($achievementsModal) sortMode = "date";
+  function selectSort(mode) {
+    sortMode = mode;
+    if (mode === "global" && !$gameView.showGlobalPct) setGameViewField("showGlobalPct", true);
+  }
+  $: sortedList =
+    sortMode === "global"
+      ? [...list].sort((a, b) => {
+          const pa = globalPct[a.apiname];
+          const pb = globalPct[b.apiname];
+          if (pa == null && pb == null) return 0;
+          if (pa == null) return 1; // sin % conocido todavía: al final
+          if (pb == null) return -1;
+          return pa - pb; // % más bajo (más raro) primero
+        })
+      : list;
 </script>
 
 {#if $achievementsModal}
@@ -106,16 +122,32 @@
         <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleGlobal}>
           {$gameView.showGlobalPct ? "Ocultar % global" : "Ver % global"}
         </button>
-        {#if $gameView.revealHiddenAchievements}
-          <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleRevealed}>
-            {revealed ? "Ocultar logros ocultos" : "Mostrar logros ocultos"}
-          </button>
-        {/if}
+      </div>
+      <div class="sort-row">
+        <span class="sort-label">Ordenar:</span>
+        <button
+          class="stats-toggle"
+          class:on={sortMode === "date"}
+          data-focusable
+          tabindex="-1"
+          on:click={() => selectSort("date")}
+        >
+          Fecha de obtención
+        </button>
+        <button
+          class="stats-toggle"
+          class:on={sortMode === "global"}
+          data-focusable
+          tabindex="-1"
+          on:click={() => selectSort("global")}
+        >
+          % global
+        </button>
       </div>
     </header>
 
     <div class="body">
-      {#each list as a, i (a.apiname)}
+      {#each sortedList as a, i (a.apiname)}
         <button
           class="ach"
           class:locked={!a.achieved}
@@ -126,29 +158,33 @@
           {#if iconFor(a)}
             <img class="ach-icon" class:dim={dimIcon(a)} src={iconFor(a)} alt="" />
           {/if}
-          <div class="ach-text">
-            {#if isSpoiler(a)}
-              <div class="ach-name">Logro oculto</div>
-              <div class="ach-desc dim">Se revela al desbloquearlo.</div>
-            {:else}
+          {#if isSpoiler(a)}
+            <!-- Logro oculto (spoiler) sin desbloquear: solo ícono + placeholder,
+                 nada de descripción/fecha/% global — se revela al desbloquearlo,
+                 o con "Mostrar logros ocultos"/"Ver % global" (ver isSpoiler). -->
+            <div class="ach-text">
+              <div class="ach-name dim">Logro oculto</div>
+            </div>
+          {:else}
+            <div class="ach-text">
               <div class="ach-name">{a.displayName || a.apiname}</div>
               {#if a.description}<div class="ach-desc dim">{a.description}</div>{/if}
-            {/if}
-            {#if a.achieved && a.unlockTime}
-              <div class="ach-date dim">Desbloqueado: {fmtUnlockDate(a.unlockTime)}</div>
-            {/if}
-            {#if $gameView.showGlobalPct}
-              <div class="ach-global dim">
-                {#if loadingGlobal}
-                  cargando %…
-                {:else if globalPct[a.apiname] != null}
-                  {globalPct[a.apiname].toFixed(1)}% de los jugadores lo tienen
-                {:else}
-                  no se pudo obtener el % global
-                {/if}
-              </div>
-            {/if}
-          </div>
+              {#if a.achieved && a.unlockTime}
+                <div class="ach-date dim">Desbloqueado: {fmtUnlockDate(a.unlockTime)}</div>
+              {/if}
+              {#if $gameView.showGlobalPct}
+                <div class="ach-global dim">
+                  {#if loadingGlobal}
+                    cargando %…
+                  {:else if globalPct[a.apiname] != null}
+                    {globalPct[a.apiname].toFixed(1)}% de los jugadores lo tienen
+                  {:else}
+                    no se pudo obtener el % global
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
         </button>
       {:else}
         <p class="dim">Sin logros sincronizados todavía — sincroniza desde Configuración → Cuentas.</p>
@@ -262,9 +298,16 @@
     min-width: 40px;
     text-align: right;
   }
-  .stats-row {
+  .stats-row,
+  .sort-row {
     display: flex;
+    align-items: center;
     gap: 10px;
+  }
+  .sort-label {
+    font-size: 0.82rem;
+    color: var(--gm-text-dim);
+    font-weight: 700;
   }
   .stats-toggle {
     cursor: pointer;
@@ -275,6 +318,12 @@
     font-weight: 700;
     font-size: 0.82rem;
     white-space: nowrap;
+  }
+  /* Botón de orden activo (sort-row) — mismo color que otros "on" de la app
+     (toggles de Vista de juego, chip de grupo activo). */
+  .stats-toggle.on {
+    background: var(--gm-accent);
+    color: #06101f;
   }
   .stats-toggle:focus {
     box-shadow: var(--gm-focus-ring);

@@ -123,11 +123,16 @@
     </div>
 
     <div class="actions">
+      <!-- Sin `disabled` nativo mientras sincroniza: un botón enfocado que
+           pasa a disabled pierde el foco del DOM (document.activeElement cae
+           a <body>) y rompe la navegación por mando/Aceptar hasta el próximo
+           movimiento direccional, y no se recupera solo al terminar la sync
+           — syncNow ya se guarda contra reentradas por su cuenta. -->
       <button
         class="btn"
+        class:syncing={$steamSyncing}
         data-focusable
         tabindex="-1"
-        disabled={$steamSyncing}
         on:click={() => syncNow({ full: true })}
       >
         {$steamSyncing ? "Sincronizando…" : "Sincronizar ahora"}
@@ -239,7 +244,8 @@
     color: var(--gm-text);
     font-weight: 700;
   }
-  .btn:disabled {
+  .btn:disabled,
+  .btn.syncing {
     opacity: 0.5;
     cursor: default;
   }

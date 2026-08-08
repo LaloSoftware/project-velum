@@ -187,88 +187,131 @@ fn fetch_player_achievements(
     Ok(resp.playerstats.achievements)
 }
 
+/// `true` si `games.has_community_visible_stats = 0` para este appid — la
+/// única señal barata (sin red) de que un juego no tiene logros. La usan
+/// `resolve_schema_cache` (atajo al resolver por primera vez) y
+/// `sync_one_game` (para decidir si un negativo cacheado sigue siendo válido)
+/// — misma consulta, mismo significado en los dos casos.
+fn no_visible_stats(conn: &rusqlite::Connection, appid: i64) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM games WHERE appid = ?1 AND has_community_visible_stats = 0 LIMIT 1",
+        params![appid],
+        |_| Ok(()),
+    )
+    .is_ok()
+}
+
+/// Pide `GetSchemaForGame` a Steam y actualiza `achievement_schema` +
+/// `schema_cache` con el resultado. Sin atajos: siempre hace la llamada de
+/// red — la usan tanto `resolve_schema_cache` (cuando no hay nada útil en
+/// caché) como el sync forzado de un solo juego (`force` en `sync_one_game`),
+/// que la necesita justamente para saltarse cualquier atajo.
+fn fetch_schema_and_cache(conn: &rusqlite::Connection, api_key: &str, appid: i64) -> Result<bool, String> {
+    let schema = fetch_schema_with_fallback(api_key, appid)?;
+    let has = !schema.is_empty();
+    for a in &schema {
+        conn.execute(
+            "INSERT INTO achievement_schema
+               (appid, apiname, display_name, description, icon_url, icon_gray_url, hidden)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(appid, apiname) DO UPDATE SET
+               display_name = excluded.display_name,
+               description = excluded.description,
+               icon_url = excluded.icon_url,
+               icon_gray_url = excluded.icon_gray_url,
+               hidden = excluded.hidden",
+            params![
+                appid,
+                a.name,
+                a.display_name,
+                a.description,
+                a.icon,
+                a.icongray,
+                a.hidden,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    conn.execute(
+        "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
+         VALUES (?1, ?2, ?3)
+         ON CONFLICT(appid) DO UPDATE SET
+           fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
+        params![appid, cache::now(), has as i64],
+    )
+    .map_err(|e| e.to_string())?;
+    println!("[steam] appid {appid}: esquema leído ({} logro(s) posibles)", schema.len());
+    Ok(has)
+}
+
+/// Resuelve si un `appid` tiene logros cuando `schema_cache` no tiene nada
+/// útil todavía (primera vez, o un negativo que dejó de ser válido — ver
+/// `sync_one_game`).
+fn resolve_schema_cache(conn: &rusqlite::Connection, api_key: &str, appid: i64) -> Result<bool, String> {
+    // Optimización: si `GetOwnedGames` ya dijo que este juego no tiene
+    // stats/logros visibles, no hace falta pedir GetSchemaForGame en
+    // absoluto para descubrir lo mismo por una respuesta vacía — ahorra una
+    // llamada de red por cada juego sin logros (son muchos: la mayoría de
+    // apps/herramientas en cualquier biblioteca).
+    if no_visible_stats(conn, appid) {
+        conn.execute(
+            "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
+             VALUES (?1, ?2, 0)
+             ON CONFLICT(appid) DO UPDATE SET
+               fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
+            params![appid, cache::now()],
+        )
+        .map_err(|e| e.to_string())?;
+        println!("[steam] appid {appid}: sin stats visibles (GetOwnedGames), se omite GetSchemaForGame");
+        Ok(false)
+    } else {
+        fetch_schema_and_cache(conn, api_key, appid)
+    }
+}
+
 /// Trabajo real de un solo juego (esquema si hace falta + logros del jugador
 /// si tiene). Aislado en su propia función para que un error de red/HTTP de
 /// ESTE juego (el `?` de adentro) no aborte el `for` de
 /// `steam_sync_achievements` — el llamador decide qué hacer con el `Err`
 /// (registrarlo y seguir con el resto de la biblioteca).
+///
+/// `force`: ignora `schema_cache` por completo y siempre pide el esquema a
+/// Steam (`fetch_schema_and_cache`, sin el atajo `known_no_stats`). Lo usa el
+/// botón "Sincronizar logros" del Detalle (un solo juego a la vez, así que no
+/// hay problema de costo en red) — es la vía manual para un juego cuyo
+/// `schema_cache` quedó con un negativo estancado (ver el recheck automático
+/// más abajo, que cubre el resto de casos sin intervención del jugador).
 fn sync_one_game(
     conn: &rusqlite::Connection,
     api_key: &str,
     steamid: &str,
     appid: i64,
+    force: bool,
 ) -> Result<bool, String> {
-    let cached_flag: Option<i64> = conn
-        .query_row(
-            "SELECT has_achievements FROM schema_cache WHERE appid = ?1",
-            params![appid],
-            |r| r.get(0),
-        )
-        .ok();
-
-    let has_achievements = match cached_flag {
-        Some(flag) => flag != 0,
-        None => {
-            // Optimización: si `GetOwnedGames` ya dijo que este juego no tiene
-            // stats/logros visibles, no hace falta pedir GetSchemaForGame en
-            // absoluto para descubrir lo mismo por una respuesta vacía —
-            // ahorra una llamada de red por cada juego sin logros (son
-            // muchos: la mayoría de apps/herramientas en cualquier biblioteca).
-            let known_no_stats = conn
-                .query_row(
-                    "SELECT 1 FROM games WHERE appid = ?1 AND has_community_visible_stats = 0 LIMIT 1",
-                    params![appid],
-                    |_| Ok(()),
-                )
-                .is_ok();
-            if known_no_stats {
-                conn.execute(
-                    "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
-                     VALUES (?1, ?2, 0)
-                     ON CONFLICT(appid) DO UPDATE SET
-                       fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
-                    params![appid, cache::now()],
-                )
-                .map_err(|e| e.to_string())?;
-                println!("[steam] appid {appid}: sin stats visibles (GetOwnedGames), se omite GetSchemaForGame");
-                false
-            } else {
-                let schema = fetch_schema_with_fallback(api_key, appid)?;
-                let has = !schema.is_empty();
-                for a in &schema {
-                    conn.execute(
-                        "INSERT INTO achievement_schema
-                           (appid, apiname, display_name, description, icon_url, icon_gray_url, hidden)
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-                         ON CONFLICT(appid, apiname) DO UPDATE SET
-                           display_name = excluded.display_name,
-                           description = excluded.description,
-                           icon_url = excluded.icon_url,
-                           icon_gray_url = excluded.icon_gray_url,
-                           hidden = excluded.hidden",
-                        params![
-                            appid,
-                            a.name,
-                            a.display_name,
-                            a.description,
-                            a.icon,
-                            a.icongray,
-                            a.hidden,
-                        ],
-                    )
-                    .map_err(|e| e.to_string())?;
+    let has_achievements = if force {
+        fetch_schema_and_cache(conn, api_key, appid)?
+    } else {
+        let cached_flag: Option<i64> = conn
+            .query_row(
+                "SELECT has_achievements FROM schema_cache WHERE appid = ?1",
+                params![appid],
+                |r| r.get(0),
+            )
+            .ok();
+        match cached_flag {
+            Some(flag) if flag != 0 => true,
+            Some(_) => {
+                // Negativo cacheado: solo confiar si la biblioteca sigue sin
+                // ver stats visibles para este appid. Si cambió (p. ej. el
+                // juego se lanzó tras estar predescargado), se re-resuelve el
+                // esquema en vez de arrastrar el negativo para siempre.
+                if no_visible_stats(conn, appid) {
+                    false
+                } else {
+                    resolve_schema_cache(conn, api_key, appid)?
                 }
-                conn.execute(
-                    "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
-                     VALUES (?1, ?2, ?3)
-                     ON CONFLICT(appid) DO UPDATE SET
-                       fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
-                    params![appid, cache::now(), has as i64],
-                )
-                .map_err(|e| e.to_string())?;
-                println!("[steam] appid {appid}: esquema leído ({} logro(s) posibles)", schema.len());
-                has
             }
+            None => resolve_schema_cache(conn, api_key, appid)?,
         }
     };
 
@@ -307,11 +350,18 @@ fn sync_one_game(
 /// registra en `errors` y el proceso SIGUE con el resto — antes, cualquier
 /// error abortaba la sincronización completa de la biblioteca a mitad de
 /// camino, dejando sin procesar los juegos restantes sin ningún aviso claro.
+///
+/// `force`: pasa directo a `sync_one_game` — ignora `schema_cache` para cada
+/// appid de la lista. Lo usa el sync manual de un solo juego desde el
+/// Detalle; la sync de biblioteca (automática o "Sincronizar ahora" completa)
+/// va con `force = false`, respetando el caché para no repetir de más
+/// llamadas de red en bibliotecas grandes.
 #[tauri::command]
 pub fn steam_sync_achievements(
     app: AppHandle,
     steamid: String,
     appids: Vec<i64>,
+    force: bool,
 ) -> Result<AchievementsSyncSummary, String> {
     let api_key = stored_key(&steamid)?;
     let conn = cache::open(&app)?;
@@ -334,7 +384,7 @@ pub fn steam_sync_achievements(
             summary.new_schemas_total += 1;
         }
 
-        match sync_one_game(&conn, &api_key, &steamid, appid) {
+        match sync_one_game(&conn, &api_key, &steamid, appid, force) {
             Ok(has_achievements) => {
                 summary.scanned += 1;
                 if was_new {
@@ -557,5 +607,61 @@ mod tests {
             .map(|s| s.achievements)
             .unwrap_or_default();
         assert!(!schema_needs_fallback(&achievements));
+    }
+
+    // --- no_visible_stats / recheck del negativo en schema_cache ---
+    // Bug real: un juego predescargado reporta has_community_visible_stats=0
+    // mientras no se puede jugar; al lanzarse, steam_sync_library actualiza esa
+    // columna a 1, pero antes del fix `sync_one_game` seguía confiando para
+    // siempre en el `schema_cache.has_achievements=0` cacheado durante la
+    // predescarga. `no_visible_stats` es la consulta que decide si ese negativo
+    // sigue siendo válido — se testea aislada de la red (sync_one_game/
+    // resolve_schema_cache sí llaman a la Steam Web API real).
+    fn memory_conn() -> rusqlite::Connection {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        cache::create_schema(&conn).unwrap();
+        conn
+    }
+
+    #[test]
+    fn no_visible_stats_true_while_predescargado() {
+        let conn = memory_conn();
+        conn.execute(
+            "INSERT INTO games (steamid, appid, name, last_synced_at, has_community_visible_stats)
+             VALUES ('1', 999, 'Juego nuevo', 0, 0)",
+            [],
+        )
+        .unwrap();
+        assert!(no_visible_stats(&conn, 999));
+    }
+
+    #[test]
+    fn no_visible_stats_false_tras_el_lanzamiento() {
+        let conn = memory_conn();
+        // Mismo appid que arriba, pero ya con el juego lanzado: la sync de
+        // biblioteca más reciente actualizó has_community_visible_stats a 1
+        // (ver steam_sync_library, library.rs) aunque schema_cache todavía
+        // conserve el negativo de cuando estaba predescargado.
+        conn.execute(
+            "INSERT INTO games (steamid, appid, name, last_synced_at, has_community_visible_stats)
+             VALUES ('1', 999, 'Juego nuevo', 100, 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO schema_cache (appid, fetched_at, has_achievements) VALUES (999, 0, 0)",
+            [],
+        )
+        .unwrap();
+        assert!(!no_visible_stats(&conn, 999));
+    }
+
+    #[test]
+    fn no_visible_stats_false_sin_fila_en_games() {
+        // appid desconocido en `games` (nunca sincronizado, o se limpió con
+        // prune_missing_games): no hay señal de "sin stats", así que no debe
+        // tratarse como negativo confiable.
+        let conn = memory_conn();
+        assert!(!no_visible_stats(&conn, 12345));
     }
 }
