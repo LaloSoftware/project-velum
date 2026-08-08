@@ -96,9 +96,6 @@
   </div>
 
   <div class="controls">
-    <button class="step" data-focusable tabindex="-1" on:click={togglePlay} aria-label="Reproducir/pausar">
-      {playing ? "⏸" : "▶"}
-    </button>
     <div class="volrow">
       <span class="ico">🔊</span>
       <input
@@ -113,6 +110,9 @@
         on:input={(e) => setVol(e.target.value / 100)}
       />
     </div>
+    <button class="step" data-focusable tabindex="-1" on:click={togglePlay} aria-label="Reproducir/pausar">
+      {playing ? "⏸" : "▶"}
+    </button>
     <button class="chip danger" data-focusable tabindex="-1" on:click={onClose}>✕ Salir</button>
   </div>
 </section>
