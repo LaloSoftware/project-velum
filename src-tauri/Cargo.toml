@@ -9,7 +9,13 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = [
+  # Streaming de video local (Multimedia → Videos): protocolo asset con scope
+  # concedido en runtime (allow_directory) sobre la carpeta que el usuario
+  # agrega, en vez de cargarlo entero a memoria como el resto de assets
+  # (read_image/read_audio) — ver media.rs::allow_video_folder.
+  "protocol-asset",
+] }
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }

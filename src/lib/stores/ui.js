@@ -38,10 +38,21 @@ export const confirmDelete = writable(null);
 export const shutdownConfirm = writable(false);
 
 // Modo del footer de atajos dentro de Multimedia → Música (ver App.svelte):
-// null (grilla de Imágenes/Videos, sin A/Y) | "grid" | "album" | "playlist".
-// Lo mantiene MusicView.svelte, reseteado a null en su onDestroy — cubre solo
-// los 3 casos al salir de Música/Multimedia.
+// null | "grid" | "album" | "playlist". Lo mantiene MusicView.svelte,
+// reseteado a null en su onDestroy — cubre solo los 3 casos al salir de
+// Música/Multimedia. Imágenes/Videos tienen su propio par de stores
+// análogos más abajo (imagesFooterMode/videoFooterMode) — a lo sumo uno de
+// los 3 es no-nulo a la vez, porque solo un sub-panel de Multimedia está
+// montado.
 export const musicFooterMode = writable(null);
+// null | "grid" | "album" (grilla de álbumes vs. grilla de miniaturas dentro
+// de uno) — el visor no necesita modo propio: sus 3 acciones son botones
+// propios en pantalla, no atajos A/Y genéricos. Lo mantienen
+// ImagesView.svelte/ImageAlbumDetail.svelte.
+export const imagesFooterMode = writable(null);
+// null | "grid" | "album" — mismo criterio que arriba (el reproductor no usa
+// A/Y). Lo mantienen VideosView.svelte/VideoAlbumDetail.svelte.
+export const videoFooterMode = writable(null);
 
 // Álbum/lista abierto dentro de Música (Multimedia): { type: "album"|"playlist",
 // item } | null. Global (no estado local de MusicView.svelte) para que
@@ -55,6 +66,52 @@ export function openMusicDetail(type, item) {
 }
 export function closeMusicDetail() {
   musicDetail.set(null);
+}
+
+// Imágenes/Videos tienen UN NIVEL MÁS que Música (álbum abierto Y, dentro,
+// visor/reproductor abierto) — hacen falta 2 stores por sección, no 1, para
+// que "atrás" cierre de a un nivel por vez (visor primero, álbum después),
+// mismo motivo que musicDetail en cada caso.
+
+// Álbum de imágenes abierto (grilla de miniaturas): álbum | null.
+export const imageAlbumOpen = writable(null);
+export function openImageAlbum(album) {
+  imageAlbumOpen.set(album);
+}
+export function closeImageAlbum() {
+  imageAlbumOpen.set(null);
+}
+
+// Visor de imágenes abierto (Multimedia → Imágenes): { album, index } | null
+// — mismo motivo que musicDetail (handleBack() en App.svelte necesita verlo
+// para que "atrás" cierre el visor en vez de ir a Inicio). Reseteado en el
+// onDestroy de ImageAlbumDetail.svelte.
+export const imageViewer = writable(null);
+export function openImageViewer(album, index) {
+  imageViewer.set({ album, index });
+}
+export function closeImageViewer() {
+  imageViewer.set(null);
+}
+
+// Álbum de video abierto (grilla de tarjetas de video): álbum | null.
+export const videoAlbumOpen = writable(null);
+export function openVideoAlbum(album) {
+  videoAlbumOpen.set(album);
+}
+export function closeVideoAlbum() {
+  videoAlbumOpen.set(null);
+}
+
+// Reproductor de video abierto (Multimedia → Videos): { album, item } | null
+// — mismo motivo que musicDetail/imageViewer. Reseteado en el onDestroy de
+// VideoAlbumDetail.svelte.
+export const videoPlayer = writable(null);
+export function openVideoPlayer(album, item) {
+  videoPlayer.set({ album, item });
+}
+export function closeVideoPlayer() {
+  videoPlayer.set(null);
 }
 
 // Menú rápido de sistema: minimizar/maximizar/pantalla completa/cerrar/

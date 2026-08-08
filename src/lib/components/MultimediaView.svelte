@@ -1,7 +1,8 @@
 <script>
   import { tick } from "svelte";
   import MusicView from "./MusicView.svelte";
-  import ComingSoonPanel from "./ComingSoonPanel.svelte";
+  import ImagesView from "./ImagesView.svelte";
+  import VideosView from "./VideosView.svelte";
   import { focusFirstIn } from "../input/navigation.js";
 
   const SECTIONS = [
@@ -43,9 +44,9 @@
       {#if section === "musica"}
         <MusicView />
       {:else if section === "imagenes"}
-        <ComingSoonPanel label="Imágenes" />
+        <ImagesView />
       {:else}
-        <ComingSoonPanel label="Videos" />
+        <VideosView />
       {/if}
     </div>
   </div>
