@@ -16,6 +16,9 @@
     "core:window:allow-close",
     "shell:allow-open",
     "dialog:allow-open",
-    "clipboard-manager:allow-read-text"
+    "clipboard-manager:allow-read-text",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

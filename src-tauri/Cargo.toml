@@ -18,6 +18,10 @@ tauri = { version = "2", features = [
 ] }
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
+# Autoarranque con Windows (Configuración → Inicio) — usa el crate
+# `auto-launch` por debajo, escribe la entrada en HKCU\...\Run en vez de
+# reinventar eso a mano.
+tauri-plugin-autostart = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 gilrs = "0.11"

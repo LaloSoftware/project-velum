@@ -17,6 +17,14 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        // Autoarranque con Windows (Configuración → Inicio, StartupSection.svelte).
+        // MacosLauncher solo importa en macOS; en Windows/Linux se ignora. Sin
+        // flags extra: arranca igual que abierto a mano, respeta las
+        // preferencias normales de inicio (stores/startup.js).
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         // Leer el portapapeles del SO para "Pegar" en el teclado virtual
         // (Ctrl+V) — más confiable que la Clipboard API del navegador, que en
         // WebView2/WKWebView necesita un permiso que no siempre se resuelve.
