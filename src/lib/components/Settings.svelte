@@ -634,7 +634,12 @@
       </button>
     </div>
 
-    <div class="about">
+    <!-- Sin acción real (solo informativo) — igual foco-alcanzable
+         (data-focusable) para que la navegación por mando/teclado lo
+         scrollee a la vista; si no, al no recibir foco nunca, queda
+         invisible para quien navega sin mouse (el scroll de este panel solo
+         sigue al foco, ver input/navigation.js::focusEl). -->
+    <div class="about" data-focusable tabindex="-1">
       <img class="about-symbol" src={velumSymbol} alt="" />
       <div class="about-text">
         <span class="about-name">VELUM</span>
@@ -831,6 +836,10 @@
     margin-top: 34px;
     padding-top: 22px;
     border-top: 1px solid var(--gm-surface);
+    border-radius: var(--gm-radius);
+  }
+  .about:focus {
+    box-shadow: var(--gm-focus-ring);
   }
   .about-symbol {
     width: 28px;
