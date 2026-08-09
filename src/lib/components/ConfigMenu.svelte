@@ -21,10 +21,25 @@
   } from "../util/window.js";
   import { focusFirstIn } from "../input/navigation.js";
   import { openShutdownConfirm } from "../stores/ui.js";
+  import velumSymbol from "../../assets/velum-symbol.svg";
 
   let fullscreen = false;
   onMount(async () => {
     fullscreen = await isFullscreen();
+  });
+
+  // "Acerca de VELUM" — versión real vía Tauri, con fallback en modo web/dev
+  // sin backend nativo (mismo criterio try/catch que ipc/index.js). Vive
+  // acá (pie del sidebar, fuera de la lista de secciones) en vez de dentro
+  // de Apariencia para que sea visible sin importar la sección activa.
+  let appVersion = "0.1.0";
+  onMount(async () => {
+    try {
+      const { getVersion } = await import("@tauri-apps/api/app");
+      appVersion = await getVersion();
+    } catch {
+      // modo web: se queda el fallback de arriba
+    }
   });
   async function maximizar() {
     await toggleMaximize();
@@ -65,20 +80,35 @@
 <div class="config">
   <div class="main">
     <aside class="side" data-focus-group="side">
-      <h2>Configuración</h2>
-      {#each SECTIONS as s, i}
-        <button
-          class="sec"
-          class:active={section === s.id}
-          data-focusable
-          data-focus-default={i === 0 ? "" : undefined}
-          tabindex="-1"
-          on:focus={() => (section = s.id)}
-          on:click={() => enterSection(s.id)}
-        >
-          {s.label}
-        </button>
-      {/each}
+      <div class="side-scroll">
+        <h2>Configuración</h2>
+        {#each SECTIONS as s, i}
+          <button
+            class="sec"
+            class:active={section === s.id}
+            data-focusable
+            data-focus-default={i === 0 ? "" : undefined}
+            tabindex="-1"
+            on:focus={() => (section = s.id)}
+            on:click={() => enterSection(s.id)}
+          >
+            {s.label}
+          </button>
+        {/each}
+      </div>
+
+      <!-- Pie fijo (fuera del scroll de la lista de secciones), visible sin
+           importar cuál esté activa. Sin acción real — igual foco-alcanzable
+           (data-focusable) para que la navegación por mando/teclado llegue
+           acá; si no, al no recibir foco nunca queda invisible para quien
+           navega sin mouse. -->
+      <div class="about" data-focusable tabindex="-1">
+        <img class="about-symbol" src={velumSymbol} alt="" />
+        <div class="about-text">
+          <span class="about-name">VELUM</span>
+          <span class="about-version">v{appVersion}</span>
+        </div>
+      </div>
     </aside>
 
     <div class="content" data-focus-group="panel" bind:this={contentEl}>
@@ -181,6 +211,16 @@
     padding: var(--gm-pad) 16px;
     display: flex;
     flex-direction: column;
+    /* El pie "Acerca de" (más abajo) queda FUERA de este scroll a propósito
+       — visible siempre, no importa cuál sección esté activa ni cuánto
+       scrollee la lista. */
+    overflow: hidden;
+  }
+  .side-scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
     overflow-y: auto;
   }
@@ -204,6 +244,39 @@
   .sec:focus {
     box-shadow: var(--gm-focus-ring);
     color: var(--gm-text);
+  }
+  .about {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gm-surface);
+    border-radius: var(--gm-radius);
+  }
+  .about:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .about-symbol {
+    width: 22px;
+    height: 22px;
+  }
+  .about-text {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .about-name {
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--gm-text-dim);
+  }
+  .about-version {
+    font-size: 0.8rem;
+    color: var(--gm-text-dim);
+    font-variant-numeric: tabular-nums;
   }
   .content {
     flex: 1;

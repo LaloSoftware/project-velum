@@ -1,5 +1,4 @@
 <script>
-  import { onMount } from "svelte";
   import {
     profiles,
     activeProfileId,
@@ -14,20 +13,6 @@
   import { showToast, openColorPicker } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
   import { imageUrl } from "../util/asset.js";
-  import velumSymbol from "../../assets/velum-symbol.svg";
-
-  // "Acerca de VELUM" (pie de Apariencia) — versión real vía Tauri, con
-  // fallback en modo web/dev sin backend nativo (mismo criterio try/catch
-  // que ipc/index.js).
-  let appVersion = "0.1.0";
-  onMount(async () => {
-    try {
-      const { getVersion } = await import("@tauri-apps/api/app");
-      appVersion = await getVersion();
-    } catch {
-      // modo web: se queda el fallback de arriba
-    }
-  });
   import {
     hideCardText,
     hideLibraryButton,
@@ -633,19 +618,6 @@
         Exportar perfil CSS
       </button>
     </div>
-
-    <!-- Sin acción real (solo informativo) — igual foco-alcanzable
-         (data-focusable) para que la navegación por mando/teclado lo
-         scrollee a la vista; si no, al no recibir foco nunca, queda
-         invisible para quien navega sin mouse (el scroll de este panel solo
-         sigue al foco, ver input/navigation.js::focusEl). -->
-    <div class="about" data-focusable tabindex="-1">
-      <img class="about-symbol" src={velumSymbol} alt="" />
-      <div class="about-text">
-        <span class="about-name">VELUM</span>
-        <span class="about-version dim">v{appVersion}</span>
-      </div>
-    </div>
   {/if}
 </section>
 
@@ -827,35 +799,5 @@
   }
   .toggle:focus {
     box-shadow: var(--gm-focus-ring);
-  }
-  .about {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 34px;
-    padding-top: 22px;
-    border-top: 1px solid var(--gm-surface);
-    border-radius: var(--gm-radius);
-  }
-  .about:focus {
-    box-shadow: var(--gm-focus-ring);
-  }
-  .about-symbol {
-    width: 28px;
-    height: 28px;
-  }
-  .about-text {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
-  .about-name {
-    font-weight: 800;
-    letter-spacing: 0.06em;
-  }
-  .about-version {
-    font-size: 0.85rem;
-    font-variant-numeric: tabular-nums;
   }
 </style>
