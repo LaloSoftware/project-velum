@@ -2,7 +2,7 @@ import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { loadGames } from "./games.js";
 import { recordPlay } from "./playtimes.js";
-import { syncNow } from "./steamAccount.js";
+import { syncNow, mergeCachedSteamGhosts } from "./steamAccount.js";
 import { launchGame, focusGame, isTauri, steamOpenInstall, openUrl } from "../ipc/index.js";
 import { onRawButton } from "../input/index.js";
 import { showToast, reportError } from "./ui.js";
@@ -159,7 +159,19 @@ export async function endPlay() {
   await enterFullscreenIf(wasFullscreen);
   // Al volver del juego, refrescar la biblioteca para reflejar el nuevo
   // "última vez jugado" (Steam actualiza el ACF al cerrar) → Inicio se reordena.
-  loadGames().catch((e) => reportError(e, "playsession:reload"));
+  // loadGames() REEMPLAZA `games` entero con el escaneo local — se lleva
+  // puestos los "fantasmas" de Steam (cuenta vinculada, no instalados
+  // localmente, ver games.js::mergeSteamGhosts) si no se vuelven a mezclar
+  // después. Antes esto solo pasaba si el juego cerrado era de Steam (vía
+  // syncNow más abajo) y encima en paralelo sin esperar — según el orden en
+  // que resolvían, loadGames() podía pisar el merge de todos modos. Bug real
+  // reportado: los no instalados desaparecían "de repente" hasta resincronizar
+  // a mano. mergeCachedSteamGhosts() no pega a la red (lee el caché ya
+  // sincronizado) y no hace nada sin cuenta vinculada — seguro de llamar
+  // siempre, sin importar la tienda del juego/app cerrado.
+  loadGames()
+    .then(() => mergeCachedSteamGhosts())
+    .catch((e) => reportError(e, "playsession:reload"));
   // Si se jugó un juego de Steam, sincronizar logros en segundo plano por si
   // se desbloqueó alguno — silenciosa (sin toasts) y sin `await`: syncNow()
   // ya atrapa sus propios errores, no debe demorar la restauración de arriba.
