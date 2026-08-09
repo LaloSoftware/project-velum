@@ -19,9 +19,11 @@ cambiar tokens (y, si quieres, añadir CSS propio).
 ## Temas integrados
 
 En `src/lib/theming/themes.js`. Cada tema = `{ name, kind, tokens, extraCss }`, con
-`kind: "dark" | "light"`. Diez temas: `midnight` (por defecto), `aurora`, `sunset`,
-`carbon`, `neon`, `forest` (oscuros) y `paper`, `cloud`, `sand`, `mint` (claros).
-Añadir uno nuevo = añadir una entrada al objeto.
+`kind: "dark" | "light"`. Trece temas: `velum` (**por defecto**, tema de marca),
+`velumWhite` y `velumPulse` (variantes de marca — misma paleta invertida/
+reacentuada), `midnight`, `aurora`, `sunset`, `carbon`, `neon`, `forest` (oscuros) y
+`paper`, `cloud`, `sand`, `mint` (claros). Añadir uno nuevo = añadir una entrada al
+objeto (el orden de inserción define el orden en el selector).
 
 `kind` no afecta el CSS por sí solo — lo usa `Settings.svelte` (`pickTheme()`) para
 decidir si al cambiar de tema hace falta descartar un override de `--gm-text`

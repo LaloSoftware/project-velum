@@ -17,6 +17,12 @@ Responde siempre en español.
 
 # GM — launcher de sala tipo consola
 
+> **Nota de marca**: el producto se lanza al público como **VELUM**. "GM"
+> sigue siendo el nombre de proyecto/código interno en este repo (rutas,
+> prefijo CSS `--gm-*`, nombres de archivo, docs) — no se reescribió toda la
+> documentación interna, solo lo visible/empaquetado (ver
+> `feature-rebrand-y-setup.md`).
+
 Convierte un PC (objetivo: Windows) en una experiencia tipo consola para la sala:
 arranca a pantalla completa, muestra los juegos instalados y se maneja **100% con
 mando**. Aspecto totalmente personalizable por **CSS/perfiles**. Pensado para

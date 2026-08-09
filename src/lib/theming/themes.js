@@ -9,8 +9,73 @@
  */
 
 export const BUILTIN_THEMES = {
+  // Tema de marca (VELUM) — nuevo default, ver feature-rebrand-y-setup.md.
+  // Paleta: Vanguard Blue #2F6BFF (primario), Pulse Cyan #22D3EE (acento/
+  // foco), Void #07080C (fondo), Surface #131824 (paneles), Cloud #E6EDF7
+  // (texto). El "Launch Gradient" (135° azul→cian) se traduce al mismo
+  // patrón de 2 radial-gradient + color base que ya usan los demás temas.
+  velum: {
+    name: "Velum",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#07080c",
+      "--gm-bg-elev": "#0d0f16",
+      "--gm-surface": "#131824",
+      "--gm-surface-2": "#1b2233",
+      "--gm-text": "#e6edf7",
+      "--gm-text-dim": "#8d98b3",
+      "--gm-accent": "#2f6bff",
+      "--gm-accent-2": "#22d3ee",
+      "--gm-wallpaper":
+        "radial-gradient(1200px 800px at 15% -10%, color-mix(in srgb, #2f6bff 30%, transparent) 0%, transparent 55%), radial-gradient(1000px 700px at 110% 10%, color-mix(in srgb, #22d3ee 26%, transparent) 0%, transparent 50%), #07080c",
+    },
+    extraCss: "",
+  },
+
+  // Variante clara — mismos acentos, fondos invertidos (el Void de la
+  // variante oscura pasa a ser el color de texto acá).
+  velumWhite: {
+    name: "Velum White",
+    kind: "light",
+    tokens: {
+      "--gm-bg": "#eef2fa",
+      "--gm-bg-elev": "#e6ecf8",
+      "--gm-surface": "#dce4f2",
+      "--gm-surface-2": "#cbd6ec",
+      "--gm-text": "#07080c",
+      "--gm-text-dim": "#4a5568",
+      "--gm-accent": "#2f6bff",
+      "--gm-accent-2": "#12afcb",
+      "--gm-wallpaper":
+        "radial-gradient(1200px 800px at 15% -10%, color-mix(in srgb, #2f6bff 12%, transparent) 0%, transparent 55%), radial-gradient(1000px 700px at 110% 10%, color-mix(in srgb, #22d3ee 12%, transparent) 0%, transparent 50%), #eef2fa",
+    },
+    extraCss: "",
+  },
+
+  // Variante enérgica — invierte primario/secundario (el cian pasa a ser el
+  // acento principal) y un foco un poco más marcado, mismo criterio con el
+  // que Aurora/Sunset ajustan forma/peso además del color para diferenciarse.
+  velumPulse: {
+    name: "Velum Pulse",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#07080c",
+      "--gm-bg-elev": "#0d0f16",
+      "--gm-surface": "#131824",
+      "--gm-surface-2": "#1b2233",
+      "--gm-text": "#e6edf7",
+      "--gm-text-dim": "#8d98b3",
+      "--gm-accent": "#22d3ee",
+      "--gm-accent-2": "#2f6bff",
+      "--gm-focus-scale": "1.1",
+      "--gm-wallpaper":
+        "radial-gradient(1200px 800px at 15% -10%, color-mix(in srgb, #22d3ee 32%, transparent) 0%, transparent 55%), radial-gradient(1000px 700px at 110% 10%, color-mix(in srgb, #2f6bff 28%, transparent) 0%, transparent 50%), #07080c",
+    },
+    extraCss: "",
+  },
+
   midnight: {
-    name: "Midnight (por defecto)",
+    name: "Midnight",
     kind: "dark",
     // Sin overrides: usa el tema base de app.css.
     tokens: {},

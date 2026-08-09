@@ -28,7 +28,7 @@ export function themeOptions() {
 
 export function applyProfile(profile) {
   if (!profile) return;
-  const base = BUILTIN_THEMES[profile.baseTheme] || BUILTIN_THEMES.midnight;
+  const base = BUILTIN_THEMES[profile.baseTheme] || BUILTIN_THEMES.velum;
 
   // 1. Tokens: base del tema + overrides del perfil + wallpaper explícito.
   const tokens = { ...base.tokens, ...(profile.tokenOverrides || {}) };

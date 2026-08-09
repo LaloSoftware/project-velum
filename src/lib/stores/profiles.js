@@ -14,7 +14,7 @@ function defaultProfile() {
   return {
     id: "default",
     name: "Por defecto",
-    baseTheme: "midnight",
+    baseTheme: "velum",
     tokenOverrides: {},
     extraCss: "",
     wallpaper: "",
@@ -60,7 +60,7 @@ export async function setActive(id) {
   await persist();
 }
 
-export async function createProfile(name, baseTheme = "midnight") {
+export async function createProfile(name, baseTheme = "velum") {
   const p = {
     id: `p_${Date.now()}`,
     name: name || "Nuevo perfil",

@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { playNotification } from "./sounds.js";
+import { patchAppConfig } from "./appConfig.js";
 
 // Vista principal (pestañas superiores).
 export const view = writable("home"); // home | games | apps | multimedia
@@ -126,6 +127,17 @@ export const colorPicker = writable(null);
 
 // Modal de filtros/orden (Juegos/Apps): { scope: 'games' | 'apps' } | null.
 export const filtersModal = writable(null);
+
+// Configuración inicial (primer arranque, sin config previa) — mismo patrón
+// de capa modal que el resto. App.svelte lo abre en onMount si
+// `!getAppConfig().setupCompleted`; no hay "cancelar" (no hay estado previo
+// al que volver) — cualquier vía de cierre pasa por completeSetup(), que
+// persiste el flag para no volver a mostrarlo.
+export const setupModal = writable(false);
+export function completeSetup() {
+  setupModal.set(false);
+  patchAppConfig({ setupCompleted: true });
+}
 
 // Modal de logros completos de un juego de Steam (capa modal, se abre desde
 // el badge fijo del Detalle): { appid, title } | null.

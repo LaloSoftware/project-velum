@@ -108,10 +108,12 @@ rejilla de portadas y un anillo de foco que brilla. Nada compite con el contenid
 La segunda mitad de la tesis es igual de vinculante: **todo es repintable**. No hay un solo
 color, medida o forma escrito a mano en un componente; todo pasa por tokens `--gm-*`. Un
 usuario puede cargar su propio CSS y transformar el aspecto por completo sin tocar código,
-y los tres temas integrados (Midnight, Aurora, Sunset) existen para demostrarlo. Por eso la
-base es intencionadamente neutra: es un lienzo, no una declaración. El diseño que aquí se
-documenta es el **tema por defecto (Midnight)** y, más importante, las **invariantes** que
-cualquier repintado debe respetar para seguir sintiéndose como una consola.
+y los temas integrados (Midnight, Aurora, Sunset, entre otros) existen para demostrarlo.
+Por eso la base es intencionadamente neutra: es un lienzo, no una declaración. El diseño
+que aquí se documenta describe las **invariantes** que cualquier repintado debe respetar
+para seguir sintiéndose como una consola — no una paleta fija. Nota: desde el rebrand a
+VELUM, el tema por defecto es **Velum** (marca), no Midnight — mismas invariantes de
+forma/tipografía/layout de abajo, solo cambia la paleta de color.
 
 El lenguaje visual se apoya en **capas tonales, no en sombras**: la profundidad nace de
 apilar superficies cada vez más claras (`console-ink` → `surface-slate` →
