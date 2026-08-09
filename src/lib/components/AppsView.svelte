@@ -8,16 +8,11 @@
 </script>
 
 <section class="apps">
-  <p class="sub">Apps que no son juegos (multimedia, chat, navegador…).</p>
   <GameGrid items={shownApps} focusFirst={true} />
 </section>
 
 <style>
   .apps {
     padding: var(--gm-pad);
-  }
-  .sub {
-    color: var(--gm-text-dim);
-    margin: 0 0 24px;
   }
 </style>
