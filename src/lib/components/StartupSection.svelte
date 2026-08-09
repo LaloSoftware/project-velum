@@ -1,7 +1,10 @@
 <script>
+  import { onMount } from "svelte";
   import { startup, updateStartup } from "../stores/startup.js";
   import { soundSettings, updateSounds } from "../stores/sounds.js";
   import { soundNames, soundFor } from "../theming/sounds.js";
+  import { isTauri } from "../ipc/index.js";
+  import { showToast, reportError } from "../stores/ui.js";
   import Select from "./Select.svelte";
 
   const VIEWS = [
@@ -18,6 +21,32 @@
     const audio = new Audio(url);
     audio.volume = $soundSettings.startupVolume;
     audio.play().catch(() => {});
+  }
+
+  // Autoarranque con Windows (tauri-plugin-autostart) — el plugin es la
+  // fuente de verdad (lee/escribe la entrada real del SO), no hay store
+  // propio. Solo tiene efecto en la app instalada (apunta al .exe final).
+  let autostartEnabled = false;
+  onMount(async () => {
+    if (!isTauri) return;
+    try {
+      const { isEnabled } = await import("@tauri-apps/plugin-autostart");
+      autostartEnabled = await isEnabled();
+    } catch (e) {
+      reportError(e, "StartupSection:autostart-check");
+    }
+  });
+
+  async function toggleAutostart() {
+    if (!isTauri) return showToast("Autoarranque solo en la app instalada");
+    try {
+      const { enable, disable } = await import("@tauri-apps/plugin-autostart");
+      if (autostartEnabled) await disable();
+      else await enable();
+      autostartEnabled = !autostartEnabled;
+    } catch (e) {
+      reportError(e, "StartupSection:autostart-toggle");
+    }
   }
 </script>
 
@@ -81,7 +110,14 @@
     </div>
   {/if}
 
-  <p class="dim">Autoarranque con Windows: próximamente.</p>
+  <h2>Autoarranque con Windows</h2>
+  <p class="dim">
+    Arranca la app sola al iniciar sesión en Windows — pensada para dejar el PC
+    listo como consola sin tocar nada. Solo funciona en la app instalada.
+  </p>
+  <button class="toggle" class:on={autostartEnabled} data-focusable tabindex="-1" on:click={toggleAutostart}>
+    {autostartEnabled ? "ON" : "OFF"}
+  </button>
 </section>
 
 <style>

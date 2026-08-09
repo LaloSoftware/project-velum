@@ -1,5 +1,9 @@
 # Product
 
+> **Nota de marca**: el producto se lanza al público como **VELUM**. "GM"
+> sigue siendo el nombre de proyecto/código interno en este repo — no se
+> reescribió el resto de esta documentación.
+
 <!-- impeccable:product-schema 1 -->
 
 ## Platform

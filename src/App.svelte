@@ -16,6 +16,7 @@
     hideFooter,
   } from "./lib/stores/uiprefs.js";
   import { initGroups } from "./lib/stores/groups.js";
+  import { getAppConfig } from "./lib/stores/appConfig.js";
   import { initMusicLibrary } from "./lib/stores/musicLibrary.js";
   import { initImageLibrary } from "./lib/stores/imageLibrary.js";
   import { initVideoLibrary } from "./lib/stores/videoLibrary.js";
@@ -66,6 +67,8 @@
     filtersModal,
     achievementsModal,
     closeAchievements,
+    setupModal,
+    completeSetup,
     confirmUnlinkSteam,
     closeConfirmUnlinkSteam,
     appError,
@@ -124,6 +127,7 @@
   import VirtualKeyboard from "./lib/components/VirtualKeyboard.svelte";
   import ColorPicker from "./lib/components/ColorPicker.svelte";
   import FiltersModal from "./lib/components/FiltersModal.svelte";
+  import InitialSetupModal from "./lib/components/InitialSetupModal.svelte";
   import AchievementsModal from "./lib/components/AchievementsModal.svelte";
   import ConfirmUnlinkSteam from "./lib/components/ConfirmUnlinkSteam.svelte";
   import Toast from "./lib/components/Toast.svelte";
@@ -154,6 +158,7 @@
     popoverEl,
     colorPickerEl,
     filtersEl,
+    setupEl,
     achievementsEl,
     confirmUnlinkSteamEl;
   let now = new Date();
@@ -243,6 +248,7 @@
     $systemQuickMenu ||
     $popover ||
     $colorPicker ||
+    $setupModal ||
     $filtersModal ||
     $achievementsModal ||
     $confirmUnlinkSteam;
@@ -290,6 +296,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -307,6 +314,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -326,6 +334,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -347,6 +356,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -369,6 +379,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -394,6 +405,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -416,6 +428,7 @@
           $systemQuickMenu ||
           $popover ||
           $colorPicker ||
+          $setupModal ||
           $filtersModal ||
           $achievementsModal ||
           $confirmUnlinkSteam ||
@@ -473,6 +486,7 @@
       !$confirmDelete &&
       !$shutdownConfirm &&
       !$systemQuickMenu &&
+      !$setupModal &&
       !$filtersModal &&
       !$achievementsModal &&
       !$confirmUnlinkSteam &&
@@ -482,6 +496,9 @@
 
   function handleBack() {
     if ($appError) return clearAppError();
+    // Configuración inicial: sin "cancelar" (no hay estado previo al que
+    // volver) — "atrás" completa el setup igual que el botón "Continuar".
+    if ($setupModal) return completeSetup();
     if ($vk.open) return vkDone(true);
     if ($shutdownConfirm) return closeShutdownConfirm();
     if ($systemQuickMenu) return closeSystemQuickMenu();
@@ -577,6 +594,7 @@
       $shutdownConfirm ||
       $popover ||
       $colorPicker ||
+      $setupModal ||
       $filtersModal ||
       $achievementsModal ||
       $confirmUnlinkSteam ||
@@ -589,31 +607,35 @@
   }
 
   // ------- Gestión del "scope" de navegación (capa activa) -------
-  $: layerKey = $vk.open
-    ? "vk"
-    : $shutdownConfirm
-      ? "shutdown"
-      : $systemQuickMenu
-        ? "sysquick"
-        : $colorPicker
-          ? "colorpicker"
-          : $filtersModal
-            ? "filters"
-            : $confirmUnlinkSteam
-              ? "confirm-unlink-steam"
-              : $confirmDelete
-                ? "confirm"
-                : $popover
-                  ? "popover"
-                  : $contextMenu
-                    ? "ctx:" + ($contextMenu.sub || "main")
-                    : $achievementsModal
-                      ? "achievements"
-                      : $detailGame
-                        ? "detail"
-                        : $overlay
-                          ? "ov:" + $overlay
-                          : "view:" + $view;
+  // $setupModal va primero: debe bloquear literalmente cualquier otra capa
+  // hasta completarse (primer arranque, antes de que el usuario haga nada).
+  $: layerKey = $setupModal
+    ? "setup"
+    : $vk.open
+      ? "vk"
+      : $shutdownConfirm
+        ? "shutdown"
+        : $systemQuickMenu
+          ? "sysquick"
+          : $colorPicker
+            ? "colorpicker"
+            : $filtersModal
+              ? "filters"
+              : $confirmUnlinkSteam
+                ? "confirm-unlink-steam"
+                : $confirmDelete
+                  ? "confirm"
+                  : $popover
+                    ? "popover"
+                    : $contextMenu
+                      ? "ctx:" + ($contextMenu.sub || "main")
+                      : $achievementsModal
+                        ? "achievements"
+                        : $detailGame
+                          ? "detail"
+                          : $overlay
+                            ? "ov:" + $overlay
+                            : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -623,7 +645,8 @@
 
   async function scheduleScope() {
     await tick();
-    if ($vk.open) nav.setScope(vkEl);
+    if ($setupModal) nav.setScope(setupEl);
+    else if ($vk.open) nav.setScope(vkEl);
     else if ($shutdownConfirm) nav.setScope(shutdownEl);
     else if ($systemQuickMenu) nav.setScope(sysQuickEl);
     else if ($colorPicker) nav.setScope(colorPickerEl);
@@ -699,6 +722,9 @@
       initVkBindings(),
       initSteamAccount(),
     ]);
+    // Primer arranque (sin config previa): configuración inicial — una sola
+    // vez, ver stores/ui.js::setupModal/completeSetup.
+    if (!getAppConfig().setupCompleted) setupModal.set(true);
     await mergeCachedSteamGhosts(); // necesita loadGames() ya resuelto (arriba)
     // Sync silenciosa de fondo al abrir (sin `await`: no debe demorar el
     // primer pintado; syncNow() ya atrapa sus propios errores).
@@ -888,6 +914,13 @@
   {#if $filtersModal}
     <div bind:this={filtersEl}>
       <FiltersModal />
+    </div>
+  {/if}
+
+  <!-- Configuración inicial (primer arranque) -->
+  {#if $setupModal}
+    <div bind:this={setupEl}>
+      <InitialSetupModal />
     </div>
   {/if}
 
