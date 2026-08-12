@@ -24,29 +24,30 @@
 
 ## Overview
 
-VELUM convierte una PC (pensado para Windows) en una experiencia tipo consola para la
+VELUM convierte una PC (alcance actual para Windows) en una experiencia tipo consola para la
 sala/salón: arranca a pantalla completa, muestra la biblioteca de juegos instalados y
-se maneja **100% con mando** — sin mouse ni teclado, sin salir a Windows. Todo el
-aspecto es **repintable**: no hay colores/medidas fijas en la interfaz, todo pasa por
-tokens de diseño (temas y perfiles), así que se puede personalizar por completo sin
-tocar código.
+busca manejarse **100% con mando** — reduciendo drásticamente el uso de mouse y teclado, sin salir a Windows.
+Una de las principales características es el aspecto, se busca que sea completa y fácilmente **editable**: no hay
+colores/medidas fijas en la interfaz y a la mano de cualquier usuario ya que el diseño fue pensado para mantener
+temas y perfiles para adaptarse a múltiples configuraciones de interfaz, esto otorga completa capacidad al usuario
+de mantener una interfaz que pueda sentir propia y a su gusto sin tocar código ni integrar programas externos complejos.
 
 Pensado para **consumir el mínimo de recursos mientras se juega** — el launcher se
-suspende al lanzar un juego y se restaura solo al volver.
+suspende al lanzar un juego y se restaura solo al volver o al usar un comando configurable desde el control.
 
 ## Features
 
-- **Biblioteca unificada**: juegos y apps de Steam/GOG/Epic detectados localmente,
-  con vinculación opcional de cuenta de Steam (biblioteca completa, incluyendo lo no
-  instalado, y logros con revelado sin spoilers).
+- **Biblioteca unificada**: juegos y apps de Steam/GOG/Epic/Ubisoft Connect/EA Play detectados localmente,
+  con vinculación opcional de cuenta de Steam (biblioteca propia completa, incluyendo lo no
+  instalado y logros).
 - **Multimedia personal**: Música (álbumes, discos multi-CD, listas de reproducción),
-  Imágenes (visor) y Videos (streaming real, sin cargar el archivo entero a memoria).
+  Imágenes (visor) y Videos (streaming real del video en local, sin cargar el archivo entero a memoria).
 - **Temas y perfiles**: aspecto 100% personalizable por tokens CSS — incluye el tema
-  de marca **Velum** con 3 variantes (oscuro, claro, y una variante "Pulse").
-- **100% mando**: navegación completa, menú rápido de sistema (QAM) y menú radial
-  (mantener Home) para atajos de un solo gesto.
-- **Configuración inicial**: primer arranque guiado (selección de tiendas a mostrar).
-- **Autoarranque con Windows** — deja la PC lista como consola sin tocar nada.
+  de marca **Velum** con 3 variantes (oscuro, claro, y una variante "Pulse") además de otros temas configurables.
+- **100% mando**: navegación completa, el software integrará menú rápido de sistema y menú radial
+  (mantener Home por defecto con capacidad de configuración) para atajos de un solo gesto.
+- **Configuración inicial**: primer arranque guiado (selección de tiendas a mostrar, posteriormente se integrará la configuración de idioma, región de Steam y futuras plataformas, además de la misma vinculación de las plataformas).
+- **Autoarranque con Windows** — deja la PC lista para iniciar a jugar.
 - **Teclado virtual en pantalla** y **sonidos personalizables** (navegación,
   notificaciones, inicio).
 
@@ -59,8 +60,7 @@ _Próximamente._
 ### Para jugar (usuario final)
 
 1. Bajá el instalador (`.exe`/`.msi`) más reciente desde
-   **[Releases](https://github.com/TU_USUARIO/TU_REPO/releases)**
-   <!-- reemplazar por la URL real del repo cuando esté publicado -->.
+   **[Releases](https://github.com/LaloSoftware/project-velum/releases)**.
 2. Ejecutalo — Windows 10/11 con WebView2 (ya viene instalado en versiones modernas de
    Windows) es el único requisito.
 3. Listo — VELUM arranca a pantalla completa.
@@ -94,7 +94,7 @@ máquina).
   desarrollo en Mac no dependa de tener Windows a mano.
 - **Theming**: todo el aspecto se expresa con variables CSS (`--gm-*`) — un tema o
   perfil es un conjunto de overrides de esas variables más CSS opcional. Cambiar el
-  aspecto nunca requiere tocar un componente.
+  aspecto nunca requiere tocar un componente (funcionalidad en desarrollo).
 - **Mapa de carpetas** (alto nivel):
   ```
   src/                 Frontend (Svelte)
@@ -108,14 +108,15 @@ máquina).
 
 ## Roadmap
 
-- Controles de sistema reales de Windows (Wi-Fi/Bluetooth/volumen) en el menú rápido.
-- Selección de pantalla de salida (multi-monitor / TV).
-- `EpicSource` (biblioteca de Epic Games) y arte de GOG sin conexión.
-- Soporte nativo de Steam Controller (HID) y rumble/haptics.
 - **Internacionalización**: selector de idioma/región para la interfaz (hoy 100% en
   español) y para las preferencias regionales de Steam.
 - **Sistema de actualizaciones**: poder ver si hay una versión nueva e instalarla
   desde la propia app instalada, sin tener que bajar un instalador a mano de nuevo.
+- Soporte de Steam Controller y otros controles por medios inalámbricos.
+- Controles de sistema reales de Windows (Wi-Fi/Bluetooth/volumen) en el menú rápido.
+- Selección de pantalla de salida (multi-monitor / TV).
+- `GOG integrado` para vinculación de la biblioteca
+- `EpicSource` biblioteca de Epic Games
 
 ## Contribución
 
@@ -125,7 +126,11 @@ llegar a `release`.
 
 ## Licencia
 
-_Por definir._ Ver [`LICENSE`](./LICENSE).
+VELUM se distribuye bajo una **licencia personalizada** (no es una licencia OSI
+estándar) — texto completo en [`LICENSE`](./LICENSE).
+
+> ⚠️ **Borrador**: la licencia está actualmente en revisión y puede modificarse antes
+> de considerarse definitiva.
 
 ## Atribuciones
 
@@ -133,8 +138,10 @@ Construido sobre [Tauri](https://tauri.app/), [Svelte](https://svelte.dev/) y
 [`gilrs`](https://gitlab.com/gilrs-project/gilrs), entre otras dependencias de
 código abierto.
 
-<!-- TODO: crédito de los sonidos incluidos (src/assets/sounds/) — completar con su
-     fuente/licencia real. -->
+Todo el audio actualmente incluido en la aplicación (`src/assets/sounds/`) fue
+grabado por Eduardo Lemus Laguna. Cualquier audio que se agregue a futuro será
+igualmente generado por el autor, salvo que se indique explícitamente lo contrario
+para algún asset puntual.
 
 ## Disclaimer
 

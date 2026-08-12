@@ -1,0 +1,378 @@
+# VELUM — Free Distribution, Attribution and Derivative Works License
+
+DRAFT — NOT FINAL
+This license is currently under review and may be modified. It should not be considered the final licensing terms for the project until this notice is removed.
+
+**Version 0.1 — Draft**
+
+Copyright © 2026 Eduardo Lemus Laguna
+
+Project repository: https://github.com/LaloSoftware/project-velum
+
+---
+
+## 1. Purpose
+
+This License grants permission to use, copy, study, modify, fork, and redistribute the software known as **VELUM** (the "Software"), subject to the conditions described below.
+
+The purpose of this License is to allow the Software to be freely used, modified, and redistributed while ensuring that the Software and Derivative Works remain freely available to end users and that the original project and its authors receive appropriate attribution.
+
+This License does not prohibit ordinary commercial activities that are independent of the Software, nor does it prohibit the internal use of the Software by businesses or organizations.
+
+---
+
+## 2. Definitions
+
+### 2.1 "Software"
+
+"Software" means the original software, source code, compiled binaries, documentation, configuration, assets, and other materials distributed by the Copyright Holder under this License.
+
+### 2.2 "Derivative Work"
+
+A "Derivative Work" means any software or other work that:
+
+- Is based upon the Software;
+- Modifies or extends the Software;
+- Is created from a fork or modified version of the Software;
+- Is built substantially upon the Software; or
+- Incorporates one or more Substantial Functional Components of the Software.
+
+Changing, replacing, or substantially redesigning the user interface does not, by itself, prevent a work from being considered a Derivative Work.
+
+Adding substantial original code or additional functionality also does not, by itself, prevent a work from being considered a Derivative Work.
+
+A work that merely interacts with, communicates with, interoperates with, or is distributed alongside the Software does not become a Derivative Work solely because of such interaction.
+
+### 2.3 "Substantial Functional Component"
+
+A "Substantial Functional Component" means a complete or materially significant module, subsystem, feature, or functional component of the Software, regardless of the amount of source code it represents relative to the Software as a whole.
+
+A component may be considered substantial because of its functionality, importance, independence, or role within the Software, even if it represents only a small percentage of the total source code.
+
+For example, if the Software contains a complete video downloading module and another project incorporates that module or a substantial portion of its implementation, that component may constitute a Substantial Functional Component even if the module represents only a small portion of the Software's total codebase.
+
+A trivial, incidental, or independently implemented piece of functionality does not become a Substantial Functional Component merely because it performs a similar function.
+
+### 2.4 "Distribution"
+
+"Distribution" means making the Software or a Derivative Work available to another person or organization, whether by download, physical media, online distribution, application store, package repository, preinstallation, or any other means.
+
+### 2.5 "Mandatory Payment"
+
+"Mandatory Payment" means any payment, purchase, subscription, fee, license charge, access charge, or other financial consideration that a user is required to provide as a condition of obtaining, downloading, installing, accessing, configuring, activating, or using the Software or a Derivative Work.
+
+### 2.6 "Commercial Offering"
+
+A "Commercial Offering" means a product, service, hardware device, software product, hosted solution, enterprise solution, or other offering provided to third parties for commercial consideration where the Software or a Derivative Work forms part of, materially contributes to, or is provided as a component of that offering.
+
+---
+
+## 3. Permissions
+
+Subject to the conditions of this License, you are granted permission to:
+
+- Use the Software;
+- Copy the Software;
+- Study the Software;
+- Modify the Software;
+- Create forks;
+- Create Derivative Works;
+- Distribute the Software;
+- Distribute Derivative Works;
+- Publish modified versions;
+- Use the Software internally within an organization;
+- Make the Software or Derivative Works available through websites, repositories, application stores, package managers, or other distribution channels.
+
+These permissions do not require prior approval from the Copyright Holder unless a particular use is expressly subject to prior authorization under this License.
+
+---
+
+## 4. Free Availability Requirement
+
+The Software and every Derivative Work must remain freely available to end users.
+
+You may not impose a Mandatory Payment as a condition for:
+
+- Downloading the Software;
+- Installing the Software;
+- Accessing the Software;
+- Using the Software;
+- Receiving a copy of the Software;
+- Receiving a copy of a Derivative Work;
+- Accessing functionality that forms part of the Software or a Derivative Work.
+
+The Software and Derivative Works may not be sold, licensed for payment, rented, leased, or otherwise monetized in a manner that makes payment a condition of obtaining, accessing, installing, or using them.
+
+This requirement applies to the entire Derivative Work when that work qualifies as a Derivative Work under this License.
+
+---
+
+## 5. Prohibited Monetization and Distribution Practices
+
+Without prior written permission from the Copyright Holder, you may not:
+
+1. Sell the Software or a Derivative Work;
+2. Charge a fee for downloading or obtaining the Software or a Derivative Work;
+3. Charge a fee for installing, configuring, activating, or making the Software available to an end user;
+4. Require a subscription or recurring payment to access or use the Software or a Derivative Work;
+5. Place the Software or a Derivative Work behind a paywall;
+6. Offer paid early access to the Software or a Derivative Work;
+7. Lock functionality derived from the Software behind a Mandatory Payment;
+8. Distribute physical copies of the Software or a Derivative Work for payment;
+9. Charge specifically for providing, distributing, installing, configuring, activating, or assisting with the Software or a Derivative Work when the service principally consists of making the Software available to, or enabling the use of the Software by, the customer;
+10. Monetize a Derivative Work through a product or business model that makes payment necessary to obtain, access, install, or use the Derivative Work;
+11. Include the Software or a Derivative Work in a Commercial Offering without prior written permission from the Copyright Holder;
+12. Use another payment mechanism or business model whose practical effect is to require payment in order to obtain, access, install, configure, activate, or use the Software or a Derivative Work.
+
+The restrictions above apply regardless of whether the charge is described as a software license, service fee, installation fee, configuration fee, support fee, access fee, product fee, membership fee, subscription, or another type of charge.
+
+---
+
+## 6. Internal Organizational Use
+
+Businesses, organizations, institutions, and other entities may use the Software internally without obtaining prior permission, provided that:
+
+- The Software is obtained under this License;
+- No Mandatory Payment is charged to employees or internal users specifically for access to or use of the Software; and
+- The Software is not incorporated into a Commercial Offering or distributed to third parties as part of a commercial product or service.
+
+Internal use includes activities such as installing the Software on company-owned computers, servers, or other internal systems.
+
+---
+
+## 7. Voluntary Contributions and Independent Monetization
+
+This License does not prohibit activities that generate revenue independently from providing paid access to the Software.
+
+The following are permitted provided that access to the Software remains free:
+
+- Voluntary donations;
+- Tips;
+- Sponsorships;
+- Patreon, Ko-fi, GitHub Sponsors, or similar voluntary contributions;
+- Advertising on a website that distributes the Software for free;
+- Monetized videos, streams, tutorials, reviews, or other content featuring the Software;
+- Sponsored content discussing or demonstrating the Software;
+- Revenue generated from unrelated products or services that merely reference, discuss, demonstrate, or interact with the Software.
+
+A voluntary contribution must not become a condition for obtaining, downloading, installing, accessing, configuring, activating, or using the Software.
+
+For example:
+
+> "The Software is free. You may optionally donate to support development."
+
+is permitted.
+
+However:
+
+> "A donation or subscription is required to download or use the Software."
+
+is prohibited.
+
+---
+
+## 8. Infrastructure and Hosting
+
+This License does not prohibit charging for infrastructure or services that are independently provided around the Software, provided that the charge is for the infrastructure or service itself and is not a fee for the Software, access to the Software, or rights granted by this License.
+
+Examples of permitted charges may include:
+
+- Virtual machines;
+- Cloud computing resources;
+- Server infrastructure;
+- Storage;
+- Bandwidth;
+- Database resources;
+- Network resources;
+- Operational infrastructure;
+- Other independently provided computing resources.
+
+For example, a provider may charge a customer for a cloud-based virtual machine on which the customer is free to install the Software.
+
+The provider may not, however, impose an additional charge for the Software itself or disguise a charge for access to the Software as an infrastructure charge.
+
+A charge must correspond reasonably to the infrastructure or service being provided.
+
+If a service cannot reasonably be separated from providing paid access to the Software, the arrangement requires prior written permission from the Copyright Holder.
+
+---
+
+## 9. Commercial Products and Services
+
+The Software may not be incorporated into or distributed as part of a Commercial Offering without prior written permission from the Copyright Holder.
+
+Examples requiring prior permission include:
+
+- Pre-installing the Software on computers or other hardware sold commercially;
+- Bundling the Software with commercial hardware;
+- Including the Software as part of a commercial software product;
+- Providing the Software as an integrated component of a commercial service;
+- Incorporating the Software into an enterprise product or commercial solution;
+- Providing the Software as a component of a product or service sold to customers;
+- Distributing the Software to customers as part of a commercial offering.
+
+The fact that the Software itself is provided to the customer without a separate charge does not by itself make such use permitted.
+
+The Copyright Holder may grant separate permission, additional terms, or a separate commercial license for such uses.
+
+---
+
+## 10. Attribution
+
+Any public Distribution of the Software or a Derivative Work must retain appropriate attribution to the original project.
+
+At a minimum, the following information must be preserved:
+
+**Original Project:** VELUM  
+**Original Author / Copyright Holder:** Eduardo Lemus Laguna  
+**Original Repository:** https://github.com/LaloSoftware/project-velum
+
+A public Derivative Work must clearly indicate that it is based on or derived from the original project.
+
+An acceptable attribution may be presented as:
+
+> This project is based on VELUM, originally created by Eduardo Lemus Laguna.  
+> Original project: https://github.com/LaloSoftware/project-velum
+
+The attribution must be reasonably visible and accessible to users of the Derivative Work.
+
+You may not intentionally remove, obscure, or misrepresent the original project's attribution.
+
+---
+
+## 11. License Preservation
+
+Any Distribution of the Software or a Derivative Work must include a copy of this License or a clearly accessible reference to its complete terms.
+
+Copyright notices, attribution notices, and other notices required by this License must not be intentionally removed or obscured.
+
+Derivative Works may include additional notices, documentation, branding, or licensing terms for original material added by their authors, provided that those terms do not conflict with the requirements of this License.
+
+---
+
+## 12. Branding and Trademarks
+
+This License grants rights to the Software and its source code only.
+
+It does not grant permission to use the trademarks, logos, names, visual identity, or other branding associated with VELUM, except as necessary to accurately describe the relationship between a Derivative Work and the original project.
+
+A Derivative Work must not represent itself as the official version of VELUM or imply endorsement, sponsorship, partnership, or affiliation with the Copyright Holder unless such authorization has been explicitly granted.
+
+The Copyright Holder reserves all rights concerning the project's name, logos, trademarks, and visual identity.
+
+---
+
+## 13. Independent Works
+
+This License does not impose its conditions on software that is independently developed and does not constitute a Derivative Work or incorporate a Substantial Functional Component of the Software.
+
+Merely:
+
+- Interacting with the Software;
+- Communicating with the Software;
+- Interoperating with the Software;
+- Using a public API provided by the Software;
+- Implementing compatible functionality independently; or
+- Being distributed alongside the Software
+
+does not by itself make another work a Derivative Work.
+
+---
+
+## 14. Derivative Works and Additional Code
+
+When a work qualifies as a Derivative Work under this License, the conditions of this License apply to the Derivative Work as a whole, regardless of the amount of original code added by its author.
+
+Adding original code, new functionality, a new user interface, additional modules, or other original material does not remove the Derivative Work from the scope of this License.
+
+Authors of Derivative Works retain copyright in their original contributions to the extent permitted by applicable law, but the resulting Derivative Work remains subject to the requirements of this License.
+
+---
+
+## 15. Contributions
+
+Unless otherwise agreed in writing, contributions submitted to the official VELUM repository may be incorporated into the Software and distributed under the terms of this License.
+
+By submitting a contribution, the contributor represents that they have the necessary rights to submit that contribution and authorize its use under this License.
+
+Additional contribution terms may be established by the project's contribution guidelines.
+
+---
+
+## 16. Permission for Exceptions
+
+The Copyright Holder may grant explicit written permission for uses that are otherwise restricted by this License.
+
+Such permission may apply to:
+
+- A specific person or organization;
+- A specific version of the Software;
+- A specific Derivative Work;
+- A specific commercial product or service;
+- A specific distribution method;
+- A limited period of time;
+- Other conditions defined by the Copyright Holder.
+
+Permission granted for one use does not automatically grant permission for other uses.
+
+---
+
+## 17. Termination
+
+Any rights granted under this License terminate automatically if you materially violate its terms.
+
+Upon termination, you must cease the activities that are no longer authorized under this License.
+
+Rights may be reinstated if the violation is corrected within a reasonable period and the Copyright Holder permits reinstatement, or if otherwise provided by applicable law.
+
+Termination does not affect rights that were validly granted to recipients who received the Software or a Derivative Work before the violation, except to the extent permitted by applicable law.
+
+---
+
+## 18. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, OR THAT THE SOFTWARE WILL OPERATE WITHOUT INTERRUPTION OR ERROR.
+
+THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE, TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW.
+
+---
+
+## 19. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF PROFITS, DATA, BUSINESS, OR OTHER ECONOMIC LOSS ARISING FROM THE USE OR INABILITY TO USE THE SOFTWARE.
+
+---
+
+## 20. Governing Law and Jurisdiction
+
+This License shall be governed by and construed in accordance with the laws of:
+
+**The State of Guanajuato, United Mexican States (México)**
+
+Any dispute arising out of or relating to this License shall be submitted to the competent courts of:
+
+**The State of Guanajuato, México**
+
+to the extent permitted by applicable law.
+
+---
+
+## 21. Entire Agreement
+
+This License constitutes the terms under which the Software is made available by the Copyright Holder.
+
+If any provision of this License is determined to be invalid or unenforceable, the remaining provisions shall remain in effect to the maximum extent permitted by applicable law.
+
+---
+
+## 22. Contact
+
+For licensing questions, commercial-use requests, exceptions, or other licensing matters:
+
+**Copyright Holder:** Eduardo Lemus Laguna  
+**Contact:** eduardolemus.contacto@gmail.com  
+**Project Repository:** https://github.com/LaloSoftware/project-velum
+
+---
+
+**Copyright © 2026 Eduardo Lemus Laguna. All rights reserved.**
