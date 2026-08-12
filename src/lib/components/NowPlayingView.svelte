@@ -1,4 +1,5 @@
 <script>
+  import { fmt } from "../i18n/index.js";
   import { musicPlayer, togglePlayPause, next, previous, toggleShuffle, seek } from "../stores/musicPlayer.js";
 
   // Mismo degradado por hash del título ya usado en tarjetas de álbum
@@ -15,12 +16,7 @@
 
   $: format = $musicPlayer.current?.path.split(".").pop()?.toUpperCase() || "";
 
-  function mmss(secs) {
-    if (!Number.isFinite(secs) || secs < 0) return "0:00";
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${String(s).padStart(2, "0")}`;
-  }
+  // Duración: ver fmt.duration en i18n/index.js (fuente única).
 
   $: pct = $musicPlayer.duration ? ($musicPlayer.currentTime / $musicPlayer.duration) * 100 : 0;
 </script>
@@ -41,7 +37,7 @@
     </div>
 
     <div class="progress">
-      <span class="time dim">{mmss($musicPlayer.currentTime)}</span>
+      <span class="time dim">{$fmt.duration($musicPlayer.currentTime)}</span>
       <input
         type="range"
         class="seek"
@@ -54,7 +50,7 @@
         value={$musicPlayer.currentTime}
         on:input={(e) => seek(e.target.value)}
       />
-      <span class="time dim">{mmss($musicPlayer.duration)}</span>
+      <span class="time dim">{$fmt.duration($musicPlayer.duration)}</span>
     </div>
 
     <div class="controls">

@@ -7,7 +7,7 @@
 <section class="panel">
   <h1>Sonidos</h1>
   <p class="dim">
-    El sonido de inicio se configura en Ajustes &gt; Configuración de inicio.
+    El sonido de inicio se configura en Configuración &gt; Configuración de inicio.
   </p>
 
   <h2>Navegación</h2>

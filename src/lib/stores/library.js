@@ -2,6 +2,7 @@ import { writable, derived, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { openKeyboard } from "./keyboard.js";
 import { groups } from "./groups.js";
+import { groupNameNow } from "../i18n/names.js";
 
 /*
  * Estado de la vista Juegos: qué filtros de tienda están habilitados (persistente),
@@ -106,7 +107,7 @@ export const filterList = derived([enabledStores, groups], ([$en, $groups]) => {
       ...STORE_DEFS.filter((s) => $en?.[s.id] !== false).map((s) => ({ ...s, type: "store" })),
       ...gs
         .filter((g) => g && g.id)
-        .map((g) => ({ id: g.id, label: g.name || g.id, type: "group" })),
+        .map((g) => ({ id: g.id, label: groupNameNow(g), type: "group" })),
     ];
   } catch (e) {
     console.error("[gm:error] (library:filterList)", e);

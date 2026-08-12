@@ -40,12 +40,15 @@
   } from "../stores/radialMenu.js";
   import { MUSIC_RADIAL_ACTIONS } from "../stores/musicPlayer.js";
   import { VK_ACTIONS, vkBindings, assignVkAction, resetVkBindings } from "../stores/vkBindings.js";
+  import { t } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
-  const RADIAL_ACTION_OPTS = [
-    { value: "", label: "Ninguna" },
-    ...QUICK_MENU_ACTIONS.map((a) => ({ value: a.id, label: a.label })),
-    ...MUSIC_RADIAL_ACTIONS.map((a) => ({ value: a.id, label: a.label })),
+  // Reactivo, no `const`: si no, las opciones quedan congeladas en el idioma
+  // con el que arrancó la app. `labelKey` lo resuelve Select por su cuenta.
+  $: RADIAL_ACTION_OPTS = [
+    { value: "", labelKey: "common.none" },
+    ...QUICK_MENU_ACTIONS.map((a) => ({ value: a.id, labelKey: a.labelKey })),
+    ...MUSIC_RADIAL_ACTIONS.map((a) => ({ value: a.id, labelKey: a.labelKey })),
   ];
 
   // listening: { action, mode: "km" | "pad" | "vk" } | null
@@ -99,7 +102,7 @@
   // Botón de mando (etiqueta) asignado a una acción, reactivo a $bindings.
   $: labelFor = (action) => {
     const btn = Object.keys($bindings).find((b) => $bindings[b] === action);
-    return btn ? BUTTON_LABELS[btn] : "—";
+    return btn ? $BUTTON_LABELS[btn] : "—";
   };
 
   // Tecla/botón de mouse (etiqueta) asignado a una acción, reactivo a $keyBindings.
@@ -112,7 +115,7 @@
   // reactivo a $vkBindings.
   $: vkLabelFor = (action) => {
     const btn = Object.keys($vkBindings).find((b) => $vkBindings[b] === action);
-    return btn ? BUTTON_LABELS[btn] : "—";
+    return btn ? $BUTTON_LABELS[btn] : "—";
   };
 
   function stopListening() {
@@ -217,7 +220,7 @@
     </div>
     {#each ACTIONS as a}
       <div class="action-row">
-        <span class="label">{a.label}</span>
+        <span class="label">{$t(a.labelKey)}</span>
         <div
           class="cell"
           class:unset={kmLabelFor(a.id) === "—"}
@@ -281,7 +284,7 @@
   <div class="rows">
     <div class="row">
       <span class="label">Botón</span>
-      <span class="btn">{BUTTON_LABELS[$playConfig.returnButton] || "—"}</span>
+      <span class="btn">{$BUTTON_LABELS[$playConfig.returnButton] || "—"}</span>
       <button class="rebind" data-focusable tabindex="-1" on:click={rebindReturn}>
         Reasignar
       </button>
@@ -324,7 +327,7 @@
   <div class="rows">
     {#each RADIAL_POSITIONS as pos (pos)}
       <div class="row">
-        <span class="label">{BUTTON_LABELS[pos]}</span>
+        <span class="label">{$BUTTON_LABELS[pos]}</span>
         <div class="ctrl">
           <Select
             value={$radialSlots[pos] ?? ""}
@@ -341,7 +344,7 @@
           value={$radialCancelButton ?? ""}
           options={[
             { value: "", label: "Soltar Home" },
-            ...RADIAL_POSITIONS.map((p) => ({ value: p, label: BUTTON_LABELS[p] })),
+            ...RADIAL_POSITIONS.map((p) => ({ value: p, label: $BUTTON_LABELS[p] })),
           ]}
           onChange={(v) => setRadialCancelButton(v || null)}
         />
@@ -412,7 +415,7 @@
             ? "Menú de sistema"
             : listening.mode === "vk"
               ? VK_ACTIONS.find((a) => a.id === listening.action)?.label
-              : ACTIONS.find((a) => a.id === listening.action)?.label}»
+              : $t(ACTIONS.find((a) => a.id === listening.action)?.labelKey ?? "")}»
       </div>
     </div>
   </div>

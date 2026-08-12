@@ -10,6 +10,7 @@
   import { musicPlayer, playPlaylist, playPlaylistFrom } from "../stores/musicPlayer.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { showToast } from "../stores/ui.js";
+  import { names, playlistNameNow } from "../i18n/names.js";
 
   export let playlist;
   export let onBack = () => {};
@@ -24,7 +25,7 @@
 
   async function removeThisPlaylist() {
     await deletePlaylist(current.id);
-    showToast(`Lista "${current.name}" eliminada`);
+    showToast(`Lista "${playlistNameNow(current)}" eliminada`);
     onBack();
   }
 </script>
@@ -32,7 +33,7 @@
 <section class="playlist-detail">
   <header class="head">
     <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← Volver</button>
-    <h1>{current.name}</h1>
+    <h1>{$names.playlist(current)}</h1>
     <div class="head-actions">
       <button class="chip" data-focusable tabindex="-1" on:click={rename}>Renombrar</button>
       <button class="chip danger" data-focusable tabindex="-1" on:click={removeThisPlaylist}>

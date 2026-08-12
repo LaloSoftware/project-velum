@@ -37,7 +37,7 @@
           {#if isCancel}
             <span class="label cancel-label">Cancelar</span>
           {:else if actionId}
-            <span class="label">{RADIAL_LABEL[actionId] || actionId}</span>
+            <span class="label">{$RADIAL_LABEL[actionId] || actionId}</span>
           {/if}
         </div>
       {/each}

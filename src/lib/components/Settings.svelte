@@ -75,6 +75,8 @@
     CLOCK_POSITION_OPTIONS,
     setClockPosition,
   } from "../stores/uiprefs.js";
+  import { t, tr } from "../i18n/index.js";
+  import { names, profileNameNow } from "../i18n/names.js";
   import Select from "./Select.svelte";
 
   const themes = themeOptions();
@@ -173,7 +175,7 @@
   }
   async function editHomeText(field) {
     const current = $homeTexts[field.key]?.text || "";
-    const text = await openKeyboard(current, field.label);
+    const text = await openKeyboard(current, tr(field.labelKey));
     if (text !== null) await setHomeTextValue(field.key, text);
   }
 
@@ -210,7 +212,7 @@
   }
   async function removeProfile() {
     if ($profiles.length <= 1) return showToast("No puedes borrar el único perfil");
-    const name = active.name;
+    const name = profileNameNow(active);
     await deleteProfile(active.id);
     showToast(`Perfil "${name}" eliminado`);
   }
@@ -220,13 +222,13 @@
 </script>
 
 <section class="settings">
-  <h1>Ajustes · Apariencia</h1>
+  <h1>{$t("settings.title")} · {$t("settings.sections.appearance")}</h1>
 
   <h2>Perfil activo</h2>
   <div class="profile-block">
     <Select
       value={$activeProfileId}
-      options={$profiles.map((p) => ({ value: p.id, label: p.name }))}
+      options={$profiles.map((p) => ({ value: p.id, label: $names.profile(p) }))}
       onChange={setActive}
     />
     <div class="profile-actions">
@@ -236,7 +238,7 @@
   </div>
 
   {#if active}
-    <h2>Tema base del perfil «{active.name}»</h2>
+    <h2>Tema base del perfil «{$names.profile(active)}»</h2>
     <Select
       value={active.baseTheme}
       options={themes.map((t) => ({ value: t.id, label: t.name + (t.kind === "light" ? " (claro)" : "") }))}
@@ -361,7 +363,7 @@
     <div class="rows">
       {#each GAME_VIEW_FIELDS as f (f.key)}
         <div class="row">
-          <span class="rlabel">{f.label}</span>
+          <span class="rlabel">{$t(f.labelKey)}</span>
           <button
             class="toggle"
             class:on={$gameView[f.key]}
@@ -509,7 +511,7 @@
     <div class="rows">
       {#each HOME_TEXT_FIELDS as f (f.key)}
         <div class="row">
-          <span class="rlabel">{f.label}</span>
+          <span class="rlabel">{$t(f.labelKey)}</span>
           <button
             class="chip"
             data-focusable
@@ -517,7 +519,11 @@
             on:click={() =>
               setHomeTextMode(f.key, $homeTexts[f.key]?.mode === "focus" ? "custom" : "focus")}
           >
-            {$homeTexts[f.key]?.mode === "focus" ? "Juego en foco" : "Personalizado"}
+            {$t(
+              $homeTexts[f.key]?.mode === "focus"
+                ? "settings.home.mode.focus"
+                : "settings.home.mode.custom"
+            )}
           </button>
           {#if $homeTexts[f.key]?.mode !== "focus"}
             <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>

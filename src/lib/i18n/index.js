@@ -54,7 +54,9 @@ function lookup(id, key) {
   let v = DICTS[id]?.[key];
   if (v === undefined && id !== DEFAULT_LOCALE) v = DICTS[DEFAULT_LOCALE][key];
   if (v === undefined) {
-    if (import.meta.env.DEV && !_warned.has(key)) {
+    // `?.` para que el módulo se pueda importar fuera de Vite (scripts de
+    // verificación en Node, donde `import.meta.env` no existe).
+    if (import.meta.env?.DEV && !_warned.has(key)) {
       _warned.add(key);
       console.warn(`[gm:i18n] clave sin traducción: ${key}`);
     }
@@ -104,5 +106,14 @@ export const fmt = derived(locale, ($l) => {
     date: (d) => date.format(d),
     dateTime: (d) => `${date.format(d)} ${time.format(d)}`,
     number: (n) => num.format(n),
+    // Duración de pista/video como m:ss. No depende del idioma en su forma
+    // (el `:` es universal), pero vive acá para tener una sola copia: estaba
+    // duplicada literalmente en NowPlayingView y VideoPlayerView.
+    duration: (secs) => {
+      if (!Number.isFinite(secs) || secs < 0) return "0:00";
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m}:${String(s).padStart(2, "0")}`;
+    },
   };
 });

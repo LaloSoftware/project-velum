@@ -18,6 +18,7 @@
   } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
   import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import { t } from "../i18n/index.js";
   import GameCard from "./GameCard.svelte";
 
   // Juego destacado = el enfocado en la tira (por defecto el primero). Su hero se
@@ -67,11 +68,15 @@
   // Texto efectivo de un campo de Inicio: en modo "focus", el título del juego
   // actualmente en foco (`featured`, ver onCardFocus más abajo); si no, el
   // personalizado, o el de por defecto.
-  const HOME_TEXT_DEFAULT = Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, f.default]));
+  // El texto por defecto se resuelve DENTRO del bloque reactivo (antes era un
+  // `const` calculado al montar): así sigue al idioma activo. El texto que
+  // escribió el usuario gana siempre y nunca se traduce.
+  const HOME_TEXT_KEY = Object.fromEntries(HOME_TEXT_FIELDS.map((f) => [f.key, f.defaultKey]));
   $: textOf = (key) => {
-    const t = $homeTexts[key];
-    if (t?.mode === "focus") return featured?.title || HOME_TEXT_DEFAULT[key];
-    return t?.text || HOME_TEXT_DEFAULT[key];
+    const entry = $homeTexts[key];
+    const fallback = $t(HOME_TEXT_KEY[key]);
+    if (entry?.mode === "focus") return featured?.title || fallback;
+    return entry?.text || fallback;
   };
   $: hidden = (key) => !!$homeTexts[key]?.hidden;
 
@@ -95,9 +100,9 @@
   // interpola el valor real por debajo del que acabamos de fijar, así que leer
   // `translatePx` en ese momento estaría desfasado del render real.
   function currentTranslate(el, axis) {
-    const t = getComputedStyle(el).transform;
-    if (!t || t === "none") return 0;
-    const m = new DOMMatrixReadOnly(t);
+    const tf = getComputedStyle(el).transform;
+    if (!tf || tf === "none") return 0;
+    const m = new DOMMatrixReadOnly(tf);
     return axis === "y" ? m.m42 : m.m41;
   }
 

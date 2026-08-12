@@ -24,6 +24,8 @@
     completedBadgeEnabled,
     completedGlowEnabled,
   } from "../stores/uiprefs.js";
+  import { t } from "../i18n/index.js";
+  import { names } from "../i18n/names.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
   import {
@@ -427,7 +429,7 @@
                     tabindex="-1"
                     on:click={() => toggleGameInGroup(g.id, game.id)}
                   >
-                    {inGroup(g) ? "✓ " : "+ "}{g.name}
+                    {inGroup(g) ? "✓ " : "+ "}{$names.group(g)}
                   </button>
                 {/each}
                 <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
@@ -471,7 +473,7 @@
               <div class="rows">
                 {#each GAME_VIEW_FIELDS as f (f.key)}
                   <div class="row">
-                    <span class="rlabel">{f.label}</span>
+                    <span class="rlabel">{$t(f.labelKey)}</span>
                     <button
                       class="toggle"
                       class:on={$gameView[f.key]}

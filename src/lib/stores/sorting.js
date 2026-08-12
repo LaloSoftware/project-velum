@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import { locale, localeMeta } from "../i18n/index.js";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 
 /*
@@ -59,7 +60,7 @@ export function sortOptionsFor(scope, list) {
 export function sortList(list, id) {
   const arr = Array.isArray(list) ? [...list] : [];
   const byTitle = (a, b) =>
-    (a.title || "").localeCompare(b.title || "", "es", { sensitivity: "base" });
+    (a.title || "").localeCompare(b.title || "", localeMeta(get(locale)).intl, { sensitivity: "base" });
   const size = (g) => (typeof g?.sizeBytes === "number" ? g.sizeBytes : -1);
   switch (id) {
     case "title-asc":

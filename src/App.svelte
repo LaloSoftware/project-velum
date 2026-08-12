@@ -606,7 +606,7 @@
       $radialMenu
     )
       return;
-    const idx = TABS.findIndex((t) => t.id === $view);
+    const idx = TABS.findIndex((tab) => tab.id === $view);
     const next = (idx + dir + TABS.length) % TABS.length;
     goto(TABS[next].id);
   }
@@ -745,7 +745,7 @@
     initMusicPlayer();
     await initInput(dispatch);
     await scheduleScope();
-    const t = setInterval(() => (now = new Date()), 1000);
+    const clockTimer = setInterval(() => (now = new Date()), 1000);
 
     const showCursor = () => (cursorHidden = false);
     window.addEventListener("mousemove", showCursor);
@@ -753,7 +753,7 @@
     const unlistenFs = await onFullscreenChange((v) => (fullscreen = v));
 
     return () => {
-      clearInterval(t);
+      clearInterval(clockTimer);
       window.removeEventListener("mousemove", showCursor);
       unlistenFs();
     };
@@ -765,7 +765,7 @@
   <div class="layer" bind:this={mainEl}>
     {#snippet tabsNav()}
       <nav class="tabs">
-        {#each TABS as t}
+        {#each TABS as tab}
           <button
             class="tab"
             class:active={$view === t.id}
@@ -773,7 +773,7 @@
             tabindex="-1"
             on:click={() => goto(t.id)}
           >
-            {t.label}
+            {tab.label}
           </button>
         {/each}
       </nav>

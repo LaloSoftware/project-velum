@@ -11,6 +11,7 @@
    * izquierda/derecha avanzan/retroceden sin código nuevo, mismo mecanismo
    * que ya usan los sliders de volumen/opacidad en el resto de la app.
    */
+  import { fmt } from "../i18n/index.js";
   import { onDestroy } from "svelte";
   import { videoUrl } from "../util/asset.js";
   import { reportError } from "../stores/ui.js";
@@ -50,12 +51,7 @@
     volume = Math.max(0, Math.min(1, Number(v)));
     if (videoEl) videoEl.volume = volume;
   }
-  function mmss(s) {
-    if (!Number.isFinite(s) || s < 0) return "0:00";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${String(sec).padStart(2, "0")}`;
-  }
+  // Duración: ver fmt.duration en i18n/index.js (fuente única).
 </script>
 
 <section class="video-player">
@@ -79,7 +75,7 @@
   <div class="name dim">{item.name}</div>
 
   <div class="bar">
-    <span class="time dim">{mmss(currentTime)}</span>
+    <span class="time dim">{$fmt.duration(currentTime)}</span>
     <input
       type="range"
       class="seek"
@@ -92,7 +88,7 @@
       value={currentTime}
       on:input={(e) => seek(e.target.value)}
     />
-    <span class="time dim">{mmss(duration)}</span>
+    <span class="time dim">{$fmt.duration(duration)}</span>
   </div>
 
   <div class="controls">

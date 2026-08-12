@@ -1,12 +1,16 @@
 <script>
   import { notifyPosition, NOTIFY_POSITIONS, setNotifyPosition } from "../stores/uiprefs.js";
+  import { t } from "../i18n/index.js";
 
   // Grid 3×3 con el centro-centro vacío (taparía contenido) — mismo patrón
   // visual que el preset de posición del logo en ArtEditor.svelte, pero acá
   // el código "mc" no existe en NOTIFY_POSITIONS: se deja un hueco no
   // interactivo en su lugar para conservar la forma del grid.
   const GRID = ["tl", "tc", "tr", "ml", null, "mr", "bl", "bc", "br"];
-  const labelOf = (code) => NOTIFY_POSITIONS.find((p) => p.code === code)?.label ?? "";
+  $: labelOf = (code) => {
+    const key = NOTIFY_POSITIONS.find((p) => p.code === code)?.labelKey;
+    return key ? $t(key) : "";
+  };
 </script>
 
 <section class="panel">

@@ -1,5 +1,6 @@
-import { writable, get } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
+import { t } from "../i18n/index.js";
 import { QUICK_MENU_ACTIONS, runSystemAction } from "./systemActions.js";
 import { MUSIC_RADIAL_ACTIONS, runMusicRadialAction } from "./musicPlayer.js";
 
@@ -96,6 +97,14 @@ export function runRadialInput(name) {
   return true;
 }
 
-export const RADIAL_LABEL = Object.fromEntries(
-  [...QUICK_MENU_ACTIONS, ...MUSIC_RADIAL_ACTIONS].map((a) => [a.id, a.label])
+/*
+ * Etiqueta de cada acción del radial, por id. DERIVADO a propósito: como
+ * `Object.fromEntries` a nivel de módulo se evaluaba una sola vez al importar,
+ * las etiquetas quedaban congeladas en el idioma con el que arrancó la app y
+ * el radial no cambiaba al cambiar de idioma.
+ */
+export const RADIAL_LABEL = derived(t, ($t) =>
+  Object.fromEntries(
+    [...QUICK_MENU_ACTIONS, ...MUSIC_RADIAL_ACTIONS].map((a) => [a.id, $t(a.labelKey)])
+  )
 );

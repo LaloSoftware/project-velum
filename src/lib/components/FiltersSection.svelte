@@ -11,6 +11,7 @@
   import { groups, deleteGroup } from "../stores/groups.js";
   import { showToast } from "../stores/ui.js";
   import Select from "./Select.svelte";
+  import { names, groupNameNow } from "../i18n/names.js";
 
   const isOn = (id) => $enabledStores[id] !== false;
   $: enabledIds = STORE_DEFS.filter((s) => $enabledStores[s.id] !== false).map((s) => s.id);
@@ -22,7 +23,7 @@
 
   async function remove(g) {
     await deleteGroup(g.id);
-    showToast(`Grupo «${g.name}» eliminado`);
+    showToast(`Grupo «${groupNameNow(g)}» eliminado`);
   }
 </script>
 
@@ -62,7 +63,7 @@
     <div class="rows">
       {#each $groups as g (g.id)}
         <div class="row">
-          <span class="label">{g.name}</span>
+          <span class="label">{$names.group(g)}</span>
           <span class="count">{g.gameIds.length} juego{g.gameIds.length === 1 ? "" : "s"}</span>
           <button class="del" data-focusable tabindex="-1" on:click={() => remove(g)}>
             Eliminar

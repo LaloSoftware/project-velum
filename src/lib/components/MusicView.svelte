@@ -4,6 +4,7 @@
   import { playlists, createPlaylist } from "../stores/playlists.js";
   import { playAlbum, playPlaylist } from "../stores/musicPlayer.js";
   import { openKeyboard } from "../stores/keyboard.js";
+  import { names } from "../i18n/names.js";
   import {
     showToast,
     reportError,
@@ -177,11 +178,11 @@
             class="card"
             data-focusable
             tabindex="-1"
-            style="background: {cover(p.name)}"
+            style="background: {cover($names.playlist(p))}"
             on:click={() => openPlaylist(p)}
             on:gmdetail={() => playPlaylist(p)}
           >
-            <span class="card-title">{p.name}</span>
+            <span class="card-title">{$names.playlist(p)}</span>
             <span class="card-sub">{p.trackIds.length} pista(s)</span>
           </button>
         {/each}

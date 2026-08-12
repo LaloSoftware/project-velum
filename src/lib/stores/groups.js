@@ -21,7 +21,9 @@ async function persist() {
 export async function createGroup(name, firstGameId = null) {
   const g = {
     id: `g_${Date.now()}`,
-    name: name || "Grupo",
+    // Vacío = "sin nombre propio": lo resuelve groupName() al pintar, así
+    // sigue al idioma. Ver docs/i18n.md.
+    name: name || "",
     gameIds: firstGameId ? [firstGameId] : [],
   };
   groups.update((l) => [...l, g]);

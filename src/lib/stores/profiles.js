@@ -10,10 +10,16 @@ import { applyProfile } from "../theming/index.js";
 export const profiles = writable([]);
 export const activeProfileId = writable(null);
 
+/*
+ * `name: ""` a propósito, no un texto: el nombre por defecto NO se materializa
+ * en la config. Lo resuelve quien lo pinta (`profileName()`), así que sigue al
+ * idioma activo. En cuanto el usuario renombra el perfil, su texto queda
+ * guardado y ya no se traduce nunca — ver docs/i18n.md.
+ */
 function defaultProfile() {
   return {
     id: "default",
-    name: "Por defecto",
+    name: "",
     baseTheme: "velum",
     tokenOverrides: {},
     extraCss: "",
@@ -23,12 +29,36 @@ function defaultProfile() {
 
 let _loaded = false;
 
+// Nombre que tenía el perfil inicial antes de que los nombres autogenerados
+// pasaran a resolverse por idioma. Ver migrateDefaultProfileName().
+const LEGACY_DEFAULT_NAME = "Por defecto";
+
+/**
+ * Migración de una sola vez: el perfil inicial de instalaciones previas tiene
+ * literalmente "Por defecto" escrito en la config. Si sigue intacto, se vacía
+ * para que empiece a seguir el idioma como los nuevos. Cualquier otro nombre
+ * se respeta — es texto que escribió el usuario.
+ */
+function migrateDefaultProfileName(list) {
+  let changed = false;
+  const out = list.map((p) => {
+    if (p.id === "default" && p.name === LEGACY_DEFAULT_NAME) {
+      changed = true;
+      return { ...p, name: "" };
+    }
+    return p;
+  });
+  return changed ? out : list;
+}
+
 export async function initProfiles() {
   if (_loaded) return;
   const cfg = await loadAppConfig();
   if (cfg && Array.isArray(cfg.profiles) && cfg.profiles.length) {
-    profiles.set(cfg.profiles);
-    activeProfileId.set(cfg.activeProfileId || cfg.profiles[0].id);
+    const migrated = migrateDefaultProfileName(cfg.profiles);
+    profiles.set(migrated);
+    activeProfileId.set(cfg.activeProfileId || migrated[0].id);
+    if (migrated !== cfg.profiles) await patchAppConfig({ profiles: migrated });
   } else {
     const p = defaultProfile();
     profiles.set([p]);
@@ -63,7 +93,8 @@ export async function setActive(id) {
 export async function createProfile(name, baseTheme = "velum") {
   const p = {
     id: `p_${Date.now()}`,
-    name: name || "Nuevo perfil",
+    // Vacío = "sin nombre propio": lo resuelve profileName() al pintar.
+    name: name || "",
     baseTheme,
     tokenOverrides: {},
     extraCss: "",

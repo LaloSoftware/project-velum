@@ -1,5 +1,6 @@
-import { writable, get } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
+import { t } from "../i18n/index.js";
 
 /*
  * Atajos de mando configurables: mapa `botón físico -> acción`.
@@ -7,39 +8,49 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
  * solo los botones de acción. Ver docs/input.md.
  */
 
-// Acciones asignables (con etiqueta para la UI de remapeo).
+// Acciones asignables (con etiqueta para la UI de remapeo). Los `id` se
+// persisten en `bindings`: no se renombran.
 export const ACTIONS = [
-  { id: "accept", label: "Aceptar / Jugar" },
-  { id: "north", label: "Detalle" },
-  { id: "back", label: "Volver / Cancelar" },
-  { id: "west", label: "Menú de tarjeta (alterno)" },
-  { id: "menu", label: "Menú Configuración" },
-  { id: "quick", label: "Menú Sistema (QAM)" },
-  { id: "tabLeft", label: "Pestaña anterior" },
-  { id: "tabRight", label: "Pestaña siguiente" },
-  { id: "search", label: "Buscar (en Juegos)" },
-  { id: "filterPrev", label: "Filtro tienda ◀ (Juegos)" },
-  { id: "filterNext", label: "Filtro tienda ▶ (Juegos)" },
-  { id: "filters", label: "Filtros y orden (Juegos/Apps)" },
-  { id: "context", label: "Menú de tarjeta" },
+  { id: "accept", labelKey: "input.actions.accept" },
+  { id: "north", labelKey: "input.actions.north" },
+  { id: "back", labelKey: "input.actions.back" },
+  { id: "west", labelKey: "input.actions.west" },
+  { id: "menu", labelKey: "input.actions.menu" },
+  { id: "quick", labelKey: "input.actions.quick" },
+  { id: "tabLeft", labelKey: "input.actions.tabLeft" },
+  { id: "tabRight", labelKey: "input.actions.tabRight" },
+  { id: "search", labelKey: "input.actions.search" },
+  { id: "filterPrev", labelKey: "input.actions.filterPrev" },
+  { id: "filterNext", labelKey: "input.actions.filterNext" },
+  { id: "filters", labelKey: "input.actions.filters" },
+  { id: "context", labelKey: "input.actions.context" },
 ];
 
-// Etiqueta legible de cada botón físico.
-export const BUTTON_LABELS = {
+/*
+ * Etiqueta legible de cada botón físico. Derivado (no un objeto plano) porque
+ * se pinta en la UI de atajos y en el overlay de "volver al launcher": tiene
+ * que cambiar en caliente al cambiar de idioma.
+ *
+ * Solo se traduce el DESCRIPTOR, nunca el token: "A", "B", "LB", "RT",
+ * "Start", "Cross", "Circle" son la nomenclatura impresa en el propio mando y
+ * es la misma en cualquier idioma. Lo traducible es "Triángulo"/"Cuadrado" y
+ * las aclaraciones de los sticks.
+ */
+export const BUTTON_LABELS = derived(t, ($t) => ({
   south: "A / Cross",
   east: "B / Circle",
-  north: "Y / Triángulo",
-  west: "X / Cuadrado",
+  north: `Y / ${$t("input.buttons.triangle")}`,
+  west: `X / ${$t("input.buttons.square")}`,
   l1: "LB / L1",
   r1: "RB / R1",
   lt: "LT / L2",
   rt: "RT / R2",
-  l3: "L3 (stick izq.)",
-  r3: "R3 (stick der.)",
+  l3: `L3 (${$t("input.buttons.leftStick")})`,
+  r3: `R3 (${$t("input.buttons.rightStick")})`,
   start: "Start / Options",
   select: "Select / Share",
   guide: "Guide / PS",
-};
+}));
 
 const DEFAULTS = {
   south: "accept",

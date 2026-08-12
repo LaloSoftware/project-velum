@@ -2,8 +2,13 @@
   import { onMount, tick } from "svelte";
   import { popover, closePopover } from "../stores/ui.js";
   import { uiScale } from "../stores/uiprefs.js";
+  import { t } from "../i18n/index.js";
 
   $: p = $popover;
+  // Select.svelte ya entrega las opciones resueltas; esto cubre a quien llama a
+  // openPopover() directo (MusicAlbumDetail) y quiera usar `labelKey`. Resolver
+  // dos veces es idempotente.
+  $: opts = (p?.options || []).map((o) => (o.labelKey ? { ...o, label: $t(o.labelKey) } : o));
   let el;
   let pos = { left: -9999, top: -9999, width: 0 };
 
@@ -89,7 +94,7 @@
     style="left:{pos.left}px; top:{pos.top}px; min-width:{pos.width}px; max-height:{60 / $uiScale}vh; transform: scale({$uiScale})"
     role="listbox"
   >
-    {#each p.options as o, i (o.value)}
+    {#each opts as o, i (o.value)}
       <button
         class="opt"
         class:sel={isSel(o)}
@@ -105,7 +110,7 @@
     {/each}
     {#if p.multi}
       <button class="opt done" data-focusable tabindex="-1" on:click={done}>
-        <span class="opt-label">Listo</span>
+        <span class="opt-label">{$t("common.done")}</span>
       </button>
     {/if}
   </div>

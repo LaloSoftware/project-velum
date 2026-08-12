@@ -1,8 +1,9 @@
 <script>
   import { session, playConfig } from "../stores/playsession.js";
   import { BUTTON_LABELS } from "../stores/bindings.js";
+  import { t } from "../i18n/index.js";
 
-  $: btn = BUTTON_LABELS[$playConfig.returnButton] || "Guía";
+  $: btn = $BUTTON_LABELS[$playConfig.returnButton] || $t("input.buttons.guide");
   $: verb = $playConfig.returnMode === "hold" ? "Mantén" : "Pulsa";
   $: isSteamDownload = $session?.mode === "steam-download";
   $: isSteamUtility = $session?.mode === "steam-utility";

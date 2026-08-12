@@ -16,13 +16,15 @@ import { minimizeWindow, maximizeWindow, enterFullscreen, exitFullscreen, closeA
 
 export const showPowerFooter = writable(false);
 
+// Los `id` se persisten en `quickMenuOrder`/`radialSlots`: no se renombran.
+// La etiqueta sale del diccionario (ver docs/i18n.md).
 export const QUICK_MENU_ACTIONS = [
-  { id: "minimize", label: "Minimizar" },
-  { id: "maximize", label: "Maximizar" },
-  { id: "exitFullscreen", label: "Salir de pantalla completa" },
-  { id: "enterFullscreen", label: "Entrar en pantalla completa" },
-  { id: "closeApp", label: "Cerrar la aplicación" },
-  { id: "shutdown", label: "Apagar el sistema" },
+  { id: "minimize", labelKey: "system.actions.minimize" },
+  { id: "maximize", labelKey: "system.actions.maximize" },
+  { id: "exitFullscreen", labelKey: "system.actions.exitFullscreen" },
+  { id: "enterFullscreen", labelKey: "system.actions.enterFullscreen" },
+  { id: "closeApp", labelKey: "system.actions.closeApp" },
+  { id: "shutdown", labelKey: "system.actions.shutdown" },
 ];
 
 // Orden por defecto: invertido respecto al orden en que se pidieron las

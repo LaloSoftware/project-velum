@@ -7,8 +7,11 @@
     moveQuickMenuAction,
     resetQuickMenuOrder,
   } from "../stores/systemActions.js";
+  import { t } from "../i18n/index.js";
 
-  const LABEL = Object.fromEntries(QUICK_MENU_ACTIONS.map((a) => [a.id, a.label]));
+  // Reactivo, no `const`: si no, las etiquetas quedan congeladas en el idioma
+  // con el que arrancó la app.
+  $: LABEL = Object.fromEntries(QUICK_MENU_ACTIONS.map((a) => [a.id, $t(a.labelKey)]));
 </script>
 
 <section class="panel">

@@ -1,5 +1,6 @@
 <script>
   import { onMount, tick } from "svelte";
+  import { names, groupNameNow } from "../i18n/names.js";
   import {
     contextMenu,
     setContextSub,
@@ -79,14 +80,14 @@
   async function addTo(g) {
     const a = menu.anchor;
     await toggleGameInGroup(g.id, game.id);
-    showToast(`Añadido a «${g.name}»`);
+    showToast(`Añadido a «${groupNameNow(g)}»`);
     closeContext();
     a?.focus({ preventScroll: true });
   }
   async function removeFrom(g) {
     const a = menu.anchor;
     await toggleGameInGroup(g.id, game.id);
-    showToast(`Quitado de «${g.name}»`);
+    showToast(`Quitado de «${groupNameNow(g)}»`);
     closeContext();
     a?.focus({ preventScroll: true });
   }
@@ -141,13 +142,13 @@
     {:else if sub === "add"}
       <button class="mi back" data-focusable data-focus-default tabindex="-1" on:click={() => setContextSub(null)}>‹ Volver</button>
       {#each notInGroups as g (g.id)}
-        <button class="mi" data-focusable tabindex="-1" on:click={() => addTo(g)}>{g.name}</button>
+        <button class="mi" data-focusable tabindex="-1" on:click={() => addTo(g)}>{$names.group(g)}</button>
       {/each}
       <button class="mi" data-focusable tabindex="-1" on:click={nuevoGrupo}>+ Nuevo grupo…</button>
     {:else if sub === "remove"}
       <button class="mi back" data-focusable data-focus-default tabindex="-1" on:click={() => setContextSub(null)}>‹ Volver</button>
       {#each inGroups as g (g.id)}
-        <button class="mi" data-focusable tabindex="-1" on:click={() => removeFrom(g)}>{g.name}</button>
+        <button class="mi" data-focusable tabindex="-1" on:click={() => removeFrom(g)}>{$names.group(g)}</button>
       {/each}
     {/if}
   </div>

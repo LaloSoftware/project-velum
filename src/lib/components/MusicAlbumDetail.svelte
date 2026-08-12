@@ -5,6 +5,7 @@
   import { playlists, createPlaylist, addTrackToPlaylist, removeTrackFromPlaylist } from "../stores/playlists.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { openPopover, showToast, reportError } from "../stores/ui.js";
+  import { names } from "../i18n/names.js";
 
   export let album;
   export let onBack = () => {};
@@ -91,7 +92,7 @@
   // de ancho completo de Select (sería demasiado pesado por fila).
   function addToListMenu(track, anchor) {
     const options = [
-      ...$playlists.map((p) => ({ value: p.id, label: p.name })),
+      ...$playlists.map((p) => ({ value: p.id, label: $names.playlist(p) })),
       { value: NEW_PLAYLIST, label: "＋ Crear lista nueva…" },
     ];
     openPopover({

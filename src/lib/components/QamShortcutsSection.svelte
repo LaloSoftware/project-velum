@@ -7,7 +7,7 @@
   <h2>Atajos</h2>
   {#if $customShortcuts.length === 0}
     <p class="dim">
-      No tienes atajos configurados. Créalos en Ajustes &gt; Configuración de atajos,
+      No tienes atajos configurados. Créalos en Configuración &gt; Configuración de atajos,
       en "Atajos personalizados".
     </p>
   {:else}

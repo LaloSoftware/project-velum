@@ -21,7 +21,8 @@ async function persist() {
 }
 
 export async function createPlaylist(name) {
-  const pl = { id: `pl_${Date.now()}`, name: name || "Lista", trackIds: [], createdAt: Date.now() };
+  // name vacío = "sin nombre propio": lo resuelve playlistName() al pintar.
+  const pl = { id: `pl_${Date.now()}`, name: name || "", trackIds: [], createdAt: Date.now() };
   playlists.update((l) => [...l, pl]);
   await persist();
   return pl;

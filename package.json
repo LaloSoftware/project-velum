@@ -16,7 +16,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "i18n:smoke": "node scripts/i18n-smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

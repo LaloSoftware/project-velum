@@ -18,17 +18,17 @@ import { BUILTIN_THEMES } from "../theming/themes.js";
 // `default`: si no está, el campo nace en `true` (ver defaultGameView) —
 // se declara solo cuando hace falta arrancar en `false`.
 export const GAME_VIEW_FIELDS = [
-  { key: "title", label: "Título" },
-  { key: "platform", label: "Plataforma" },
-  { key: "lastPlayed", label: "Última vez jugado" },
-  { key: "installDir", label: "Ruta de instalación" },
-  { key: "playtime", label: "Horas jugadas (Steam)" },
-  { key: "recentPlaytime", label: "Jugado recientemente, 2 semanas (Steam)" },
-  { key: "steamLastPlayed", label: "Última vez jugado según Steam" },
-  { key: "achievements", label: "Logros como badge (si no, sección)" },
-  { key: "achievementsBadgeFixed", label: "Fijar el badge de logros en la esquina", default: false },
-  { key: "showGlobalPct", label: "Mostrar % global de obtención (logros)", default: false },
-  { key: "revealHiddenAchievements", label: "Mostrar logros ocultos (spoiler)", default: false },
+  { key: "title", labelKey: "detail.fields.title" },
+  { key: "platform", labelKey: "detail.fields.platform" },
+  { key: "lastPlayed", labelKey: "detail.fields.lastPlayed" },
+  { key: "installDir", labelKey: "detail.fields.installDir" },
+  { key: "playtime", labelKey: "detail.fields.playtime" },
+  { key: "recentPlaytime", labelKey: "detail.fields.recentPlaytime" },
+  { key: "steamLastPlayed", labelKey: "detail.fields.steamLastPlayed" },
+  { key: "achievements", labelKey: "detail.fields.achievements" },
+  { key: "achievementsBadgeFixed", labelKey: "detail.fields.achievementsBadgeFixed", default: false },
+  { key: "showGlobalPct", labelKey: "detail.fields.showGlobalPct", default: false },
+  { key: "revealHiddenAchievements", labelKey: "detail.fields.revealHiddenAchievements", default: false },
 ];
 
 function defaultGameView() {
@@ -86,14 +86,13 @@ export const homeCardCount = writable(HOME_CARD_COUNT_DEFAULT);
 // Textos de Inicio (título, subtítulo, encabezado "Reciente"): cada uno se puede
 // ocultar y/o reemplazar por texto personalizado. Fuente única — un texto nuevo de
 // Inicio se añade aquí y en su render condicional en Home.svelte.
+// `defaultKey`: el texto que se muestra mientras el usuario no escriba el suyo.
+// NO se persiste (defaultHomeTexts guarda `text: ""`), así que sigue al idioma
+// activo; en cuanto el usuario escribe algo, su texto manda y ya no se traduce.
 export const HOME_TEXT_FIELDS = [
-  { key: "title", label: "Título", default: "Bienvenido" },
-  {
-    key: "subtitle",
-    label: "Subtítulo",
-    default: "Reanuda donde lo dejaste o abre la biblioteca completa.",
-  },
-  { key: "recent", label: 'Encabezado "Reciente"', default: "Reciente" },
+  { key: "title", labelKey: "settings.home.text.title", defaultKey: "home.title" },
+  { key: "subtitle", labelKey: "settings.home.text.subtitle", defaultKey: "home.subtitle" },
+  { key: "recent", labelKey: "settings.home.text.recent", defaultKey: "home.recent" },
 ];
 
 function defaultHomeTexts() {
@@ -107,29 +106,32 @@ export const homeTexts = writable(defaultHomeTexts());
 // Modo de un texto de Inicio: "custom" (texto fijo editado por el usuario) o
 // "focus" (muestra en vivo el título del juego actualmente en foco en la tira).
 export const HOME_TEXT_MODES = [
-  { value: "custom", label: "Personalizado" },
-  { value: "focus", label: "Juego en foco" },
+  { value: "custom", labelKey: "settings.home.mode.custom" },
+  { value: "focus", labelKey: "settings.home.mode.focus" },
 ];
 
 // Orientación de la tira "Reciente" de Inicio.
 export const HOME_ORIENTATION_OPTIONS = [
-  { value: "horizontal", label: "Horizontal" },
-  { value: "vertical", label: "Vertical" },
+  { value: "horizontal", labelKey: "settings.home.orientation.horizontal" },
+  { value: "vertical", labelKey: "settings.home.orientation.vertical" },
 ];
 export const homeOrientation = writable("horizontal");
 
 // Modo de recorrido: se detiene en los extremos, o da la vuelta (wrap).
+// Ojo: el value "infinito" está en español y se PERSISTE — no se renombra
+// (Home.svelte lo compara literalmente). Ver la regla de ids en docs/i18n.md.
 export const HOME_SCROLL_MODE_OPTIONS = [
-  { value: "scroll", label: "Scroll" },
-  { value: "infinito", label: "Scroll infinito" },
+  { value: "scroll", labelKey: "settings.home.scroll.scroll" },
+  { value: "infinito", labelKey: "settings.home.scroll.infinito" },
 ];
 export const homeScrollMode = writable("scroll");
 
-// Comportamiento de lectura dentro del eje de la tira.
+// Comportamiento de lectura dentro del eje de la tira. Igual que arriba:
+// "invertido"/"centrado" son valores persistidos, no se renombran.
 export const HOME_READING_OPTIONS = [
-  { value: "natural", label: "Natural" },
-  { value: "invertido", label: "Invertido" },
-  { value: "centrado", label: "Principal al centro" },
+  { value: "natural", labelKey: "settings.home.reading.natural" },
+  { value: "invertido", labelKey: "settings.home.reading.invertido" },
+  { value: "centrado", labelKey: "settings.home.reading.centrado" },
 ];
 export const homeReading = writable("natural");
 
@@ -141,14 +143,14 @@ export const HOME_POSITION_VALUES = ["start", "center", "end"];
 export function homePositionOptions(orientation) {
   return orientation === "vertical"
     ? [
-        { value: "start", label: "Izquierda" },
-        { value: "center", label: "Centro" },
-        { value: "end", label: "Derecha" },
+        { value: "start", labelKey: "common.align.left" },
+        { value: "center", labelKey: "common.align.center" },
+        { value: "end", labelKey: "common.align.right" },
       ]
     : [
-        { value: "start", label: "Arriba" },
-        { value: "center", label: "Centro" },
-        { value: "end", label: "Abajo" },
+        { value: "start", labelKey: "common.align.top" },
+        { value: "center", labelKey: "common.align.center" },
+        { value: "end", labelKey: "common.align.bottom" },
       ];
 }
 export const homePosition = writable("start");
@@ -162,16 +164,16 @@ export const homeCardAlign = writable("start");
 // Alineación del grupo de pestañas (Inicio/Juegos/Aplicaciones) en la barra
 // superior, y posición del reloj — ejes independientes entre sí.
 export const TABS_ALIGN_OPTIONS = [
-  { value: "left", label: "Izquierda" },
-  { value: "center", label: "Centro" },
-  { value: "right", label: "Derecha" },
+  { value: "left", labelKey: "common.align.left" },
+  { value: "center", labelKey: "common.align.center" },
+  { value: "right", labelKey: "common.align.right" },
 ];
 export const tabsAlign = writable("left");
 
 export const CLOCK_POSITION_OPTIONS = [
-  { value: "left", label: "Izquierda" },
-  { value: "right", label: "Derecha" },
-  { value: "hidden", label: "Oculto" },
+  { value: "left", labelKey: "common.align.left" },
+  { value: "right", labelKey: "common.align.right" },
+  { value: "hidden", labelKey: "common.hidden" },
 ];
 export const clockPosition = writable("right");
 
@@ -182,14 +184,14 @@ export const clockPosition = writable("right");
 // ArtEditor.svelte (LOGO_POSITIONS: tl/tc/tr/ml/mr/bl/bc/br), reutilizado acá
 // para que el picker visual sea el mismo patrón.
 export const NOTIFY_POSITIONS = [
-  { code: "tl", label: "Arriba izquierda" },
-  { code: "tc", label: "Arriba centro" },
-  { code: "tr", label: "Arriba derecha" },
-  { code: "ml", label: "Centro izquierda" },
-  { code: "mr", label: "Centro derecha" },
-  { code: "bl", label: "Abajo izquierda" },
-  { code: "bc", label: "Abajo centro" },
-  { code: "br", label: "Abajo derecha" },
+  { code: "tl", labelKey: "common.pos.tl" },
+  { code: "tc", labelKey: "common.pos.tc" },
+  { code: "tr", labelKey: "common.pos.tr" },
+  { code: "ml", labelKey: "common.pos.ml" },
+  { code: "mr", labelKey: "common.pos.mr" },
+  { code: "bl", labelKey: "common.pos.bl" },
+  { code: "bc", labelKey: "common.pos.bc" },
+  { code: "br", labelKey: "common.pos.br" },
 ];
 // "br" (esquina inferior derecha): mismo lugar donde ya viven el indicador de
 // sync de Steam y su resumen (SteamSyncIndicator/SteamSyncSummaryBadge), para
@@ -411,18 +413,18 @@ export async function setHomeCardCount(n) {
 }
 
 export async function setHomeTextHidden(key, v) {
-  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], hidden: !!v } }));
+  homeTexts.update((all) => ({ ...all, [key]: { ...all[key], hidden: !!v } }));
   await updateActive({ homeTexts: get(homeTexts) });
 }
 
 export async function setHomeTextValue(key, v) {
-  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], text: v } }));
+  homeTexts.update((all) => ({ ...all, [key]: { ...all[key], text: v } }));
   await updateActive({ homeTexts: get(homeTexts) });
 }
 
 export async function setHomeTextMode(key, mode) {
   if (!HOME_TEXT_MODES.some((m) => m.value === mode)) return;
-  homeTexts.update((t) => ({ ...t, [key]: { ...t[key], mode } }));
+  homeTexts.update((all) => ({ ...all, [key]: { ...all[key], mode } }));
   await updateActive({ homeTexts: get(homeTexts) });
 }
 

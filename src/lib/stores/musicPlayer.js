@@ -250,9 +250,10 @@ export async function initMusicPlayer() {
 }
 
 // --- Acciones del menú radial de sistema (Home mantenido, ver radialMenu.js) ---
+// Los `id` se persisten en `radialSlots`: no se renombran.
 export const MUSIC_RADIAL_ACTIONS = [
-  { id: "musicToggle", label: "Reproducir/pausar música" },
-  { id: "musicStop", label: "Detener música" },
+  { id: "musicToggle", labelKey: "system.actions.musicToggle" },
+  { id: "musicStop", labelKey: "system.actions.musicStop" },
 ];
 export function runMusicRadialAction(id) {
   if (id === "musicToggle") {
