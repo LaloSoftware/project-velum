@@ -1,6 +1,12 @@
 /*
- * Español (España). Mismas claves que es-419 (ver scripts/i18n-check.mjs);
- * la diferencia principal es el tuteo peninsular frente al voseo del canónico.
+ * Español (España). Mismas claves que es-419 (ver scripts/i18n-check.mjs).
+ *
+ * Muchas cadenas son IDÉNTICAS al canónico y está bien: los dos usan tuteo, así
+ * que la conjugación no los separa. Lo que sí diverge es el vocabulario
+ * (ordenador/computadora, móvil/celular, vídeo/video, "pulsar"/"presionar") y
+ * el código de idioma que se le pide a Steam. Cuando una cadena no tenga
+ * ninguna de esas diferencias, se repite tal cual — duplicar es más barato que
+ * inventar un mecanismo de herencia entre idiomas.
  */
 export default {
   // --- Comunes ---

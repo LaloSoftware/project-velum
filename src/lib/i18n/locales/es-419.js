@@ -1,8 +1,12 @@
 /*
- * Español (Latinoamérica) — idioma CANÓNICO. Cada valor de acá es literalmente
- * el texto que estaba hardcodeado antes de la migración: eso hace que este
- * idioma sea un refactor sin cambio visible, y que revisar un diff de i18n sea
- * comparar cadenas movidas, no cadenas reescritas.
+ * Español (Latinoamérica) — idioma CANÓNICO. Los valores son los textos que
+ * estaban hardcodeados antes de la migración, salvo donde el original usaba
+ * voseo rioplatense ("elegí", "podés"): eso NO es LATAM neutro, así que se
+ * normaliza a tuteo neutro ("elige", "puedes"), que es lo que ya usaba el
+ * resto de la app. Ver "Registro" en docs/i18n.md.
+ *
+ * Neutro también en vocabulario: nada de regionalismos (computadora, no
+ * ordenador; celular, no móvil; video, no vídeo).
  *
  * Convención de claves: <namespace>.<sub>.<slug> — ver docs/i18n.md.
  * Regla de oro: las claves de enums usan el id PERSISTIDO tal cual
@@ -15,15 +19,15 @@ export default {
 
   // --- Configuración inicial (primer arranque) ---
   "setup.aria": "Configuración inicial",
-  "setup.language.title": "Elegí tu idioma",
+  "setup.language.title": "Elige tu idioma",
   "setup.language.desc":
-    "Se usa en toda la interfaz. También define en qué idioma se piden los datos de Steam, aunque podés cambiar eso por separado al vincular tu cuenta.",
-  "setup.language.hint": "Podés cambiarlo después desde Configuración → Idioma.",
+    "Se usa en toda la interfaz. También define en qué idioma se piden los datos de Steam, aunque puedes cambiar eso por separado al vincular tu cuenta.",
+  "setup.language.hint": "Puedes cambiarlo después desde Configuración → Idioma.",
   "setup.stores.title": "Bienvenido a VELUM",
   "setup.stores.desc":
-    "Elegí qué tiendas mostrar en tu biblioteca. Podés cambiarlo después desde Configuración → Filtros de biblioteca.",
+    "Elige qué tiendas mostrar en tu biblioteca. Puedes cambiarlo después desde Configuración → Filtros de biblioteca.",
   "setup.stores.hint":
-    "Podés escanear tu biblioteca de Steam más adelante desde Configuración → Cuentas.",
+    "Puedes escanear tu biblioteca de Steam más adelante desde Configuración → Cuentas.",
 
   // --- Configuración (sidebar) ---
   "settings.title": "Configuración",
