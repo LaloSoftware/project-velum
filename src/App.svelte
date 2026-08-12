@@ -768,10 +768,10 @@
         {#each TABS as tab}
           <button
             class="tab"
-            class:active={$view === t.id}
+            class:active={$view === tab.id}
             data-focusable
             tabindex="-1"
-            on:click={() => goto(t.id)}
+            on:click={() => goto(tab.id)}
           >
             {tab.label}
           </button>
