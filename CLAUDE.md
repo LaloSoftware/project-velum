@@ -94,8 +94,9 @@ completo en `docs/input.md`.
 ```
 src/                 Frontend Svelte
   lib/components/     Vistas y widgets (Home, GlobalMenu, QAM, GameDetail, teclado virtual…)
-  lib/stores/         Estado (juegos, ui/overlays, perfiles, teclado)
+  lib/stores/         Estado (juegos, ui/overlays, perfiles, teclado, idioma)
   lib/theming/        Tokens --gm-* y temas
+  lib/i18n/           Runtime de traducción + diccionarios por idioma
   lib/input/          Navegación por foco + fuentes de input
   lib/ipc/            Frontera con el backend (con fallback mock en web)
 src-tauri/           Backend Rust (Tauri)
@@ -120,8 +121,22 @@ El MVP vive en `dev`. Detalle en `docs/development.md`.
 ## Más documentación
 
 `docs/architecture.md`, `docs/theming.md`, `docs/input.md`, `docs/stores.md`,
-`docs/system-controls.md`, `docs/development.md`, `docs/decisions.md`,
-`docs/roadmap.md` (fases futuras: tiendas reales, multi-monitor, etc.).
+`docs/system-controls.md`, `docs/i18n.md`, `docs/development.md`,
+`docs/decisions.md`, `docs/roadmap.md` (fases futuras: tiendas reales,
+multi-monitor, etc.).
+
+## Idiomas
+
+Tres: español LATAM (canónico), español España e inglés. El texto va en
+`src/lib/i18n/locales/*.js` con claves planas (`settings.language.title`), se
+usa como `$t("clave")` en componentes y `tr("clave")` en stores. Fechas y horas
+**siempre** con `$fmt.*`, nunca `toLocaleTimeString()` a pelo. Los ids
+persistidos no se traducen ni se renombran — ver la "regla de oro" en
+`docs/i18n.md`. Antes de cerrar un cambio con texto: `npm run i18n:check`.
+
+**La interfaz todavía está mayormente en español**: la infraestructura y los
+selectores están (Fase 1), la traducción de las ~550 cadenas restantes va por
+tandas (ver `feature-internacionalizacion.md`).
 
 `PRODUCT.md` (raíz) — verdad de producto para trabajo de diseño (impeccable): usuarios,
 propósito, posición, principios. No es visual; el mundo visual se documenta aparte.

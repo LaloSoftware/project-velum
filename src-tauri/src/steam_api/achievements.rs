@@ -3,7 +3,7 @@
 //! nunca sincronizados; releer logros de TODA la biblioteca en cada
 //! sincronización sería carísimo para cuentas con cientos de juegos.
 
-use super::{cache, stored_key, API_BASE, FALLBACK_LANG, PRIMARY_LANG};
+use super::{cache, stored_key, API_BASE, DEFAULT_LANG, FALLBACK_LANG};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
@@ -128,21 +128,33 @@ fn fetch_schema(api_key: &str, appid: i64, lang: &str) -> Result<Vec<SchemaAchie
 
 /// `true` si el esquema no trae texto usable en el idioma pedido: vino vacío,
 /// o algún logro llegó con `displayName` vacío (Steam no cae solo a inglés
-/// cuando un juego no tiene traducción a `PRIMARY_LANG` — devuelve el campo
+/// cuando un juego no tiene traducción al idioma pedido — devuelve el campo
 /// vacío) — señal de que conviene reintentar con `FALLBACK_LANG`.
 fn schema_needs_fallback(schema: &[SchemaAchievement]) -> bool {
     schema.is_empty() || schema.iter().any(|a| a.display_name.trim().is_empty())
 }
 
-/// Pide el esquema de logros en `PRIMARY_LANG`; si el juego no tiene
-/// traducción (`schema_needs_fallback`), reintenta UNA vez con `FALLBACK_LANG`.
-/// Un fallo de red/HTTP en el primer intento se propaga tal cual — no es una
-/// señal de "idioma incorrecto", así que no amerita reintento.
-fn fetch_schema_with_fallback(api_key: &str, appid: i64) -> Result<Vec<SchemaAchievement>, String> {
-    let schema = fetch_schema(api_key, appid, PRIMARY_LANG)?;
+/// `true` si el texto cacheado de un juego quedó en un idioma distinto al que
+/// se está pidiendo y hay que releerlo. Solo aplica a juegos CON logros: si el
+/// juego no tiene, no hay texto que traducir y cambiar de idioma no debe
+/// generar ni una llamada de red.
+pub(crate) fn schema_text_is_stale(cached_lang: &str, has_achievements: bool, wanted: &str) -> bool {
+    has_achievements && cached_lang != wanted
+}
+
+/// Pide el esquema de logros en `lang`; si el juego no tiene traducción
+/// (`schema_needs_fallback`), reintenta UNA vez con `FALLBACK_LANG`. Un fallo
+/// de red/HTTP en el primer intento se propaga tal cual — no es una señal de
+/// "idioma incorrecto", así que no amerita reintento.
+fn fetch_schema_with_fallback(
+    api_key: &str,
+    appid: i64,
+    lang: &str,
+) -> Result<Vec<SchemaAchievement>, String> {
+    let schema = fetch_schema(api_key, appid, lang)?;
     if schema_needs_fallback(&schema) {
         println!(
-            "[steam] appid {appid}: esquema sin traducción a '{PRIMARY_LANG}', reintentando con '{FALLBACK_LANG}'"
+            "[steam] appid {appid}: esquema sin traducción a '{lang}', reintentando con '{FALLBACK_LANG}'"
         );
         match fetch_schema(api_key, appid, FALLBACK_LANG) {
             Ok(fallback) if !fallback.is_empty() => return Ok(fallback),
@@ -153,6 +165,10 @@ fn fetch_schema_with_fallback(api_key: &str, appid: i64) -> Result<Vec<SchemaAch
     Ok(schema)
 }
 
+// Sin parámetro `l`: la app descarta a propósito el `name`/`description` de
+// esta respuesta y usa los de GetSchemaForGame (ver docs/steam-metadata.md),
+// así que pedir un idioma acá no cambiaba nada y solo confundía al leer el
+// código.
 fn fetch_player_achievements(
     api_key: &str,
     steamid: &str,
@@ -163,7 +179,6 @@ fn fetch_player_achievements(
             .query("key", api_key)
             .query("steamid", steamid)
             .query("appid", &appid.to_string())
-            .query("l", PRIMARY_LANG)
             .call()
         {
             Ok(r) => r.into_json().map_err(|e| e.to_string())?,
@@ -206,20 +221,32 @@ fn no_visible_stats(conn: &rusqlite::Connection, appid: i64) -> bool {
 /// red — la usan tanto `resolve_schema_cache` (cuando no hay nada útil en
 /// caché) como el sync forzado de un solo juego (`force` en `sync_one_game`),
 /// que la necesita justamente para saltarse cualquier atajo.
-fn fetch_schema_and_cache(conn: &rusqlite::Connection, api_key: &str, appid: i64) -> Result<bool, String> {
-    let schema = fetch_schema_with_fallback(api_key, appid)?;
+///
+/// Se guarda el idioma PEDIDO, no el efectivamente servido: si
+/// `fetch_schema_with_fallback` terminó cayendo a inglés porque el juego no
+/// tiene traducción, la fila igual queda marcada con `lang`. Si se guardara
+/// "english", cada sync siguiente vería "idioma distinto al pedido" y volvería
+/// a pedir el esquema para siempre en todos los juegos sin traducir.
+fn fetch_schema_and_cache(
+    conn: &rusqlite::Connection,
+    api_key: &str,
+    appid: i64,
+    lang: &str,
+) -> Result<bool, String> {
+    let schema = fetch_schema_with_fallback(api_key, appid, lang)?;
     let has = !schema.is_empty();
     for a in &schema {
         conn.execute(
             "INSERT INTO achievement_schema
-               (appid, apiname, display_name, description, icon_url, icon_gray_url, hidden)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+               (appid, apiname, display_name, description, icon_url, icon_gray_url, hidden, lang)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              ON CONFLICT(appid, apiname) DO UPDATE SET
                display_name = excluded.display_name,
                description = excluded.description,
                icon_url = excluded.icon_url,
                icon_gray_url = excluded.icon_gray_url,
-               hidden = excluded.hidden",
+               hidden = excluded.hidden,
+               lang = excluded.lang",
             params![
                 appid,
                 a.name,
@@ -228,44 +255,56 @@ fn fetch_schema_and_cache(conn: &rusqlite::Connection, api_key: &str, appid: i64
                 a.icon,
                 a.icongray,
                 a.hidden,
+                lang,
             ],
         )
         .map_err(|e| e.to_string())?;
     }
     conn.execute(
-        "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
-         VALUES (?1, ?2, ?3)
+        "INSERT INTO schema_cache (appid, fetched_at, has_achievements, lang)
+         VALUES (?1, ?2, ?3, ?4)
          ON CONFLICT(appid) DO UPDATE SET
-           fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
-        params![appid, cache::now(), has as i64],
+           fetched_at = excluded.fetched_at,
+           has_achievements = excluded.has_achievements,
+           lang = excluded.lang",
+        params![appid, cache::now(), has as i64, lang],
     )
     .map_err(|e| e.to_string())?;
-    println!("[steam] appid {appid}: esquema leído ({} logro(s) posibles)", schema.len());
+    println!("[steam] appid {appid}: esquema leído en '{lang}' ({} logro(s) posibles)", schema.len());
     Ok(has)
 }
 
 /// Resuelve si un `appid` tiene logros cuando `schema_cache` no tiene nada
 /// útil todavía (primera vez, o un negativo que dejó de ser válido — ver
 /// `sync_one_game`).
-fn resolve_schema_cache(conn: &rusqlite::Connection, api_key: &str, appid: i64) -> Result<bool, String> {
+fn resolve_schema_cache(
+    conn: &rusqlite::Connection,
+    api_key: &str,
+    appid: i64,
+    lang: &str,
+) -> Result<bool, String> {
     // Optimización: si `GetOwnedGames` ya dijo que este juego no tiene
     // stats/logros visibles, no hace falta pedir GetSchemaForGame en
     // absoluto para descubrir lo mismo por una respuesta vacía — ahorra una
     // llamada de red por cada juego sin logros (son muchos: la mayoría de
     // apps/herramientas en cualquier biblioteca).
     if no_visible_stats(conn, appid) {
+        // `lang` se registra igual aunque no haya texto: mantiene la fila
+        // coherente si el juego gana logros más adelante.
         conn.execute(
-            "INSERT INTO schema_cache (appid, fetched_at, has_achievements)
-             VALUES (?1, ?2, 0)
+            "INSERT INTO schema_cache (appid, fetched_at, has_achievements, lang)
+             VALUES (?1, ?2, 0, ?3)
              ON CONFLICT(appid) DO UPDATE SET
-               fetched_at = excluded.fetched_at, has_achievements = excluded.has_achievements",
-            params![appid, cache::now()],
+               fetched_at = excluded.fetched_at,
+               has_achievements = excluded.has_achievements,
+               lang = excluded.lang",
+            params![appid, cache::now(), lang],
         )
         .map_err(|e| e.to_string())?;
         println!("[steam] appid {appid}: sin stats visibles (GetOwnedGames), se omite GetSchemaForGame");
         Ok(false)
     } else {
-        fetch_schema_and_cache(conn, api_key, appid)
+        fetch_schema_and_cache(conn, api_key, appid, lang)
     }
 }
 
@@ -287,31 +326,44 @@ fn sync_one_game(
     steamid: &str,
     appid: i64,
     force: bool,
+    lang: &str,
 ) -> Result<bool, String> {
     let has_achievements = if force {
-        fetch_schema_and_cache(conn, api_key, appid)?
+        fetch_schema_and_cache(conn, api_key, appid, lang)?
     } else {
-        let cached_flag: Option<i64> = conn
+        let cached: Option<(i64, String)> = conn
             .query_row(
-                "SELECT has_achievements FROM schema_cache WHERE appid = ?1",
+                "SELECT has_achievements, lang FROM schema_cache WHERE appid = ?1",
                 params![appid],
-                |r| r.get(0),
+                |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .ok();
-        match cached_flag {
-            Some(flag) if flag != 0 => true,
+        match cached {
+            // Positivo cacheado pero en otro idioma: se relee el esquema para
+            // traducir el texto. Es la ÚNICA vía de refetch por idioma —
+            // cambiar el selector no dispara nada por sí solo, los textos se
+            // van actualizando a medida que cada juego entra en una sync.
+            // `fetch_schema_and_cache` hace UPDATE (no DELETE+INSERT), así que
+            // el rowid de cada logro se conserva y el orden del Detalle no
+            // cambia (ver el ORDER BY s.rowid de steam_achievements).
+            Some((flag, cached_lang)) if schema_text_is_stale(&cached_lang, flag != 0, lang) => {
+                fetch_schema_and_cache(conn, api_key, appid, lang)?
+            }
+            Some((flag, _)) if flag != 0 => true,
             Some(_) => {
-                // Negativo cacheado: solo confiar si la biblioteca sigue sin
-                // ver stats visibles para este appid. Si cambió (p. ej. el
-                // juego se lanzó tras estar predescargado), se re-resuelve el
-                // esquema en vez de arrastrar el negativo para siempre.
+                // Negativo cacheado: no hay texto que traducir, así que el
+                // idioma es irrelevante acá. Solo confiar si la biblioteca
+                // sigue sin ver stats visibles para este appid. Si cambió
+                // (p. ej. el juego se lanzó tras estar predescargado), se
+                // re-resuelve el esquema en vez de arrastrar el negativo para
+                // siempre.
                 if no_visible_stats(conn, appid) {
                     false
                 } else {
-                    resolve_schema_cache(conn, api_key, appid)?
+                    resolve_schema_cache(conn, api_key, appid, lang)?
                 }
             }
-            None => resolve_schema_cache(conn, api_key, appid)?,
+            None => resolve_schema_cache(conn, api_key, appid, lang)?,
         }
     };
 
@@ -356,13 +408,19 @@ fn sync_one_game(
 /// Detalle; la sync de biblioteca (automática o "Sincronizar ahora" completa)
 /// va con `force = false`, respetando el caché para no repetir de más
 /// llamadas de red en bibliotecas grandes.
+///
+/// `lang`: idioma en que se piden los textos del esquema de logros
+/// (Configuración → Cuentas). Si no viene, `DEFAULT_LANG` — el mismo valor que
+/// era fijo antes de que hubiera selector.
 #[tauri::command]
 pub fn steam_sync_achievements(
     app: AppHandle,
     steamid: String,
     appids: Vec<i64>,
     force: bool,
+    lang: Option<String>,
 ) -> Result<AchievementsSyncSummary, String> {
+    let lang = lang.unwrap_or_else(|| DEFAULT_LANG.to_string());
     let api_key = stored_key(&steamid)?;
     let conn = cache::open(&app)?;
     let total = appids.len();
@@ -384,7 +442,7 @@ pub fn steam_sync_achievements(
             summary.new_schemas_total += 1;
         }
 
-        match sync_one_game(&conn, &api_key, &steamid, appid, force) {
+        match sync_one_game(&conn, &api_key, &steamid, appid, force, &lang) {
             Ok(has_achievements) => {
                 summary.scanned += 1;
                 if was_new {
@@ -587,6 +645,18 @@ mod tests {
     }
 
     #[test]
+    fn schema_text_is_stale_solo_si_hay_texto_y_el_idioma_cambio() {
+        // Cambió el idioma y el juego tiene logros: hay texto que traducir.
+        assert!(schema_text_is_stale("latam", true, "english"));
+        // Mismo idioma: nada que hacer.
+        assert!(!schema_text_is_stale("latam", true, "latam"));
+        // Sin logros no hay texto, así que cambiar de idioma NO debe generar
+        // una llamada de red — son la mayoría de las entradas de una
+        // biblioteca (herramientas, demos, apps).
+        assert!(!schema_text_is_stale("latam", false, "english"));
+    }
+
+    #[test]
     fn schema_needs_fallback_when_display_name_blank() {
         let resp: SchemaResponse = serde_json::from_str(SCHEMA_SAMPLE).unwrap();
         let mut achievements = resp
@@ -594,7 +664,7 @@ mod tests {
             .and_then(|g| g.available_game_stats)
             .map(|s| s.achievements)
             .unwrap_or_default();
-        achievements[0].display_name = "  ".to_string(); // juego sin traducción a PRIMARY_LANG
+        achievements[0].display_name = "  ".to_string(); // juego sin traducción al idioma pedido
         assert!(schema_needs_fallback(&achievements));
     }
 

@@ -3,7 +3,7 @@
 //! lo hace el frontend comparando estos `appid` contra los que ya reporta
 //! `list_games()` (mismo formato `steam:{appid}` que usa `library/steam.rs`).
 
-use super::{cache, stored_key, API_BASE, PRIMARY_LANG};
+use super::{cache, stored_key, API_BASE, DEFAULT_LANG};
 use rusqlite::{params, ToSql};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -79,6 +79,7 @@ fn fetch_owned_games(
     api_key: &str,
     steamid: &str,
     include_played_free_games: bool,
+    lang: &str,
 ) -> Result<Vec<OwnedGame>, String> {
     let resp: OwnedGamesResponse =
         ureq::get(&format!("{API_BASE}/IPlayerService/GetOwnedGames/v1/"))
@@ -86,7 +87,7 @@ fn fetch_owned_games(
             .query("steamid", steamid)
             .query("include_appinfo", "1")
             .query("include_played_free_games", if include_played_free_games { "1" } else { "0" })
-            .query("l", PRIMARY_LANG)
+            .query("l", lang)
             .call()
             .map_err(|e| format!("GetOwnedGames falló: {}", super::describe_http_error(e)))?
             .into_json()
@@ -127,17 +128,24 @@ fn prune_missing_games(
 /// Trae la biblioteca completa (`GetOwnedGames`) y actualiza el caché local.
 /// Devuelve qué `appid` cambiaron de horas jugadas desde la última vez (o son
 /// nuevos) — la heurística barata de "qué logros vale la pena releer".
-/// `include_played_free_games` lo decide el usuario desde Configuración →
-/// Cuentas (por defecto `true`, mismo comportamiento que antes de ser
-/// configurable).
+/// `include_played_free_games` y `lang` los decide el usuario desde
+/// Configuración → Cuentas (por defecto `true` y `DEFAULT_LANG`, mismo
+/// comportamiento que antes de ser configurables).
+///
+/// El nombre localizado que devuelve `GetOwnedGames` se reescribe entero en
+/// cada sync (`ON CONFLICT DO UPDATE`), así que cambiar de idioma corrige la
+/// biblioteca sin necesidad de marcar el idioma en la tabla `games` — a
+/// diferencia de `achievement_schema`, que sí lleva columna `lang`.
 #[tauri::command]
 pub fn steam_sync_library(
     app: AppHandle,
     steamid: String,
     include_played_free_games: bool,
+    lang: Option<String>,
 ) -> Result<SyncSummary, String> {
+    let lang = lang.unwrap_or_else(|| DEFAULT_LANG.to_string());
     let api_key = stored_key(&steamid)?;
-    let games = fetch_owned_games(&api_key, &steamid, include_played_free_games)?;
+    let games = fetch_owned_games(&api_key, &steamid, include_played_free_games, &lang)?;
     println!("[steam] sync biblioteca de {steamid}: {} juego(s) recibidos", games.len());
 
     let conn = cache::open(&app)?;

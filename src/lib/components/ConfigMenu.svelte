@@ -1,6 +1,7 @@
 <script>
   import { tick, onMount } from "svelte";
   import Settings from "./Settings.svelte";
+  import LanguageSection from "./LanguageSection.svelte";
   import StartupSection from "./StartupSection.svelte";
   import ShortcutsSection from "./ShortcutsSection.svelte";
   import FiltersSection from "./FiltersSection.svelte";
@@ -21,6 +22,7 @@
   } from "../util/window.js";
   import { focusFirstIn } from "../input/navigation.js";
   import { openShutdownConfirm } from "../stores/ui.js";
+  import { t } from "../i18n/index.js";
   import velumSymbol from "../../assets/velum-symbol.svg";
 
   let fullscreen = false;
@@ -53,17 +55,22 @@
     fullscreen = false;
   }
 
+  // El id es dato (decide qué panel se monta); la etiqueta sale del
+  // diccionario. "language" va en el índice 1 y no en el 0 a propósito: el
+  // índice 0 lleva data-focus-default y sería la sección de aterrizaje del
+  // menú.
   const SECTIONS = [
-    { id: "appearance", label: "Apariencia" },
-    { id: "startup", label: "Configuración de inicio" },
-    { id: "shortcuts", label: "Configuración de atajos" },
-    { id: "sounds", label: "Sonidos" },
-    { id: "buttonicons", label: "Iconos de botones" },
-    { id: "filters", label: "Filtros de biblioteca" },
-    { id: "hidden", label: "Ocultos" },
-    { id: "system-actions", label: "Acciones del sistema" },
-    { id: "accounts", label: "Cuentas" },
-    { id: "notifications", label: "Notificaciones" },
+    { id: "appearance", labelKey: "settings.sections.appearance" },
+    { id: "language", labelKey: "settings.sections.language" },
+    { id: "startup", labelKey: "settings.sections.startup" },
+    { id: "shortcuts", labelKey: "settings.sections.shortcuts" },
+    { id: "sounds", labelKey: "settings.sections.sounds" },
+    { id: "buttonicons", labelKey: "settings.sections.buttonicons" },
+    { id: "filters", labelKey: "settings.sections.filters" },
+    { id: "hidden", labelKey: "settings.sections.hidden" },
+    { id: "system-actions", labelKey: "settings.sections.system-actions" },
+    { id: "accounts", labelKey: "settings.sections.accounts" },
+    { id: "notifications", labelKey: "settings.sections.notifications" },
   ];
   let section = "appearance";
   let contentEl;
@@ -81,7 +88,7 @@
   <div class="main">
     <aside class="side" data-focus-group="side">
       <div class="side-scroll">
-        <h2>Configuración</h2>
+        <h2>{$t("settings.title")}</h2>
         {#each SECTIONS as s, i}
           <button
             class="sec"
@@ -92,7 +99,7 @@
             on:focus={() => (section = s.id)}
             on:click={() => enterSection(s.id)}
           >
-            {s.label}
+            {$t(s.labelKey)}
           </button>
         {/each}
       </div>
@@ -114,6 +121,8 @@
     <div class="content" data-focus-group="panel" bind:this={contentEl}>
       {#if section === "appearance"}
         <Settings />
+      {:else if section === "language"}
+        <LanguageSection />
       {:else if section === "startup"}
         <StartupSection />
       {:else if section === "shortcuts"}

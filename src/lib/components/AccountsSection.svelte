@@ -12,7 +12,12 @@
     setShowSteamId,
     linkAccount,
     syncNow,
+    steamLangPref,
+    effectiveSteamLang,
+    setSteamLangPref,
   } from "../stores/steamAccount.js";
+  import { STEAM_LANGUAGES, steamLanguageLabel } from "../i18n/steamLanguages.js";
+  import { t } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
   let profileInput = "";
@@ -51,6 +56,13 @@
   function pickGlobalPctInterval(value) {
     setSteamSyncOption("globalPctInterval", value);
   }
+
+  // "auto" primero: sigue al idioma de la interfaz (lo que preselecciona la
+  // configuración inicial). El resto son autónimos, no se traducen.
+  $: steamLangOptions = [
+    { value: "auto", label: $t("steam.lang.auto", { value: steamLanguageLabel($effectiveSteamLang) }) },
+    ...STEAM_LANGUAGES.map((l) => ({ value: l.code, label: l.label })),
+  ];
 </script>
 
 <section class="panel">
@@ -120,7 +132,12 @@
           onChange={pickGlobalPctInterval}
         />
       </div>
+      <div class="row">
+        <span class="rlabel wide">{$t("steam.lang.label")}</span>
+        <Select value={$steamLangPref} options={steamLangOptions} onChange={setSteamLangPref} />
+      </div>
     </div>
+    <p class="dim">{$t("steam.lang.desc")}</p>
 
     <div class="actions">
       <!-- Sin `disabled` nativo mientras sincroniza: un botón enfocado que
@@ -154,6 +171,13 @@
         <button class="field" data-focusable tabindex="-1" on:click={editApiKey}>
           {apiKey ? "•".repeat(Math.min(apiKey.length, 24)) : "Editar"}
         </button>
+      </div>
+      <!-- Visible ya al vincular: llega preseleccionado según el idioma
+           elegido en el arranque inicial, y se puede desacoplar acá mismo sin
+           tener que vincular primero y volver. -->
+      <div class="row">
+        <span class="rlabel">{$t("steam.lang.label")}</span>
+        <Select value={$steamLangPref} options={steamLangOptions} onChange={setSteamLangPref} />
       </div>
     </div>
     <button class="btn" data-focusable tabindex="-1" disabled={linking} on:click={doLink}>

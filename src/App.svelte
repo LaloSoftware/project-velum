@@ -37,6 +37,8 @@
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
+  import { initLanguage } from "./lib/stores/language.js";
+  import { fmt } from "./lib/i18n/index.js";
   import {
     soundSettings,
     initSounds,
@@ -68,6 +70,8 @@
     achievementsModal,
     closeAchievements,
     setupModal,
+    setupStep,
+    setupBack,
     completeSetup,
     confirmUnlinkSteam,
     closeConfirmUnlinkSteam,
@@ -496,9 +500,10 @@
 
   function handleBack() {
     if ($appError) return clearAppError();
-    // Configuración inicial: sin "cancelar" (no hay estado previo al que
-    // volver) — "atrás" completa el setup igual que el botón "Continuar".
-    if ($setupModal) return completeSetup();
+    // Configuración inicial: "atrás" retrocede de paso; en el primero no hay
+    // estado previo al que volver, así que completa el setup igual que
+    // "Continuar" (lo elegido hasta ahí ya está persistido).
+    if ($setupModal) return $setupStep > 0 ? setupBack() : completeSetup();
     if ($vk.open) return vkDone(true);
     if ($shutdownConfirm) return closeShutdownConfirm();
     if ($systemQuickMenu) return closeSystemQuickMenu();
@@ -609,8 +614,10 @@
   // ------- Gestión del "scope" de navegación (capa activa) -------
   // $setupModal va primero: debe bloquear literalmente cualquier otra capa
   // hasta completarse (primer arranque, antes de que el usuario haga nada).
+  // El paso entra en la clave: cambiar de paso re-dispara scheduleScope() y,
+  // con eso, el foco cae en el data-focus-default del paso nuevo.
   $: layerKey = $setupModal
-    ? "setup"
+    ? `setup:${$setupStep}`
     : $vk.open
       ? "vk"
       : $shutdownConfirm
@@ -709,6 +716,9 @@
       initCustomShortcuts(),
       initHidden(),
       initPrompts(),
+      // Antes del chequeo de setupCompleted de abajo: el modal de primer
+      // arranque nace con el idioma del SO ya preseleccionado.
+      initLanguage(),
       initSounds(),
       initPlaytimes(),
       initArtOverrides(),
@@ -770,7 +780,7 @@
     {/snippet}
 
     {#snippet clock()}
-      <div class="clock">{now.toLocaleTimeString().slice(0, 5)}</div>
+      <div class="clock">{$fmt.time(now)}</div>
     {/snippet}
 
     {#snippet musicIndicator()}

@@ -283,14 +283,14 @@ export async function steamHasKey(steamid) {
     return false;
   }
 }
-export async function steamSyncLibrary(steamid, includePlayedFreeGames) {
-  return invoke("steam_sync_library", { steamid, includePlayedFreeGames });
+export async function steamSyncLibrary(steamid, includePlayedFreeGames, lang) {
+  return invoke("steam_sync_library", { steamid, includePlayedFreeGames, lang });
 }
 export async function steamLibraryCache(steamid) {
   return invoke("steam_library", { steamid });
 }
-export async function steamSyncAchievements(steamid, appids, force = false) {
-  return invoke("steam_sync_achievements", { steamid, appids, force });
+export async function steamSyncAchievements(steamid, appids, force = false, lang) {
+  return invoke("steam_sync_achievements", { steamid, appids, force, lang });
 }
 export async function steamAchievements(steamid, appid) {
   return invoke("steam_achievements", { steamid, appid });

@@ -6,9 +6,10 @@ se dejan fuera a propósito. Ver `docs/accounts.md` para el flujo general de
 vinculación/sincronización; este documento es solo el detalle de datos.
 
 Todas las llamadas viven en `src-tauri/src/steam_api/` (`mod.rs`,
-`library.rs`, `achievements.rs`, `global_achievements.rs`). Idioma fijo en
-`PRIMARY_LANG` (`"latam"`, con fallback a `"english"` si el juego no tiene
-traducción — ver `docs/accounts.md`).
+`library.rs`, `achievements.rs`, `global_achievements.rs`). El idioma lo elige
+el usuario (Configuración → Cuentas; por defecto sigue al de la interfaz), con
+fallback a `"english"` si el juego no tiene traducción — ver `docs/accounts.md`
+y `docs/i18n.md`.
 
 ## `ISteamUser/ResolveVanityURL/v1/`
 
@@ -35,7 +36,7 @@ Valida la key y trae la identidad (`fetch_player_summary`). Requiere `key`.
 
 Biblioteca completa (instalados y no). Requiere `key`. Params:
 `include_appinfo=1`, `include_played_free_games` (configurable, Cuentas →
-Opciones de sincronización), `l` = `PRIMARY_LANG`.
+Opciones de sincronización), `l` = el idioma configurado.
 
 | Campo Steam | Capturado | Columna (`games`) | Expuesto (`SteamLibraryEntry`) | UI |
 |---|---|---|---|---|

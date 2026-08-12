@@ -22,13 +22,17 @@ use tauri::AppHandle;
 const KEYRING_SERVICE: &str = "gm-launcher-steam";
 const API_BASE: &str = "https://api.steampowered.com";
 
-// Idioma usado en las llamadas a la Web API (nombres/descripciones de logros).
-// Hoy fijo — cuando exista un selector de idioma real (pendiente, ver
-// docs/accounts.md) PRIMARY_LANG pasa a resolverse desde la config en vez de
-// ser una constante. FALLBACK_LANG se usa cuando un juego no tiene traducción
-// a PRIMARY_LANG (Steam devuelve texto vacío, no cae solo a inglés) — ver
-// `achievements::fetch_schema_with_fallback`.
-pub(crate) const PRIMARY_LANG: &str = "latam";
+// Idioma de las llamadas a la Web API (nombres/descripciones de logros). Lo
+// elige el usuario en Configuración → Cuentas y llega como parámetro de los
+// comandos; DEFAULT_LANG solo cubre el caso de que no venga ninguno (config
+// vieja, o una llamada que no lo pase) y coincide con el valor que era fijo
+// antes de que hubiera selector.
+//
+// FALLBACK_LANG se usa cuando un juego no tiene traducción al idioma pedido
+// (Steam devuelve texto vacío, no cae solo a inglés) — ver
+// `achievements::fetch_schema_with_fallback`. No es configurable a propósito:
+// el inglés es el fallback razonable para cualquier idioma elegido.
+pub(crate) const DEFAULT_LANG: &str = "latam";
 pub(crate) const FALLBACK_LANG: &str = "english";
 
 /// Describe un error de `ureq` incluyendo el CUERPO de la respuesta cuando hay

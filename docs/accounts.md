@@ -295,20 +295,30 @@ explícito que seguía la sección por nombre si su posición se corre).
 
 ## Idioma
 
-Fijo en `l=latam` (español Latinoamérica — Steam distingue este código del
-`spanish` de España) para nombres/descripciones de logros y biblioteca (
-`steam_api::PRIMARY_LANG`). No hay selector de idioma real todavía; cuando
-exista, `PRIMARY_LANG` pasa a resolverse desde config en vez de ser constante.
+**Configurable** desde Configuración → Cuentas ("Idioma de los datos de
+Steam"), aparte del idioma de la interfaz. Por defecto vale `"auto"` = el
+idioma de Steam asociado al de la interfaz (`latam`, `spanish` o `english`);
+elegir un código concreto lo desacopla. El valor viaja como parámetro `lang`
+de `steam_sync_library`/`steam_sync_achievements`; `steam_api::DEFAULT_LANG`
+(`"latam"`) solo cubre que no venga ninguno. Detalle completo en
+`docs/i18n.md`.
 
 **Fallback a inglés por juego sin traducción**: `GetSchemaForGame` no cae solo
-a inglés cuando un juego no tiene traducción a `latam` — devuelve
+a inglés cuando un juego no tiene traducción al idioma pedido — devuelve
 `displayName`/`description` vacíos. `fetch_schema_with_fallback`
 (`steam_api/achievements.rs`) detecta esto (`schema_needs_fallback`: esquema
 vacío, o algún logro con `displayName` vacío) y reintenta UNA vez con
-`PRIMARY_LANG` → `FALLBACK_LANG` (`"english"`). Un fallo de red no cuenta como
-"idioma incorrecto" — no dispara el reintento. Acotado a logros (única fuente
-de texto localizado que lee esta app); `GetOwnedGames` no tiene una señal
-equivalente para detectar "idioma incorrecto" en el nombre del juego.
+`FALLBACK_LANG` (`"english"`, no configurable — es el fallback razonable para
+cualquier idioma elegido). Un fallo de red no cuenta como "idioma incorrecto"
+— no dispara el reintento. Acotado a logros (única fuente de texto localizado
+que lee esta app); `GetOwnedGames` no tiene una señal equivalente para
+detectar "idioma incorrecto" en el nombre del juego.
+
+**Cambiar de idioma con caché existente**: `achievement_schema`/`schema_cache`
+llevan columna `lang` (fuera de la PK) y el esquema se relee por juego a
+medida que entra en una sincronización — cambiar el selector no dispara
+ninguna llamada de red. Ver "Caché de Steam y cambios de idioma" en
+`docs/i18n.md`.
 
 ## Progreso de sincronización
 

@@ -1,58 +1,99 @@
 <script>
   /*
    * Configuración inicial — se muestra una sola vez, en el primer arranque
-   * sin config previa (ver setupModal/completeSetup en stores/ui.js). Por
-   * ahora solo selección de tiendas; a futuro sumaría más pasos (idioma,
-   * región, etc.) dentro de este mismo modal, no un mecanismo aparte.
+   * sin config previa (ver setupModal/completeSetup en stores/ui.js). Dos
+   * pasos: idioma y selección de tiendas. Los pasos futuros (región, cuentas)
+   * van acá dentro, no en un mecanismo aparte.
+   *
+   * Cada paso persiste al elegir, no al pulsar "Continuar": salir por el
+   * scrim o con "atrás" conserva lo ya seleccionado.
    */
-  import { setupModal, completeSetup } from "../stores/ui.js";
+  import { setupModal, setupStep, setupNext, completeSetup } from "../stores/ui.js";
   import { STORE_DEFS, enabledStores, setStoreEnabled } from "../stores/library.js";
+  import { UI_LOCALES, uiLanguage, setLanguage } from "../stores/language.js";
+  import { t } from "../i18n/index.js";
   import velumSymbol from "../../assets/velum-symbol.svg";
 
   const isOn = (id) => $enabledStores[id] !== false;
-  $: enabledIds = STORE_DEFS.filter((s) => $enabledStores[s.id] !== false).map((s) => s.id);
 </script>
 
 {#if $setupModal}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="scrim" on:click={completeSetup} role="presentation"></div>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Configuración inicial">
-    <header class="head">
-      <img class="symbol" src={velumSymbol} alt="" />
-      <h2>Bienvenido a VELUM</h2>
-      <p class="dim">
-        Elegí qué tiendas mostrar en tu biblioteca. Podés cambiarlo después desde
-        Configuración → Filtros de biblioteca.
-      </p>
-    </header>
+  <div class="modal" role="dialog" aria-modal="true" aria-label={$t("setup.aria")}>
+    <!-- {#key} obliga a destruir y recrear TODO el cuerpo al cambiar de paso.
+         Sin esto el foco se queda pegado: focusFirst() (input/navigation.js)
+         hace `if (cur && list.includes(cur)) return;`, y el botón "Continuar"
+         enfocado sobreviviría al cambio de paso como el mismo nodo, así que
+         nunca se movería al data-focus-default del paso nuevo. El
+         data-focus-group por paso hace lo propio con `lastGroup`. -->
+    {#key $setupStep}
+      <div data-focus-group={"setup-" + $setupStep}>
+        {#if $setupStep === 0}
+          <header class="head">
+            <img class="symbol" src={velumSymbol} alt="" />
+            <h2>{$t("setup.language.title")}</h2>
+            <p class="dim">{$t("setup.language.desc")}</p>
+          </header>
 
-    <div class="body">
-      <div class="stores">
-        {#each STORE_DEFS as s (s.id)}
-          <button
-            class="store"
-            class:sel={isOn(s.id)}
-            data-focusable
-            data-focus-default={s.id === STORE_DEFS[0].id ? "" : undefined}
-            tabindex="-1"
-            on:click={() => setStoreEnabled(s.id, !isOn(s.id))}
-          >
-            <span class="s-label">{s.label}</span>
-            {#if isOn(s.id)}<span class="tick">✓</span>{/if}
-          </button>
-        {/each}
+          <div class="body">
+            <div class="stores">
+              {#each UI_LOCALES as l (l.id)}
+                <button
+                  class="store"
+                  class:sel={$uiLanguage === l.id}
+                  data-focusable
+                  data-focus-default={$uiLanguage === l.id ? "" : undefined}
+                  tabindex="-1"
+                  on:click={() => setLanguage(l.id)}
+                >
+                  <span class="s-label">{l.label}</span>
+                  {#if $uiLanguage === l.id}<span class="tick">✓</span>{/if}
+                </button>
+              {/each}
+            </div>
+            <p class="dim hint">{$t("setup.language.hint")}</p>
+          </div>
+
+          <footer class="actions">
+            <button class="done" data-focusable tabindex="-1" on:click={setupNext}>
+              {$t("common.continue")}
+            </button>
+          </footer>
+        {:else}
+          <header class="head">
+            <img class="symbol" src={velumSymbol} alt="" />
+            <h2>{$t("setup.stores.title")}</h2>
+            <p class="dim">{$t("setup.stores.desc")}</p>
+          </header>
+
+          <div class="body">
+            <div class="stores">
+              {#each STORE_DEFS as s (s.id)}
+                <button
+                  class="store"
+                  class:sel={isOn(s.id)}
+                  data-focusable
+                  data-focus-default={s.id === STORE_DEFS[0].id ? "" : undefined}
+                  tabindex="-1"
+                  on:click={() => setStoreEnabled(s.id, !isOn(s.id))}
+                >
+                  <span class="s-label">{s.label}</span>
+                  {#if isOn(s.id)}<span class="tick">✓</span>{/if}
+                </button>
+              {/each}
+            </div>
+            <p class="dim hint">{$t("setup.stores.hint")}</p>
+          </div>
+
+          <footer class="actions">
+            <button class="done" data-focusable tabindex="-1" on:click={completeSetup}>
+              {$t("common.continue")}
+            </button>
+          </footer>
+        {/if}
       </div>
-      <p class="dim hint">
-        Podés escanear tu biblioteca de Steam más adelante desde
-        Configuración → Cuentas.
-      </p>
-    </div>
-
-    <footer class="actions">
-      <button class="done" data-focusable tabindex="-1" on:click={completeSetup}>
-        Continuar
-      </button>
-    </footer>
+    {/key}
   </div>
 {/if}
 

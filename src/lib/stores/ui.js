@@ -1,6 +1,7 @@
 import { writable } from "svelte/store";
 import { playNotification } from "./sounds.js";
 import { patchAppConfig } from "./appConfig.js";
+import { errorMessage } from "../i18n/errors.js";
 
 // Vista principal (pestañas superiores).
 export const view = writable("home"); // home | games | apps | multimedia
@@ -134,8 +135,20 @@ export const filtersModal = writable(null);
 // al que volver) — cualquier vía de cierre pasa por completeSetup(), que
 // persiste el flag para no volver a mostrarlo.
 export const setupModal = writable(false);
+// Paso actual del modal: 0 = idioma, 1 = tiendas. Cada paso persiste lo suyo
+// al elegirlo (no hay "guardar al final"), así que salir a mitad conserva lo
+// ya seleccionado.
+export const SETUP_STEPS = 2;
+export const setupStep = writable(0);
+export function setupNext() {
+  setupStep.update((s) => Math.min(s + 1, SETUP_STEPS - 1));
+}
+export function setupBack() {
+  setupStep.update((s) => Math.max(s - 1, 0));
+}
 export function completeSetup() {
   setupModal.set(false);
+  setupStep.set(0);
   patchAppConfig({ setupCompleted: true });
 }
 
@@ -159,7 +172,10 @@ export function showToast(msg) {
 // para poder ver el fallo real en entornos donde no hay DevTools a mano.
 export const appError = writable(null); // { msg, ctx, stack } | null
 export function reportError(err, ctx = "") {
-  const msg = (err && err.message) || String(err);
+  // El backend Rust devuelve códigos estables ("steam.invalid_key") que se
+  // traducen acá; lo que no tenga forma de código se muestra crudo. El `err`
+  // original se conserva en el console.error y en `stack`.
+  const msg = errorMessage(err);
   const stack = err && err.stack ? String(err.stack) : null;
   console.error(`[gm:error]${ctx ? ` (${ctx})` : ""}`, err);
   appError.set({ msg, ctx, stack });

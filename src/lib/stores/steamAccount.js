@@ -1,7 +1,9 @@
-import { writable, get } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { showToast, reportError } from "./ui.js";
 import { mergeSteamGhosts } from "./games.js";
+import { uiLanguage, steamLangFor } from "./language.js";
+import { tr } from "../i18n/index.js";
 import {
   isTauri,
   steamLinkAccount,
@@ -98,6 +100,31 @@ export async function setSteamSyncOption(key, value) {
   }
 }
 
+/*
+ * Idioma en que se le piden los datos a Steam (parámetro `l` de la Web API:
+ * nombres y descripciones de logros, nombres de juegos no instalados).
+ *
+ * Es un ajuste SEPARADO del idioma de la interfaz, pero por defecto lo sigue:
+ * el sentinel "auto" resuelve al idioma de Steam asociado al de la UI (ver
+ * i18n/index.js::UI_LOCALES), que es la preselección que hace la
+ * configuración inicial. Elegir un código concreto lo desacopla para siempre
+ * — el caso de quien quiere la interfaz en español y los logros en inglés.
+ */
+export const steamLangPref = writable("auto"); // "auto" | código de STEAM_LANGUAGES
+export const effectiveSteamLang = derived([steamLangPref, uiLanguage], ([$pref, $ui]) =>
+  $pref === "auto" ? steamLangFor($ui) : $pref
+);
+
+export async function setSteamLangPref(v) {
+  const before = get(effectiveSteamLang);
+  steamLangPref.set(v);
+  await patchAppConfig({ steamLang: v });
+  // Mismo criterio que includePlayedFreeGames: el cambio no re-traduce lo ya
+  // cacheado por sí solo (ver el refetch por idioma en achievements.rs), hace
+  // falta volver a sincronizar.
+  if (get(effectiveSteamLang) !== before) showToast(tr("steam.lang.changed"));
+}
+
 // Visibilidad del SteamID en Cuentas — oculto por defecto (dato semi-privado),
 // el jugador lo activa a propósito si quiere verlo. Preferencia persistida
 // como el resto (config.json), no vive en steamAccount porque no es parte de
@@ -114,6 +141,7 @@ export async function initSteamAccount() {
     steamSyncOptions.set({ ...DEFAULT_SYNC_OPTIONS, ...cfg.steamSyncOptions });
   }
   showSteamId.set(!!cfg?.showSteamId);
+  if (cfg?.steamLang) steamLangPref.set(cfg.steamLang);
   if (!cfg || !cfg.steamAccount) return;
   // La identidad (nombre/avatar) vive en config.json, pero la API key vive
   // solo en el keyring del SO (nunca aquí) — si desapareció por fuera (o la
@@ -211,7 +239,8 @@ export async function syncNow({ silent = false, full = false } = {}) {
   try {
     console.log(`[gm:steam] sincronizando biblioteca de ${acc.steamid}...`);
     const { includePlayedFreeGames } = get(steamSyncOptions);
-    const summary = await steamSyncLibrary(acc.steamid, includePlayedFreeGames);
+    const lang = get(effectiveSteamLang);
+    const summary = await steamSyncLibrary(acc.steamid, includePlayedFreeGames, lang);
     console.log("[gm:steam] resumen de biblioteca:", summary);
     if (!silent) showToast(`Biblioteca sincronizada: ${summary.totalGames} juego(s)`);
 
@@ -227,7 +256,7 @@ export async function syncNow({ silent = false, full = false } = {}) {
         appidsToSync
       );
       await listenSteamProgress();
-      const achSummary = await steamSyncAchievements(acc.steamid, appidsToSync);
+      const achSummary = await steamSyncAchievements(acc.steamid, appidsToSync, false, lang);
       progressUnlisten?.();
       console.log("[gm:steam] resumen de logros:", achSummary);
       if (!silent) showToast(`Logros actualizados en ${achSummary.achievementsSynced} juego(s)`);
@@ -263,7 +292,12 @@ export async function syncGameNow(appid) {
   steamSyncProgress.set(null);
   try {
     await listenSteamProgress();
-    const achSummary = await steamSyncAchievements(acc.steamid, [appid], true);
+    const achSummary = await steamSyncAchievements(
+      acc.steamid,
+      [appid],
+      true,
+      get(effectiveSteamLang)
+    );
     progressUnlisten?.();
     showToast(`Logros actualizados en ${achSummary.achievementsSynced} juego(s)`);
     showSyncSummary(achSummary);

@@ -47,6 +47,20 @@ pub fn open(app: &AppHandle) -> Result<Connection, String> {
         "hidden",
         "hidden INTEGER NOT NULL DEFAULT 0",
     )?;
+    // Idioma del texto cacheado (fase de internacionalización). Las filas que
+    // ya existían se escribieron cuando el idioma era la constante fija
+    // "latam", así que el DEFAULT es exactamente la verdad de facto. SQLite
+    // acepta NOT NULL en ADD COLUMN mientras haya DEFAULT no nulo, y rellena
+    // sin reescribir la tabla — importante acá porque recrearla reasignaría
+    // los rowid, que son lo que ordena los logros bloqueados en el Detalle
+    // (ver el ORDER BY de steam_achievements en achievements.rs).
+    ensure_column(
+        &conn,
+        "achievement_schema",
+        "lang",
+        "lang TEXT NOT NULL DEFAULT 'latam'",
+    )?;
+    ensure_column(&conn, "schema_cache", "lang", "lang TEXT NOT NULL DEFAULT 'latam'")?;
 
     Ok(conn)
 }
@@ -77,6 +91,12 @@ pub(crate) fn create_schema(conn: &Connection) -> Result<(), String> {
             icon_url TEXT,
             icon_gray_url TEXT,
             hidden INTEGER NOT NULL DEFAULT 0,
+            -- Idioma en que está el texto guardado acá. NO forma parte de la
+            -- PK a propósito: hay UNA fila por logro, con el texto del último
+            -- idioma pedido. Meterlo en la PK obligaría a recrear la tabla
+            -- (SQLite no permite alterarla) y eso reasignaría los rowid, de
+            -- los que depende el orden de los logros bloqueados.
+            lang TEXT NOT NULL DEFAULT 'latam',
             PRIMARY KEY (appid, apiname)
         );
         CREATE TABLE IF NOT EXISTS achievements (
@@ -90,7 +110,11 @@ pub(crate) fn create_schema(conn: &Connection) -> Result<(), String> {
         CREATE TABLE IF NOT EXISTS schema_cache (
             appid INTEGER PRIMARY KEY,
             fetched_at INTEGER NOT NULL,
-            has_achievements INTEGER NOT NULL
+            has_achievements INTEGER NOT NULL,
+            -- Idioma con el que se llenó achievement_schema para este appid;
+            -- lo consulta sync_one_game para decidir si hay que releer el
+            -- esquema por cambio de idioma (ver schema_text_is_stale).
+            lang TEXT NOT NULL DEFAULT 'latam'
         );
         -- % global de jugadores que tienen cada logro (GetGlobalAchievementPercentagesForGame).
         -- Público, por-appid (no por-cuenta). A diferencia de achievement_schema,
