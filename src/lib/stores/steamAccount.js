@@ -76,9 +76,9 @@ export function toggleSyncSummaryExpanded() {
 // Opciones de sincronización (Configuración → Cuentas → "Opciones de
 // sincronización"), globales igual que la cuenta misma — no por perfil.
 export const GLOBAL_PCT_INTERVALS = [
-  { value: "daily", label: "Cada día", secs: 24 * 3600 },
-  { value: "weekly", label: "Cada semana", secs: 7 * 24 * 3600 },
-  { value: "monthly", label: "Cada mes", secs: 30 * 24 * 3600 },
+  { value: "daily", labelKey: "steamAccount.interval.daily", secs: 24 * 3600 },
+  { value: "weekly", labelKey: "steamAccount.interval.weekly", secs: 7 * 24 * 3600 },
+  { value: "monthly", labelKey: "steamAccount.interval.monthly", secs: 30 * 24 * 3600 },
 ];
 const DEFAULT_SYNC_OPTIONS = { includePlayedFreeGames: true, globalPctInterval: "monthly" };
 export const steamSyncOptions = writable({ ...DEFAULT_SYNC_OPTIONS });
@@ -96,7 +96,7 @@ export async function setSteamSyncOption(key, value) {
   steamSyncOptions.update((o) => ({ ...o, [key]: value }));
   await patchAppConfig({ steamSyncOptions: get(steamSyncOptions) });
   if (key === "includePlayedFreeGames") {
-    showToast("Vuelve a sincronizar para aplicar el cambio");
+    showToast(tr("steamAccount.syncOptions.reapplyHint"));
   }
 }
 
@@ -159,7 +159,7 @@ export async function initSteamAccount() {
       cfg.steamAccount
     );
     await patchAppConfig({ steamAccount: null });
-    showToast("Se perdió la API key de Steam guardada — vincula tu cuenta de nuevo");
+    showToast(tr("steamAccount.toast.keyLost"));
   }
 }
 
@@ -201,7 +201,7 @@ export async function linkAccount(profileInput, apiKey) {
   console.log("[gm:steam] cuenta vinculada:", info);
   steamAccount.set(info);
   await patchAppConfig({ steamAccount: info });
-  showToast(`Cuenta de Steam vinculada: ${info.personaName}`);
+  showToast(tr("steamAccount.toast.linked", { name: info.personaName }));
   return info;
 }
 
@@ -211,7 +211,7 @@ export async function unlinkAccount() {
   await steamUnlinkAccount(acc.steamid);
   steamAccount.set(null);
   await patchAppConfig({ steamAccount: null });
-  showToast("Cuenta de Steam desvinculada");
+  showToast(tr("steamAccount.toast.unlinked"));
   console.log("[gm:steam] cuenta desvinculada");
 }
 
@@ -242,7 +242,7 @@ export async function syncNow({ silent = false, full = false } = {}) {
     const lang = get(effectiveSteamLang);
     const summary = await steamSyncLibrary(acc.steamid, includePlayedFreeGames, lang);
     console.log("[gm:steam] resumen de biblioteca:", summary);
-    if (!silent) showToast(`Biblioteca sincronizada: ${summary.totalGames} juego(s)`);
+    if (!silent) showToast(tr("steam.toast.librarySynced", { count: summary.totalGames }));
 
     const entries = await steamLibraryCache(acc.steamid);
     mergeSteamGhosts(entries);
@@ -259,7 +259,7 @@ export async function syncNow({ silent = false, full = false } = {}) {
       const achSummary = await steamSyncAchievements(acc.steamid, appidsToSync, false, lang);
       progressUnlisten?.();
       console.log("[gm:steam] resumen de logros:", achSummary);
-      if (!silent) showToast(`Logros actualizados en ${achSummary.achievementsSynced} juego(s)`);
+      if (!silent) showToast(tr("steam.toast.achievementsSynced", { count: achSummary.achievementsSynced }));
       // Un error de UN juego (red, HTTP, etc.) ya no aborta el resto de la
       // sincronización — se registra en achSummary.errors y sigue. El badge
       // flotante avisa del resumen (y de los errores, si hubo) sin
@@ -299,7 +299,7 @@ export async function syncGameNow(appid) {
       get(effectiveSteamLang)
     );
     progressUnlisten?.();
-    showToast(`Logros actualizados en ${achSummary.achievementsSynced} juego(s)`);
+    showToast(tr("steam.toast.achievementsSynced", { count: achSummary.achievementsSynced }));
     showSyncSummary(achSummary);
     await loadAchievementSummaries();
   } catch (e) {

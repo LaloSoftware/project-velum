@@ -4,6 +4,7 @@
   import { renameAlbum, removeAlbum } from "../stores/imageLibrary.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { reportError, imageViewer, openImageViewer, closeImageViewer } from "../stores/ui.js";
+  import { t, tr } from "../i18n/index.js";
   import ImageViewer from "./ImageViewer.svelte";
   import ImageThumb from "./ImageThumb.svelte";
 
@@ -34,7 +35,7 @@
   }
 
   async function rename() {
-    const name = await openKeyboard(album.name, "Nombre del álbum");
+    const name = await openKeyboard(album.name, tr("keyboard.title.albumName"));
     if (name) {
       await renameAlbum(album.id, name);
       album = { ...album, name };
@@ -52,21 +53,21 @@
 {:else}
   <section class="image-album-detail">
     <header class="head">
-      <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← Volver</button>
+      <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← {$t("common.back")}</button>
       <h1>{album.name}</h1>
       <div class="head-actions">
-        <button class="chip" data-focusable tabindex="-1" on:click={rename}>Renombrar</button>
-        <button class="chip" data-focusable tabindex="-1" on:click={refresh}>Actualizar</button>
+        <button class="chip" data-focusable tabindex="-1" on:click={rename}>{$t("common.rename")}</button>
+        <button class="chip" data-focusable tabindex="-1" on:click={refresh}>{$t("common.refresh")}</button>
         <button class="chip danger" data-focusable tabindex="-1" on:click={removeThisAlbum}>
-          Quitar de la biblioteca
+          {$t("music.removeFromLibrary")}
         </button>
       </div>
     </header>
 
     {#if loading}
-      <p class="dim">Cargando…</p>
+      <p class="dim">{$t("common.loading")}</p>
     {:else if !images.length}
-      <p class="dim">No se encontraron imágenes en esta carpeta.</p>
+      <p class="dim">{$t("images.noImagesFound")}</p>
     {:else}
       <div class="thumbs">
         {#each images as img, i (img.path)}

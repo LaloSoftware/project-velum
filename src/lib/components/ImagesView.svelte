@@ -4,6 +4,7 @@
   import { showToast, reportError, imagesFooterMode, imageAlbumOpen, openImageAlbum, closeImageAlbum } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
   import { focusFirstIn } from "../input/navigation.js";
+  import { t, tr } from "../i18n/index.js";
   import ImageAlbumDetail from "./ImageAlbumDetail.svelte";
 
   let gridEl;
@@ -44,13 +45,13 @@
   };
 
   async function pickFolder() {
-    if (!isTauri) return showToast("Selección de carpetas solo en la app");
+    if (!isTauri) return showToast(tr("common.foldersOnlyInApp"));
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const dir = await open({ directory: true });
       if (dir) {
         await addAlbumFolder(dir);
-        showToast("Álbum agregado");
+        showToast(tr("music.toast.albumAdded"));
       }
     } catch (e) {
       reportError(e, "ImagesView:pickFolder");
@@ -60,13 +61,13 @@
   // Carpeta raíz: cada subcarpeta directa se agrega sola como álbum (auto-
   // descubrimiento, ver imageLibrary.js::syncLibraryRoots).
   async function pickRootFolder() {
-    if (!isTauri) return showToast("Selección de carpetas solo en la app");
+    if (!isTauri) return showToast(tr("common.foldersOnlyInApp"));
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const dir = await open({ directory: true });
       if (dir) {
         await addLibraryRoot(dir);
-        showToast("Carpeta raíz agregada");
+        showToast(tr("music.toast.rootFolderAdded"));
       }
     } catch (e) {
       reportError(e, "ImagesView:pickRootFolder");
@@ -90,11 +91,11 @@
     <div class="grid">
       <button class="card add" data-focusable data-focus-default tabindex="-1" on:click={pickFolder}>
         <span class="add-ico">＋</span>
-        <span class="add-label">Agregar álbum</span>
+        <span class="add-label">{$t("music.addAlbum")}</span>
       </button>
       <button class="card add" data-focusable tabindex="-1" on:click={pickRootFolder}>
         <span class="add-ico">＋</span>
-        <span class="add-label">Agregar carpeta raíz</span>
+        <span class="add-label">{$t("music.addRootFolder")}</span>
       </button>
       {#each $imageAlbums as a (a.id)}
         <button class="card" data-focusable tabindex="-1" style="background: {cover(a.name)}" on:click={() => openAlbum(a)}>
@@ -103,7 +104,7 @@
       {/each}
     </div>
     {#if !$imageAlbums.length}
-      <p class="dim hint">Agrega una carpeta con imágenes — cada carpeta se convierte en un álbum. O agrega una carpeta raíz y cada subcarpeta se convierte en un álbum automáticamente.</p>
+      <p class="dim hint">{$t("images.emptyAlbums")}</p>
     {/if}
   {/if}
 </div>

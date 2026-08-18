@@ -1,6 +1,7 @@
 <script>
   import { confirmUnlinkSteam, closeConfirmUnlinkSteam } from "../stores/ui.js";
   import { unlinkAccount } from "../stores/steamAccount.js";
+  import { t } from "../i18n/index.js";
 
   async function desvincular() {
     closeConfirmUnlinkSteam();
@@ -11,11 +12,9 @@
 {#if $confirmUnlinkSteam}
   <div class="scrim">
     <div class="box" role="alertdialog" aria-modal="true">
-      <h2>Desvincular cuenta de Steam</h2>
+      <h2>{$t("steamAccount.unlink.title")}</h2>
       <p>
-        ¿Seguro que quieres desvincular tu cuenta? Se borra la biblioteca y los
-        logros sincronizados de este launcher (tu cuenta de Steam no se ve
-        afectada).
+        {$t("steamAccount.unlink.body")}
       </p>
       <div class="actions">
         <button
@@ -25,10 +24,10 @@
           tabindex="-1"
           on:click={closeConfirmUnlinkSteam}
         >
-          Cancelar
+          {$t("common.cancel")}
         </button>
         <button class="btn del" data-focusable tabindex="-1" on:click={desvincular}>
-          Desvincular
+          {$t("steamAccount.unlink.confirm")}
         </button>
       </div>
     </div>

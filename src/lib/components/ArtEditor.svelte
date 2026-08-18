@@ -10,29 +10,32 @@
   import { imageUrl } from "../util/asset.js";
   import { showToast } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
+  import { t, tr } from "../i18n/index.js";
 
   export let game;
 
   // Las 4 imágenes personalizables, con sus medidas sugeridas (SteamGridDB).
   const SLOTS = [
-    { kind: "cover", label: "Carátula", dims: "600 × 900" },
-    { kind: "wide", label: "Carátula expandida", dims: "920 × 430" },
-    { kind: "hero", label: "Hero (fondo)", dims: "3840 × 1240 (sugerida, según tu pantalla)" },
-    { kind: "logo", label: "Logo", dims: "PNG transparente" },
+    { kind: "cover", labelKey: "art.slots.cover.label", dimsKey: "art.slots.cover.dims" },
+    { kind: "wide", labelKey: "art.slots.wide.label", dimsKey: "art.slots.wide.dims" },
+    { kind: "hero", labelKey: "art.slots.hero.label", dimsKey: "art.slots.hero.dims" },
+    { kind: "logo", labelKey: "art.slots.logo.label", dimsKey: "art.slots.logo.dims" },
   ];
   const IMG_EXT = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
 
-  // Preset 3×3 de posición del logo sobre el hero (fila por fila).
+  // Preset 3×3 de posición del logo sobre el hero (fila por fila) — reusa las
+  // claves de alineación comunes (F1), salvo el centro puro que ya vive en
+  // common.align.center.
   const LOGO_POSITIONS = [
-    { code: "tl", label: "Arriba izquierda" },
-    { code: "tc", label: "Arriba centro" },
-    { code: "tr", label: "Arriba derecha" },
-    { code: "ml", label: "Centro izquierda" },
-    { code: "mc", label: "Centro" },
-    { code: "mr", label: "Centro derecha" },
-    { code: "bl", label: "Abajo izquierda" },
-    { code: "bc", label: "Abajo centro" },
-    { code: "br", label: "Abajo derecha" },
+    { code: "tl", labelKey: "common.pos.tl" },
+    { code: "tc", labelKey: "common.pos.tc" },
+    { code: "tr", labelKey: "common.pos.tr" },
+    { code: "ml", labelKey: "common.pos.ml" },
+    { code: "mc", labelKey: "common.align.center" },
+    { code: "mr", labelKey: "common.pos.mr" },
+    { code: "bl", labelKey: "common.pos.bl" },
+    { code: "bc", labelKey: "common.pos.bc" },
+    { code: "br", labelKey: "common.pos.br" },
   ];
 
   $: art = effectiveArt(game, $overrides);
@@ -59,25 +62,25 @@
   const slotEls = {};
 
   async function pick(kind) {
-    if (!isTauri) return showToast("Selección de archivos solo en la app");
+    if (!isTauri) return showToast(tr("common.filesOnlyInApp"));
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const path = await open({
         multiple: false,
-        filters: [{ name: "Imágenes", extensions: IMG_EXT }],
+        filters: [{ name: tr("detail.sections.images"), extensions: IMG_EXT }],
       });
       if (path) {
         await setOverride(game.id, kind, path);
-        showToast("Imagen actualizada");
+        showToast(tr("art.toast.updated"));
       }
     } catch {
-      showToast("No se pudo abrir el selector");
+      showToast(tr("common.pickerError"));
     }
   }
 
   async function clear(kind) {
     await clearOverride(game.id, kind);
-    showToast("Personalización quitada");
+    showToast(tr("art.toast.cleared"));
   }
 
   // Arrastrar y soltar un archivo desde el explorador (Tauri): se asigna al slot
@@ -101,7 +104,7 @@
           if (!el) continue;
           const r = el.getBoundingClientRect();
           if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) {
-            setOverride(game.id, s.kind, paths[0]).then(() => showToast("Imagen actualizada"));
+            setOverride(game.id, s.kind, paths[0]).then(() => showToast(tr("art.toast.updated")));
             return;
           }
         }
@@ -114,7 +117,7 @@
 </script>
 
 <div class="art-editor">
-  <div class="head">Imágenes</div>
+  <div class="head">{$t("detail.sections.images")}</div>
   <div class="slots-row">
     {#each SLOTS as s (s.kind)}
       <div class="slot" bind:this={slotEls[s.kind]}>
@@ -122,18 +125,18 @@
           {#if previews[s.kind]}
             <img src={previews[s.kind]} alt="" />
           {:else}
-            <span class="ph">Sin imagen</span>
+            <span class="ph">{$t("art.noImage")}</span>
           {/if}
         </div>
-        <div class="name">{s.label}</div>
-        <div class="dims">{s.dims}</div>
+        <div class="name">{$t(s.labelKey)}</div>
+        <div class="dims">{$t(s.dimsKey)}</div>
         <div class="btns">
           <button class="pick" data-focusable tabindex="-1" on:click={() => pick(s.kind)}>
-            Elegir…
+            {$t("common.choose")}
           </button>
           {#if ov[s.kind]}
             <button class="rm" data-focusable tabindex="-1" on:click={() => clear(s.kind)}>
-              Quitar
+              {$t("common.remove")}
             </button>
           {/if}
         </div>
@@ -143,7 +146,7 @@
 
   {#if art.logo}
     <div class="logo-pos">
-      <div class="logo-pos-label">Posición del logo</div>
+      <div class="logo-pos-label">{$t("art.logoPosition")}</div>
       <div class="logo-pos-grid">
         {#each LOGO_POSITIONS as p (p.code)}
           <button
@@ -151,7 +154,7 @@
             class:sel={art.logoPos === p.code}
             data-focusable
             tabindex="-1"
-            aria-label={p.label}
+            aria-label={$t(p.labelKey)}
             on:click={() => setLogoPos(game.id, p.code)}
           ></button>
         {/each}
@@ -159,7 +162,7 @@
     </div>
   {/if}
 
-  <div class="hint">Arrastra una imagen aquí o usa «Elegir…».</div>
+  <div class="hint">{$t("art.dragHint", { choose: $t("common.choose") })}</div>
 </div>
 
 <style>

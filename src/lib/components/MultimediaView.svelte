@@ -4,11 +4,12 @@
   import ImagesView from "./ImagesView.svelte";
   import VideosView from "./VideosView.svelte";
   import { focusFirstIn } from "../input/navigation.js";
+  import { t } from "../i18n/index.js";
 
   const SECTIONS = [
-    { id: "musica", icon: "🎵", label: "Música" },
-    { id: "imagenes", icon: "🖼", label: "Imágenes" },
-    { id: "videos", icon: "🎬", label: "Videos" },
+    { id: "musica", icon: "🎵", labelKey: "multimedia.section.music" },
+    { id: "imagenes", icon: "🖼", labelKey: "detail.sections.images" },
+    { id: "videos", icon: "🎬", labelKey: "multimedia.section.videos" },
   ];
   let section = "musica";
   let contentEl;
@@ -35,7 +36,7 @@
           on:focus={() => (section = s.id)}
           on:click={() => enterSection(s.id)}
         >
-          <span class="ico">{s.icon}</span> {s.label}
+          <span class="ico">{s.icon}</span> {$t(s.labelKey)}
         </button>
       {/each}
     </aside>

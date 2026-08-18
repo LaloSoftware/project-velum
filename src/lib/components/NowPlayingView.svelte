@@ -1,5 +1,5 @@
 <script>
-  import { fmt } from "../i18n/index.js";
+  import { fmt, t } from "../i18n/index.js";
   import { musicPlayer, togglePlayPause, next, previous, toggleShuffle, seek } from "../stores/musicPlayer.js";
 
   // Mismo degradado por hash del título ya usado en tarjetas de álbum
@@ -23,7 +23,7 @@
 
 <div class="now-playing">
   {#if !$musicPlayer.current}
-    <p class="dim">Nada reproduciéndose — elige un álbum o una lista.</p>
+    <p class="dim">{$t("music.nothingPlaying")}</p>
   {:else}
     <div class="art" style="background: {cover}"></div>
 
@@ -54,18 +54,18 @@
     </div>
 
     <div class="controls">
-      <button class="step" data-focusable tabindex="-1" on:click={previous} aria-label="Anterior">⏮</button>
-      <button class="step big" data-focusable tabindex="-1" on:click={togglePlayPause} aria-label="Reproducir/pausar">
+      <button class="step" data-focusable tabindex="-1" on:click={previous} aria-label={$t("music.previous")}>⏮</button>
+      <button class="step big" data-focusable tabindex="-1" on:click={togglePlayPause} aria-label={$t("music.playPause")}>
         {$musicPlayer.playing ? "⏸" : "▶"}
       </button>
-      <button class="step" data-focusable tabindex="-1" on:click={next} aria-label="Siguiente">⏭</button>
+      <button class="step" data-focusable tabindex="-1" on:click={next} aria-label={$t("music.next")}>⏭</button>
       <button
         class="step"
         class:on={$musicPlayer.shuffle}
         data-focusable
         tabindex="-1"
         on:click={toggleShuffle}
-        aria-label="Aleatorio"
+        aria-label={$t("common.shuffle")}
       >
         🔀
       </button>

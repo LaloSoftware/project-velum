@@ -24,7 +24,7 @@
     completedBadgeEnabled,
     completedGlowEnabled,
   } from "../stores/uiprefs.js";
-  import { t } from "../i18n/index.js";
+  import { t, tr, fmt } from "../i18n/index.js";
   import { names } from "../i18n/names.js";
   import ArtEditor from "./ArtEditor.svelte";
   import SoundtrackEditor from "./SoundtrackEditor.svelte";
@@ -40,6 +40,7 @@
   export let game;
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
+  $: storeLabel = STORE_LABEL[game?.store] || game?.store;
 
   // Logros/horas jugadas de la cuenta de Steam vinculada (Fase 9), solo si
   // este juego es de Steam y hay una cuenta vinculada con datos cacheados.
@@ -61,23 +62,27 @@
       })
       .catch(() => {});
   }
-  function formatPlaytime(minutes) {
-    if (!minutes) return "Sin horas registradas";
-    const hours = minutes / 60;
-    return hours >= 1 ? `${hours.toFixed(1)} h jugadas` : `${minutes} min jugados`;
-  }
-  function formatRecentPlaytime(minutes) {
-    if (!minutes) return "Sin horas en las últimas 2 semanas";
+  // Reactivas (dependen de $t/$fmt): al cambiar de idioma, las llamadas ya
+  // pintadas en el template se vuelven a evaluar solas (mismo patrón que
+  // Home.svelte::textOf, ver docs/i18n.md).
+  $: formatPlaytime = (minutes) => {
+    if (!minutes) return $t("detail.playtime.none");
     const hours = minutes / 60;
     return hours >= 1
-      ? `${hours.toFixed(1)} h jugadas (2 semanas)`
-      : `${minutes} min jugados (2 semanas)`;
-  }
-  function formatSteamLastPlayed(ts) {
-    if (!ts) return "Sin registro de Steam";
-    const d = new Date(ts * 1000);
-    return "Última vez (Steam): " + d.toLocaleDateString();
-  }
+      ? $t("detail.playtime.hours", { hours: hours.toFixed(1) })
+      : $t("detail.playtime.minutes", { minutes });
+  };
+  $: formatRecentPlaytime = (minutes) => {
+    if (!minutes) return $t("detail.recentPlaytime.none");
+    const hours = minutes / 60;
+    return hours >= 1
+      ? $t("detail.recentPlaytime.hours", { hours: hours.toFixed(1) })
+      : $t("detail.recentPlaytime.minutes", { minutes });
+  };
+  $: formatSteamLastPlayed = (ts) => {
+    if (!ts) return $t("detail.steamLastPlayed.none");
+    return $t("detail.steamLastPlayed.value", { date: $fmt.date(new Date(ts * 1000)) });
+  };
 
   // Badge de logros (esquina inferior derecha): último obtenido, o si aún no
   // hay ninguno, el próximo por desbloquear (steamAchievementsList ya viene
@@ -102,7 +107,7 @@
     !$gameView.revealHiddenAchievements &&
     !$gameView.showGlobalPct
   );
-  $: badgeName = badgeIsSpoiler ? "Logro oculto" : badgeAchievement?.displayName || badgeAchievement?.apiname;
+  $: badgeName = badgeIsSpoiler ? $t("detail.achievements.hidden") : badgeAchievement?.displayName || badgeAchievement?.apiname;
   $: badgeIcon = badgeIsSpoiler
     ? null
     : (!badgeAchievement?.achieved && badgeAchievement?.iconGrayUrl) || badgeAchievement?.iconUrl;
@@ -211,10 +216,10 @@
   }
 
   async function newGroup() {
-    const name = await openKeyboard("", "Nombre del grupo");
+    const name = await openKeyboard("", tr("keyboard.title.groupName"));
     if (name) {
       await createGroup(name, game.id);
-      showToast(`Añadido a «${name}»`);
+      showToast(tr("ctx.toast.addedTo", { name }));
     }
   }
 
@@ -225,11 +230,10 @@
   }
   $: h = hue(game.title);
 
-  function fmtLast(ts) {
-    if (!ts) return "Nunca jugado";
-    const d = new Date(ts * 1000);
-    return "Última vez: " + d.toLocaleDateString() + " " + d.toLocaleTimeString().slice(0, 5);
-  }
+  $: fmtLast = (ts) => {
+    if (!ts) return $t("detail.lastPlayed.never");
+    return $t("detail.lastPlayed.value", { date: $fmt.dateTime(new Date(ts * 1000)) });
+  };
 
   $: notInstalled = game?.installed === false;
   // Juego de Steam de la cuenta vinculada, no instalado local: en vez del
@@ -276,9 +280,9 @@
     on:click={() => openAchievements(steamAppid, game.title)}
   >
     {#if showAchBadgeComplete}
-      <span class="ach-badge-tag" title="Logros 100% completados">100%</span>
+      <span class="ach-badge-tag" title={$t("card.tooltip.complete")}>100%</span>
     {/if}
-    <div class="ach-badge-title">Logros de {STORE_LABEL[game.store] || game.store}</div>
+    <div class="ach-badge-title">{$t("detail.achievements.title", { store: storeLabel })}</div>
     <div class="ach-badge-progress">{unlockedCount}/{steamAchievementsList.length} · {badgePct}%</div>
     <div class="ach-badge-last">
       {#if badgeIcon}<img class="ach-badge-icon" src={badgeIcon} alt="" />{/if}
@@ -311,7 +315,7 @@
       {@render achievementBadge()}
     {/if}
     <div class="content" style="--meta-bg-opacity: {$metaBgVisible ? $metaBgOpacity : 0}">
-      {#if $gameView.platform}<span class="store">{STORE_LABEL[game.store] || game.store}</span>{/if}
+      {#if $gameView.platform}<span class="store">{storeLabel}</span>{/if}
       {#if $gameView.title}<h1>{game.title}</h1>{/if}
       {#if $gameView.lastPlayed}<p class="meta">{fmtLast(game.lastPlayed)}</p>{/if}
       {#if $gameView.installDir && game.installDir}<p class="meta dim">{game.installDir}</p>{/if}
@@ -328,7 +332,7 @@
             tabindex="-1"
             on:click={downloadFromSteam}
           >
-            ⬇ Descargar desde Steam
+            ⬇ {$t("detail.downloadFromSteam")}
           </button>
         {:else}
           <button
@@ -337,10 +341,10 @@
             data-focusable={!$detailExpanded && !notInstalled ? "" : undefined}
             data-focus-default={!notInstalled}
             tabindex="-1"
-            title={notInstalled ? `Instálalo desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo` : undefined}
+            title={notInstalled ? $t("detail.notInstalled.tooltip", { store: storeLabel }) : undefined}
             on:click={play}
           >
-            ▶ Jugar
+            ▶ {$t("common.play")}
           </button>
         {/if}
         <button
@@ -350,14 +354,14 @@
           tabindex="-1"
           on:click={back}
         >
-          Volver
+          {$t("common.back")}
         </button>
       </div>
       {#if canDownloadFromSteam}
-        <p class="install-hint">Se abre Steam en la página de este juego para instalarlo.</p>
+        <p class="install-hint">{$t("detail.downloadFromSteam.hint")}</p>
       {:else if notInstalled}
         <p class="install-hint">
-          Instálalo desde {STORE_LABEL[game.store] || game.store} para poder jugarlo.
+          {$t("detail.notInstalled.hint", { store: storeLabel })}
         </p>
       {/if}
     </div>
@@ -382,7 +386,7 @@
         <div class="section-body">
           {#if sections[$detailSection] === "logros"}
             <section class="msection" data-focus-group="logros" data-detail-top>
-              <h3>Logros de {STORE_LABEL[game.store] || game.store}</h3>
+              <h3>{$t("detail.achievements.title", { store: storeLabel })}</h3>
               <!-- Más espacio disponible acá que en el badge flotante — se
                    muestran hasta 3 desbloqueados en vez de solo el último.
                    Si todavía no hay ninguno, se cae al próximo a desbloquear
@@ -414,12 +418,12 @@
                 tabindex="-1"
                 on:click={() => openAchievements(steamAppid, game.title)}
               >
-                Ver todos los logros
+                {$t("detail.achievements.viewAll")}
               </button>
             </section>
           {:else if sections[$detailSection] === "grupos"}
             <section class="msection" data-focus-group="grupos" data-detail-top>
-              <h3>Grupos</h3>
+              <h3>{$t("detail.sections.groups")}</h3>
               <div class="groups">
                 {#each $groups as g (g.id)}
                   <button
@@ -433,24 +437,24 @@
                   </button>
                 {/each}
                 <button class="chip new" data-focusable tabindex="-1" on:click={newGroup}>
-                  + Nuevo grupo
+                  {$t("detail.groups.new")}
                 </button>
               </div>
             </section>
           {:else if sections[$detailSection] === "imagenes"}
             <section class="msection" data-focus-group="imagenes" data-detail-top>
-              <h3>Imágenes</h3>
+              <h3>{$t("detail.sections.images")}</h3>
               <ArtEditor {game} />
             </section>
           {:else if sections[$detailSection] === "soundtrack"}
             <section class="msection" data-focus-group="soundtrack" data-detail-top>
-              <h3>Soundtrack</h3>
+              <h3>{$t("detail.sections.soundtrack")}</h3>
               <SoundtrackEditor {game} />
             </section>
           {:else if sections[$detailSection] === "sync"}
             <section class="msection" data-focus-group="sync" data-detail-top>
               <h3>Steam</h3>
-              <p class="meta dim">Fuerza una resincronización de los logros de este juego con Steam.</p>
+              <p class="meta dim">{$t("detail.sync.desc")}</p>
               <!-- Sin `disabled` nativo mientras sincroniza: un botón enfocado
                    que pasa a disabled pierde el foco del DOM (document.activeElement
                    cae a <body>) y rompe la navegación por mando hasta el
@@ -464,12 +468,12 @@
                 tabindex="-1"
                 on:click={syncThisGame}
               >
-                {$steamSyncing ? "Sincronizando…" : "🔄 Sincronizar logros"}
+                {$steamSyncing ? $t("detail.sync.syncing") : `🔄 ${$t("detail.sync.action")}`}
               </button>
             </section>
           {:else}
             <section class="msection" data-focus-group="vista-juego" data-detail-top>
-              <h3>Vista de juego</h3>
+              <h3>{$t("detail.sections.gameView")}</h3>
               <div class="rows">
                 {#each GAME_VIEW_FIELDS as f (f.key)}
                   <div class="row">
@@ -481,7 +485,7 @@
                       tabindex="-1"
                       on:click={() => setGameViewField(f.key, !$gameView[f.key])}
                     >
-                      {$gameView[f.key] ? "ON" : "OFF"}
+                      {$gameView[f.key] ? $t("common.on") : $t("common.off")}
                     </button>
                   </div>
                 {/each}

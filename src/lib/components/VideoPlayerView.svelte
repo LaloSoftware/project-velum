@@ -11,7 +11,7 @@
    * izquierda/derecha avanzan/retroceden sin código nuevo, mismo mecanismo
    * que ya usan los sliders de volumen/opacidad en el resto de la app.
    */
-  import { fmt } from "../i18n/index.js";
+  import { fmt, t } from "../i18n/index.js";
   import { onDestroy } from "svelte";
   import { videoUrl } from "../util/asset.js";
   import { reportError } from "../stores/ui.js";
@@ -106,10 +106,10 @@
         on:input={(e) => setVol(e.target.value / 100)}
       />
     </div>
-    <button class="step" data-focusable tabindex="-1" on:click={togglePlay} aria-label="Reproducir/pausar">
+    <button class="step" data-focusable tabindex="-1" on:click={togglePlay} aria-label={$t("music.playPause")}>
       {playing ? "⏸" : "▶"}
     </button>
-    <button class="chip danger" data-focusable tabindex="-1" on:click={onClose}>✕ Salir</button>
+    <button class="chip danger" data-focusable tabindex="-1" on:click={onClose}>✕ {$t("videos.exit")}</button>
   </div>
 </section>
 

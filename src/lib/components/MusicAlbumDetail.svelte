@@ -6,6 +6,7 @@
   import { openKeyboard } from "../stores/keyboard.js";
   import { openPopover, showToast, reportError } from "../stores/ui.js";
   import { names } from "../i18n/names.js";
+  import { t, tr } from "../i18n/index.js";
 
   export let album;
   export let onBack = () => {};
@@ -42,7 +43,7 @@
   }
 
   async function rename() {
-    const name = await openKeyboard(album.name, "Nombre del álbum");
+    const name = await openKeyboard(album.name, tr("keyboard.title.albumName"));
     if (name) {
       await renameAlbum(album.id, name);
       album = { ...album, name };
@@ -62,7 +63,7 @@
 
   async function togglePlaylist(track, playlistId) {
     if (playlistId === NEW_PLAYLIST) {
-      const name = await openKeyboard("", "Nombre de la lista");
+      const name = await openKeyboard("", tr("keyboard.title.playlistName"));
       if (!name) return;
       const pl = await createPlaylist(name);
       await addTrackToPlaylist(pl.id, {
@@ -71,7 +72,7 @@
         albumId: album.id,
         albumName: album.name,
       });
-      showToast(`Agregado a "${name}"`);
+      showToast(tr("music.toast.addedToPlaylist", { name }));
       return;
     }
     const already = playlistsWithTrack(track.path).includes(playlistId);
@@ -93,7 +94,7 @@
   function addToListMenu(track, anchor) {
     const options = [
       ...$playlists.map((p) => ({ value: p.id, label: $names.playlist(p) })),
-      { value: NEW_PLAYLIST, label: "＋ Crear lista nueva…" },
+      { value: NEW_PLAYLIST, label: `＋ ${$t("music.newPlaylistOption")}` },
     ];
     openPopover({
       multi: true,
@@ -107,13 +108,13 @@
 
 <section class="album-detail">
   <header class="head">
-    <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← Volver</button>
+    <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← {$t("common.back")}</button>
     <h1>{album.name}</h1>
     <div class="head-actions">
-      <button class="chip" data-focusable tabindex="-1" on:click={rename}>Renombrar</button>
-      <button class="chip" data-focusable tabindex="-1" on:click={refresh}>Actualizar</button>
+      <button class="chip" data-focusable tabindex="-1" on:click={rename}>{$t("common.rename")}</button>
+      <button class="chip" data-focusable tabindex="-1" on:click={refresh}>{$t("common.refresh")}</button>
       <button class="chip danger" data-focusable tabindex="-1" on:click={removeThisAlbum}>
-        Quitar de la biblioteca
+        {$t("music.removeFromLibrary")}
       </button>
     </div>
   </header>
@@ -126,7 +127,7 @@
       disabled={!hasTracks}
       on:click={() => playAlbum(album)}
     >
-      ▶ Reproducir álbum
+      ▶ {$t("music.playAlbum")}
     </button>
     <button
       class="chip"
@@ -135,7 +136,7 @@
       disabled={!hasTracks}
       on:click={() => playAlbum(album, { shuffle: true })}
     >
-      🔀 Aleatorio
+      🔀 {$t("common.shuffle")}
     </button>
   </div>
 
@@ -162,9 +163,9 @@
        normal de una lista vertical ya resuelve "abajo" sin agrupar. -->
   <div class="tracks">
     {#if loading}
-      <p class="dim">Cargando…</p>
+      <p class="dim">{$t("common.loading")}</p>
     {:else if !hasTracks}
-      <p class="dim">No se encontraron archivos de audio en esta carpeta.</p>
+      <p class="dim">{$t("music.noAudioFiles")}</p>
     {:else}
       {#each rows.loose as t (t.path)}
         {@render trackRow(t)}

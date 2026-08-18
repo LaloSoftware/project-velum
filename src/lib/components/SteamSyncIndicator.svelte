@@ -1,5 +1,6 @@
 <script>
   import { steamSyncing, steamSyncProgress } from "../stores/steamAccount.js";
+  import { t } from "../i18n/index.js";
 
   $: pct = $steamSyncProgress && $steamSyncProgress.total
     ? Math.round(($steamSyncProgress.done / $steamSyncProgress.total) * 100)
@@ -11,9 +12,9 @@
     <span class="dot"></span>
     <span class="label">
       {#if $steamSyncProgress}
-        Steam: logros {$steamSyncProgress.done}/{$steamSyncProgress.total}
+        {$t("steamSync.progress", { done: $steamSyncProgress.done, total: $steamSyncProgress.total })}
       {:else}
-        Steam: sincronizando biblioteca…
+        {$t("steamSync.library")}
       {/if}
     </span>
     {#if pct !== null}

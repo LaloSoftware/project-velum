@@ -4,14 +4,14 @@
   import { t } from "../i18n/index.js";
 
   $: btn = $BUTTON_LABELS[$playConfig.returnButton] || $t("input.buttons.guide");
-  $: verb = $playConfig.returnMode === "hold" ? "Mantén" : "Pulsa";
+  $: verb = $playConfig.returnMode === "hold" ? $t("playing.hint.hold") : $t("playing.hint.press");
   $: isSteamDownload = $session?.mode === "steam-download";
   $: isSteamUtility = $session?.mode === "steam-utility";
   $: overlayLabel = isSteamDownload
-    ? "⬇ Descargando desde Steam"
+    ? $t("playing.downloading")
     : isSteamUtility
-      ? "🎮 Abriendo Steam"
-      : "▶ Jugando a";
+      ? $t("playing.openingSteam")
+      : $t("playing.playing");
   // Los accesos de Steam (steam-utility) no tienen un juego puntual — usan su
   // propia etiqueta ("Biblioteca", "Tienda"...) en vez de $session.game.title.
   $: overlayTitle = isSteamUtility ? $session.label : $session?.game?.title;
@@ -23,7 +23,7 @@
       <div class="spinner"></div>
       <div class="label">{overlayLabel}</div>
       <div class="title">{overlayTitle}</div>
-      <div class="hint">{verb} <b>{btn}</b> para volver al launcher</div>
+      <div class="hint">{verb} <b>{btn}</b> {$t("playing.hint.suffix")}</div>
     </div>
   </div>
 {/if}

@@ -71,7 +71,7 @@ for (const id of ids) {
 // --- 3. Claves usadas en el código ------------------------------------------
 // Se detectan las formas literales; las dinámicas ("detail.sections." + id) no
 // se pueden resolver estáticamente y se reportan aparte para revisarlas a ojo.
-const USE_RE = /(?:\$t|\bt|\btr)\(\s*"([^"]+)"|(?:labelKey|defaultKey)\s*:\s*"([^"]+)"/g;
+const USE_RE = /(?:\$t|\bt|\btr)\(\s*"([^"]+)"|\w*Key\s*:\s*"([^"]+)"/g;
 const DYNAMIC_RE = /(?:\$t|\bt|\btr)\(\s*"[^"]*"\s*\+/g;
 
 const used = new Set();

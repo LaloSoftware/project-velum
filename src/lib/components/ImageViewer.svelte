@@ -8,6 +8,7 @@
    */
   import { imageViewer, closeImageViewer } from "../stores/ui.js";
   import { imageUrl } from "../util/asset.js";
+  import { t } from "../i18n/index.js";
 
   export let images = [];
 
@@ -36,13 +37,13 @@
   <div class="name dim">{current?.name || ""}</div>
   <div class="controls">
     <button class="chip" data-focusable tabindex="-1" disabled={images.length < 2} on:click={prev}>
-      ← Anterior
+      ← {$t("music.previous")}
     </button>
     <button class="chip primary" data-focusable data-focus-default tabindex="-1" on:click={closeImageViewer}>
-      ✕ Cerrar
+      ✕ {$t("common.close")}
     </button>
     <button class="chip" data-focusable tabindex="-1" disabled={images.length < 2} on:click={next}>
-      Siguiente →
+      {$t("music.next")} →
     </button>
   </div>
 </section>

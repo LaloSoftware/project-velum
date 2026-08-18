@@ -6,6 +6,7 @@
   } from "../stores/soundtrackOverrides.js";
   import { showToast } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
+  import { t, tr } from "../i18n/index.js";
 
   export let game;
 
@@ -16,43 +17,41 @@
   $: fileName = entry.path ? entry.path.split(/[\\/]/).pop() : "";
 
   async function pick() {
-    if (!isTauri) return showToast("Selección de archivos solo en la app");
+    if (!isTauri) return showToast(tr("common.filesOnlyInApp"));
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const path = await open({
         multiple: false,
-        filters: [{ name: "Audio", extensions: AUDIO_EXT }],
+        filters: [{ name: tr("soundtrack.filterName"), extensions: AUDIO_EXT }],
       });
       if (path) {
         await setSoundtrackPath(game.id, path);
-        showToast("Soundtrack actualizado");
+        showToast(tr("soundtrack.toast.updated"));
       }
     } catch {
-      showToast("No se pudo abrir el selector");
+      showToast(tr("common.pickerError"));
     }
   }
 
   async function clear() {
     await setSoundtrackPath(game.id, null);
-    showToast("Soundtrack quitado");
+    showToast(tr("soundtrack.toast.cleared"));
   }
 </script>
 
 <div class="soundtrack-editor">
-  <div class="head">Audio del juego</div>
+  <div class="head">{$t("soundtrack.head")}</div>
   <div class="btns">
     <button class="pick" data-focusable tabindex="-1" on:click={pick}>
-      {entry.path ? "Cambiar audio…" : "Elegir audio…"}
+      {entry.path ? $t("soundtrack.change") : $t("soundtrack.choose")}
     </button>
     {#if entry.path}
-      <button class="rm" data-focusable tabindex="-1" on:click={clear}>Quitar</button>
+      <button class="rm" data-focusable tabindex="-1" on:click={clear}>{$t("common.remove")}</button>
     {/if}
   </div>
 
   <p class="warn">
-    ⚠ Se sugiere el uso de archivos comprimidos con tamaño moderado (MP3/OGG). El uso
-    de archivos demasiado pesados puede afectar el rendimiento de la aplicación
-    mientras se reproduce.
+    ⚠ {$t("soundtrack.warn")}
   </p>
 
   {#if entry.path}
@@ -74,7 +73,7 @@
   {/if}
 
   <p class="hint">
-    Se reproduce en loop mientras el juego está enfocado en Inicio o se ve su Detalle.
+    {$t("soundtrack.hint")}
   </p>
 </div>
 

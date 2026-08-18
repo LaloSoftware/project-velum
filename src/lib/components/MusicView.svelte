@@ -15,6 +15,7 @@
   } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
   import { focusFirstIn } from "../input/navigation.js";
+  import { t, tr } from "../i18n/index.js";
   import MusicAlbumDetail from "./MusicAlbumDetail.svelte";
   import PlaylistDetail from "./PlaylistDetail.svelte";
   import NowPlayingView from "./NowPlayingView.svelte";
@@ -62,13 +63,13 @@
   };
 
   async function pickFolder() {
-    if (!isTauri) return showToast("Selección de carpetas solo en la app");
+    if (!isTauri) return showToast(tr("common.foldersOnlyInApp"));
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const dir = await open({ directory: true });
       if (dir) {
         await addAlbumFolder(dir);
-        showToast("Álbum agregado");
+        showToast(tr("music.toast.albumAdded"));
       }
     } catch (e) {
       reportError(e, "MusicView:pickFolder");
@@ -79,13 +80,13 @@
   // descubrimiento, ver musicLibrary.js::syncLibraryRoots) — pensado para
   // rutas tipo "C:/Usuarios/Música/" con varias OSTs copiadas adentro.
   async function pickRootFolder() {
-    if (!isTauri) return showToast("Selección de carpetas solo en la app");
+    if (!isTauri) return showToast(tr("common.foldersOnlyInApp"));
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const dir = await open({ directory: true });
       if (dir) {
         await addLibraryRoot(dir);
-        showToast("Carpeta raíz agregada");
+        showToast(tr("music.toast.rootFolderAdded"));
       }
     } catch (e) {
       reportError(e, "MusicView:pickRootFolder");
@@ -93,10 +94,10 @@
   }
 
   async function newPlaylist() {
-    const name = await openKeyboard("", "Nombre de la lista");
+    const name = await openKeyboard("", tr("keyboard.title.playlistName"));
     if (name) {
       await createPlaylist(name);
-      showToast(`Lista "${name}" creada`);
+      showToast(tr("music.toast.playlistCreated", { name }));
     }
   }
 
@@ -131,13 +132,13 @@
   {:else}
     <div class="tabs">
       <button class="tab" class:active={tab === "albums"} data-focusable data-focus-default tabindex="-1" on:click={() => selectTab("albums")}>
-        Álbumes
+        {$t("music.tab.albums")}
       </button>
       <button class="tab" class:active={tab === "playlists"} data-focusable tabindex="-1" on:click={() => selectTab("playlists")}>
-        Listas
+        {$t("music.tab.playlists")}
       </button>
       <button class="tab" class:active={tab === "nowplaying"} data-focusable tabindex="-1" on:click={() => selectTab("nowplaying")}>
-        Reproducción
+        {$t("music.tab.nowPlaying")}
       </button>
     </div>
 
@@ -145,11 +146,11 @@
       <div class="grid">
         <button class="card add" data-focusable tabindex="-1" on:click={pickFolder}>
           <span class="add-ico">＋</span>
-          <span class="add-label">Agregar álbum</span>
+          <span class="add-label">{$t("music.addAlbum")}</span>
         </button>
         <button class="card add" data-focusable tabindex="-1" on:click={pickRootFolder}>
           <span class="add-ico">＋</span>
-          <span class="add-label">Agregar carpeta raíz</span>
+          <span class="add-label">{$t("music.addRootFolder")}</span>
         </button>
         {#each $musicAlbums as a (a.id)}
           <button
@@ -165,13 +166,13 @@
         {/each}
       </div>
       {#if !$musicAlbums.length}
-        <p class="dim hint">Agrega una carpeta con música — cada carpeta se convierte en un álbum. O agrega una carpeta raíz y cada subcarpeta se convierte en un álbum automáticamente.</p>
+        <p class="dim hint">{$t("music.emptyAlbums")}</p>
       {/if}
     {:else if tab === "playlists"}
       <div class="grid">
         <button class="card add" data-focusable tabindex="-1" on:click={newPlaylist}>
           <span class="add-ico">＋</span>
-          <span class="add-label">Nueva lista</span>
+          <span class="add-label">{$t("music.newPlaylist")}</span>
         </button>
         {#each $playlists as p (p.id)}
           <button
@@ -183,12 +184,12 @@
             on:gmdetail={() => playPlaylist(p)}
           >
             <span class="card-title">{$names.playlist(p)}</span>
-            <span class="card-sub">{p.trackIds.length} pista(s)</span>
+            <span class="card-sub">{$t("music.trackCount", { count: p.trackIds.length })}</span>
           </button>
         {/each}
       </div>
       {#if !$playlists.length}
-        <p class="dim hint">Crea una lista para combinar pistas de distintos álbumes.</p>
+        <p class="dim hint">{$t("music.emptyPlaylists")}</p>
       {/if}
     {:else}
       <NowPlayingView />

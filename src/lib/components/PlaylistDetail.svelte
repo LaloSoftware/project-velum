@@ -11,6 +11,7 @@
   import { openKeyboard } from "../stores/keyboard.js";
   import { showToast } from "../stores/ui.js";
   import { names, playlistNameNow } from "../i18n/names.js";
+  import { t, tr } from "../i18n/index.js";
 
   export let playlist;
   export let onBack = () => {};
@@ -19,25 +20,25 @@
   $: current = $playlists.find((p) => p.id === playlist.id) || playlist;
 
   async function rename() {
-    const name = await openKeyboard(current.name, "Nombre de la lista");
+    const name = await openKeyboard(current.name, tr("keyboard.title.playlistName"));
     if (name) await renamePlaylist(current.id, name);
   }
 
   async function removeThisPlaylist() {
     await deletePlaylist(current.id);
-    showToast(`Lista "${playlistNameNow(current)}" eliminada`);
+    showToast(tr("music.toast.playlistDeleted", { name: playlistNameNow(current) }));
     onBack();
   }
 </script>
 
 <section class="playlist-detail">
   <header class="head">
-    <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← Volver</button>
+    <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← {$t("common.back")}</button>
     <h1>{$names.playlist(current)}</h1>
     <div class="head-actions">
-      <button class="chip" data-focusable tabindex="-1" on:click={rename}>Renombrar</button>
+      <button class="chip" data-focusable tabindex="-1" on:click={rename}>{$t("common.rename")}</button>
       <button class="chip danger" data-focusable tabindex="-1" on:click={removeThisPlaylist}>
-        Eliminar lista
+        {$t("music.deletePlaylist")}
       </button>
     </div>
   </header>
@@ -50,7 +51,7 @@
       disabled={!current.trackIds.length}
       on:click={() => playPlaylist(current)}
     >
-      ▶ Reproducir
+      ▶ {$t("media.play")}
     </button>
     <button
       class="chip"
@@ -59,7 +60,7 @@
       disabled={!current.trackIds.length}
       on:click={() => playPlaylist(current, { shuffle: true })}
     >
-      🔀 Aleatorio
+      🔀 {$t("common.shuffle")}
     </button>
   </div>
 
@@ -67,21 +68,21 @@
        (mismo bug de foco anidado, ver docs/input.md). -->
   <div class="tracks">
     {#if !current.trackIds.length}
-      <p class="dim">Sin pistas todavía — agrégalas desde el detalle de un álbum ("Agregar a lista").</p>
+      <p class="dim">{$t("music.playlistEmpty")}</p>
     {:else}
-      {#each current.trackIds as t, i (t.path)}
+      {#each current.trackIds as track, i (track.path)}
         <div class="track-row">
           <button
             class="track"
-            class:current={$musicPlayer.current?.path === t.path}
+            class:current={$musicPlayer.current?.path === track.path}
             data-focusable
             tabindex="-1"
-            on:click={() => playPlaylistFrom(current, t.path)}
+            on:click={() => playPlaylistFrom(current, track.path)}
           >
             <span class="tnum">{i + 1}</span>
-            <span class="tname">{t.title}</span>
-            <span class="talbum dim">{t.albumName}</span>
-            {#if $musicPlayer.current?.path === t.path}
+            <span class="tname">{track.title}</span>
+            <span class="talbum dim">{track.albumName}</span>
+            {#if $musicPlayer.current?.path === track.path}
               <span class="tplaying">{$musicPlayer.playing ? "▶" : "⏸"}</span>
             {/if}
           </button>
@@ -91,8 +92,8 @@
               data-focusable
               tabindex="-1"
               disabled={i === 0}
-              on:click={() => moveTrackUp(current.id, t.path)}
-              aria-label="Mover arriba"
+              on:click={() => moveTrackUp(current.id, track.path)}
+              aria-label={$t("music.moveUp")}
             >
               ▲
             </button>
@@ -101,8 +102,8 @@
               data-focusable
               tabindex="-1"
               disabled={i === current.trackIds.length - 1}
-              on:click={() => moveTrackDown(current.id, t.path)}
-              aria-label="Mover abajo"
+              on:click={() => moveTrackDown(current.id, track.path)}
+              aria-label={$t("music.moveDown")}
             >
               ▼
             </button>
@@ -110,8 +111,8 @@
               class="mini danger"
               data-focusable
               tabindex="-1"
-              on:click={() => removeTrackFromPlaylist(current.id, t.path)}
-              aria-label="Quitar de la lista"
+              on:click={() => removeTrackFromPlaylist(current.id, track.path)}
+              aria-label={$t("music.removeFromPlaylist")}
             >
               ✕
             </button>

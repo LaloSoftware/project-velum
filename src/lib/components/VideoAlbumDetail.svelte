@@ -5,6 +5,7 @@
   import { openKeyboard } from "../stores/keyboard.js";
   import { reportError, videoPlayer, openVideoPlayer, closeVideoPlayer } from "../stores/ui.js";
   import { pauseForSession } from "../stores/musicPlayer.js";
+  import { t, tr } from "../i18n/index.js";
   import VideoPlayerView from "./VideoPlayerView.svelte";
 
   export let album;
@@ -34,7 +35,7 @@
   }
 
   async function rename() {
-    const name = await openKeyboard(album.name, "Nombre del álbum");
+    const name = await openKeyboard(album.name, tr("keyboard.title.albumName"));
     if (name) {
       await renameAlbum(album.id, name);
       album = { ...album, name };
@@ -71,21 +72,21 @@
 {:else}
   <section class="video-album-detail">
     <header class="head">
-      <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← Volver</button>
+      <button class="back" data-focusable data-focus-default tabindex="-1" on:click={onBack}>← {$t("common.back")}</button>
       <h1>{album.name}</h1>
       <div class="head-actions">
-        <button class="chip" data-focusable tabindex="-1" on:click={rename}>Renombrar</button>
-        <button class="chip" data-focusable tabindex="-1" on:click={refresh}>Actualizar</button>
+        <button class="chip" data-focusable tabindex="-1" on:click={rename}>{$t("common.rename")}</button>
+        <button class="chip" data-focusable tabindex="-1" on:click={refresh}>{$t("common.refresh")}</button>
         <button class="chip danger" data-focusable tabindex="-1" on:click={removeThisAlbum}>
-          Quitar de la biblioteca
+          {$t("music.removeFromLibrary")}
         </button>
       </div>
     </header>
 
     {#if loading}
-      <p class="dim">Cargando…</p>
+      <p class="dim">{$t("common.loading")}</p>
     {:else if !videos.length}
-      <p class="dim">No se encontraron videos (MP4/WebM) en esta carpeta.</p>
+      <p class="dim">{$t("videos.noVideosFound")}</p>
     {:else}
       <div class="grid">
         {#each videos as v (v.path)}

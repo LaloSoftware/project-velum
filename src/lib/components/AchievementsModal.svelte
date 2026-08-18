@@ -8,6 +8,7 @@
     completedBadgeEnabled,
     completedGlowEnabled,
   } from "../stores/uiprefs.js";
+  import { t, fmt } from "../i18n/index.js";
 
   $: appid = $achievementsModal?.appid;
   $: title = $achievementsModal?.title;
@@ -38,11 +39,10 @@
   // por sí mismo y oscurecerlo de más lo deja irreconocible.
   const dimIcon = (a) => !a.achieved && !a.iconGrayUrl;
 
-  function fmtUnlockDate(ts) {
+  $: fmtUnlockDate = (ts) => {
     if (!ts) return null;
-    const d = new Date(ts * 1000);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString().slice(0, 5);
-  }
+    return $fmt.dateTime(new Date(ts * 1000));
+  };
 
   // % global (rareza) — opcional, bajo demanda ("Ver % global"), persistente
   // (Vista de juego/Ajustes: "Mostrar % global de obtención") en vez de
@@ -97,15 +97,15 @@
 {#if $achievementsModal}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="scrim" on:click={closeAchievements} role="presentation"></div>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Logros">
+  <div class="modal" role="dialog" aria-modal="true" aria-label={$t("achievements.modal.aria")}>
     <header class="head">
       <div class="head-top">
-        <h2>Logros — {title}</h2>
+        <h2>{$t("achievements.modal.heading", { title })}</h2>
         <button
           class="close"
           data-focusable
           tabindex="-1"
-          aria-label="Cerrar"
+          aria-label={$t("common.close")}
           on:click={closeAchievements}
         >
           ✕
@@ -120,11 +120,11 @@
       </div>
       <div class="stats-row">
         <button class="stats-toggle" data-focusable tabindex="-1" on:click={toggleGlobal}>
-          {$gameView.showGlobalPct ? "Ocultar % global" : "Ver % global"}
+          {$gameView.showGlobalPct ? $t("achievements.globalPct.hide") : $t("achievements.globalPct.show")}
         </button>
       </div>
       <div class="sort-row">
-        <span class="sort-label">Ordenar:</span>
+        <span class="sort-label">{$t("achievements.sort.label")}</span>
         <button
           class="stats-toggle"
           class:on={sortMode === "date"}
@@ -132,7 +132,7 @@
           tabindex="-1"
           on:click={() => selectSort("date")}
         >
-          Fecha de obtención
+          {$t("achievements.sort.byDate")}
         </button>
         <button
           class="stats-toggle"
@@ -141,7 +141,7 @@
           tabindex="-1"
           on:click={() => selectSort("global")}
         >
-          % global
+          {$t("achievements.sort.byGlobal")}
         </button>
       </div>
     </header>
@@ -163,23 +163,23 @@
                  nada de descripción/fecha/% global — se revela al desbloquearlo,
                  o con "Mostrar logros ocultos"/"Ver % global" (ver isSpoiler). -->
             <div class="ach-text">
-              <div class="ach-name dim">Logro oculto</div>
+              <div class="ach-name dim">{$t("detail.achievements.hidden")}</div>
             </div>
           {:else}
             <div class="ach-text">
               <div class="ach-name">{a.displayName || a.apiname}</div>
               {#if a.description}<div class="ach-desc dim">{a.description}</div>{/if}
               {#if a.achieved && a.unlockTime}
-                <div class="ach-date dim">Desbloqueado: {fmtUnlockDate(a.unlockTime)}</div>
+                <div class="ach-date dim">{$t("achievements.unlockedAt", { date: fmtUnlockDate(a.unlockTime) })}</div>
               {/if}
               {#if $gameView.showGlobalPct}
                 <div class="ach-global dim">
                   {#if loadingGlobal}
-                    cargando %…
+                    {$t("achievements.global.loading")}
                   {:else if globalPct[a.apiname] != null}
-                    {globalPct[a.apiname].toFixed(1)}% de los jugadores lo tienen
+                    {$t("achievements.global.pct", { pct: globalPct[a.apiname].toFixed(1) })}
                   {:else}
-                    no se pudo obtener el % global
+                    {$t("achievements.global.error")}
                   {/if}
                 </div>
               {/if}
@@ -187,7 +187,7 @@
           {/if}
         </button>
       {:else}
-        <p class="dim">Sin logros sincronizados todavía — sincroniza desde Configuración → Cuentas.</p>
+        <p class="dim">{$t("achievements.empty")}</p>
       {/each}
     </div>
   </div>

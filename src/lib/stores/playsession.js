@@ -6,6 +6,7 @@ import { syncNow, mergeCachedSteamGhosts } from "./steamAccount.js";
 import { launchGame, focusGame, isTauri, steamOpenInstall, openUrl } from "../ipc/index.js";
 import { onRawButton } from "../input/index.js";
 import { showToast, reportError } from "./ui.js";
+import { tr } from "../i18n/index.js";
 import { soundSettings } from "./sounds.js";
 import { pauseForSession as pauseMusicForSession } from "./musicPlayer.js";
 import {
@@ -181,5 +182,5 @@ export async function endPlay() {
 export async function updatePlayConfig(patch) {
   playConfig.update((c) => ({ ...c, ...patch }));
   await patchAppConfig({ play: get(playConfig) });
-  showToast("Preferencia guardada");
+  showToast(tr("common.preferenceSaved"));
 }

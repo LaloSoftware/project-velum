@@ -6,6 +6,7 @@
     toggleSyncSummaryExpanded,
     dismissSyncSummary,
   } from "../stores/steamAccount.js";
+  import { t } from "../i18n/index.js";
 
   // El detalle (log de errores) se abre/cierra con click o con el combo de
   // mando Home+L3 (App.svelte, mientras el badge esté vivo) — mismo estado
@@ -21,14 +22,21 @@
       <span class="dot" class:err={$steamSyncSummary.errors.length}></span>
       <div class="lines">
         <div>
-          Logros actualizados: {$steamSyncSummary.achievementsSynced}/{$steamSyncSummary.withAchievementsTotal}
+          {$t("steamSync.summary.achievementsUpdated", {
+            done: $steamSyncSummary.achievementsSynced,
+            total: $steamSyncSummary.withAchievementsTotal,
+          })}
         </div>
         <div>
-          Escaneados: {$steamSyncSummary.scanned}/{$steamSyncSummary.total} · Nuevos:
-          {$steamSyncSummary.newSchemasScanned}/{$steamSyncSummary.newSchemasTotal}
+          {$t("steamSync.summary.scanned", {
+            scanned: $steamSyncSummary.scanned,
+            total: $steamSyncSummary.total,
+            newScanned: $steamSyncSummary.newSchemasScanned,
+            newTotal: $steamSyncSummary.newSchemasTotal,
+          })}
         </div>
         {#if $steamSyncSummary.errors.length}
-          <div class="errline">Errores en el proceso: {$steamSyncSummary.errors.length}</div>
+          <div class="errline">{$t("steamSync.summary.errors", { count: $steamSyncSummary.errors.length })}</div>
         {/if}
       </div>
     </button>
@@ -36,20 +44,20 @@
     {#if $syncSummaryExpanded}
       <div class="detail">
         <div class="detail-head">
-          <span>Detalle de la sincronización</span>
+          <span>{$t("steamSync.summary.detailTitle")}</span>
           <button class="close" on:click={close}>✕</button>
         </div>
         {#if $steamSyncSummary.errors.length}
           <div class="errors">
             {#each $steamSyncSummary.errors as e (e.appid)}
               <div class="errrow">
-                <span class="appid">appid {e.appid}</span>
+                <span class="appid">{$t("steamSync.errorAppid", { appid: e.appid })}</span>
                 <span class="msg">{e.message}</span>
               </div>
             {/each}
           </div>
         {:else}
-          <p class="dim">Sin errores en esta sincronización.</p>
+          <p class="dim">{$t("steamSync.summary.noErrors")}</p>
         {/if}
       </div>
     {/if}
