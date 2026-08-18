@@ -2,6 +2,7 @@
   import { gamepadNotice } from "../stores/gamepads.js";
   import { notifyPosition } from "../stores/uiprefs.js";
   import { notifyPositionStyle } from "../util/notifyPosition.js";
+  import { t } from "../i18n/index.js";
 
   $: style = notifyPositionStyle($notifyPosition);
 </script>
@@ -10,7 +11,7 @@
   <div class="indicator" class:disconnected={!$gamepadNotice.connected} style={style} role="status" aria-live="polite">
     <span class="dot"></span>
     <span class="label">
-      <span class="title">{$gamepadNotice.connected ? "Mando conectado" : "Mando desconectado"}</span>
+      <span class="title">{$gamepadNotice.connected ? $t("gamepad.connected") : $t("gamepad.disconnected")}</span>
       <span class="name">{$gamepadNotice.name}</span>
     </span>
   </div>

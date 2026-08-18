@@ -132,4 +132,97 @@ export default {
   "settings.home.reading.natural": "Natural",
   "settings.home.reading.invertido": "Inverted",
   "settings.home.reading.centrado": "Main item centered",
+
+  // --- F2: shell (tabs, footer) ---
+  "nav.home": "Home",
+  "nav.games": "Games",
+  "nav.apps": "Apps",
+  "nav.multimedia": "Multimedia",
+  "footer.accept.open": "Open",
+  "footer.accept.playTrack": "Play track",
+  "footer.accept.view": "View",
+  "footer.accept.playVideo": "Play",
+  "footer.secondary.detail": "Details",
+  "footer.secondary.play": "Play",
+  "footer.secondary.addToPlaylist": "Add to playlist",
+  "footer.cardMenu": "Menu",
+  "footer.search": "Search",
+  "footer.tabs": "Tabs",
+  "footer.settings": "Settings",
+  "footer.system": "System",
+  "footer.systemMenu": "System menu",
+
+  // --- F2: new common strings ---
+  "common.play": "Play",
+  "common.cancel": "Cancel",
+  "common.back": "Back",
+  "common.delete": "Delete",
+
+  // --- F2: Filters and sorting modal ---
+  "filters.title": "Filters and sorting",
+  "filters.category": "Category",
+  "filters.installation": "Installation",
+  "filters.sortBy": "Sort by",
+
+  // --- F2: library (filters, search, empty grid) ---
+  "library.filter.all": "All",
+  "library.filter.installed": "Installed",
+  "library.filter.notInstalled": "Not installed",
+  "library.search.title": "Search game",
+  "library.empty": "No items.",
+
+  // --- F2: Games/Apps sorting ---
+  "sort.original": "Original",
+  "sort.titleAsc": "Title A → Z",
+  "sort.titleDesc": "Title Z → A",
+  "sort.storeAsc": "Platform A → Z",
+  "sort.storeDesc": "Platform Z → A",
+  "sort.sizeAsc": "Size (smallest → largest)",
+  "sort.sizeDesc": "Size (largest → smallest)",
+
+  // --- F2: game card (GameCard) ---
+  "card.toast.notInstalled": "Install \"{title}\" from {store} to play it",
+  "card.tooltip.notInstalled": "Not installed — install it from {store}",
+  "card.tooltip.complete": "100% achievements complete",
+  "card.badge.notInstalled": "{store} · not installed",
+
+  // --- F2: card context menu ---
+  "ctx.run": "Run",
+  "ctx.details": "Details",
+  "ctx.addToGroup": "Add to group ›",
+  "ctx.removeFromGroup": "Remove from group ›",
+  "ctx.hide": "Hide",
+  "ctx.newGroup": "+ New group…",
+  "ctx.toast.hidden": "\"{title}\" hidden",
+  "ctx.toast.addedTo": "Added to \"{name}\"",
+  "ctx.toast.removedFrom": "Removed from \"{name}\"",
+
+  // --- F2: virtual keyboard title per field ---
+  "keyboard.title.groupName": "Group name",
+
+  // --- F2: delete game confirmation ---
+  "confirmDelete.title": "Delete game",
+  "confirmDelete.body.pre": "Are you sure you want to delete ",
+  "confirmDelete.body.post": "? Its uninstaller will run.",
+  "confirmDelete.toast.uninstalling": "Running the uninstaller for {title}…",
+
+  // --- F2: virtual keyboard ---
+  "vk.write": "Type",
+  "vk.shift": "Shift",
+  "vk.backspace": "Delete",
+  "vk.space": "Space",
+  "vk.accept": "Accept",
+  "vk.submit": "Submit",
+
+  // --- F2: Home (empty state, library button) ---
+  "home.empty": "You haven't played anything yet. Open the library (Menu button).",
+  "home.viewLibrary": "View full library ({count}) →",
+
+  // --- F2: gamepad connected/disconnected notice ---
+  "gamepad.connected": "Controller connected",
+  "gamepad.disconnected": "Controller disconnected",
+
+  // --- F2: error banner ---
+  "error.label": "Error",
+  "error.close": "Close (B)",
 };

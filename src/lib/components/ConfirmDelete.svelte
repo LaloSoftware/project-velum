@@ -2,13 +2,14 @@
   import { confirmDelete, closeConfirm, showToast } from "../stores/ui.js";
   import { uninstallGame } from "../ipc/index.js";
   import { games } from "../stores/games.js";
+  import { t, tr } from "../i18n/index.js";
 
   $: game = $confirmDelete?.game;
 
   async function eliminar() {
     const g = game;
     closeConfirm();
-    showToast(`Ejecutando desinstalador de ${g.title}…`);
+    showToast(tr("confirmDelete.toast.uninstalling", { title: g.title }));
     await uninstallGame(g.id, g.launchTarget);
     // En la app real el juego desaparece tras desinstalar; aquí lo quitamos de la sesión.
     games.update((l) => l.filter((x) => x.id !== g.id));
@@ -18,17 +19,16 @@
 {#if game}
   <div class="scrim">
     <div class="box" role="alertdialog" aria-modal="true">
-      <h2>Eliminar juego</h2>
+      <h2>{$t("confirmDelete.title")}</h2>
       <p>
-        ¿Seguro que quieres eliminar <b>«{game.title}»</b>? Se ejecutará su
-        desinstalador.
+        {$t("confirmDelete.body.pre")}<b>«{game.title}»</b>{$t("confirmDelete.body.post")}
       </p>
       <div class="actions">
         <button class="btn cancel" data-focusable data-focus-default tabindex="-1" on:click={closeConfirm}>
-          Cancelar
+          {$t("common.cancel")}
         </button>
         <button class="btn del" data-focusable tabindex="-1" on:click={eliminar}>
-          Eliminar
+          {$t("common.delete")}
         </button>
       </div>
     </div>

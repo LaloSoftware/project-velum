@@ -6,6 +6,7 @@
   import { hideCardText } from "../stores/uiprefs.js";
   import { steamAchievementSummaries } from "../stores/steamAccount.js";
   import { completedBadgeEnabled, completedGlowEnabled } from "../stores/uiprefs.js";
+  import { t } from "../i18n/index.js";
 
   export let game;
   export let focusDefault = false;
@@ -27,6 +28,7 @@
   // locales), así que por defecto se considera instalado.
   $: notInstalled = game?.installed === false;
   $: title = game?.title || "";
+  $: storeLabel = STORE_LABEL[game?.store] || game?.store;
   $: art = effectiveArt(game, $overrides);
 
   // Juego con logros 100% completados (Steam) — marca discreta en la tarjeta,
@@ -81,6 +83,7 @@
   $: cover = hasImage
     ? `center / cover no-repeat url("${activeUrl}")`
     : `linear-gradient(150deg, hsl(${h} 55% 42%), hsl(${(h + 40) % 360} 60% 22%))`;
+  $: badgeText = notInstalled ? $t("card.badge.notInstalled", { store: storeLabel }) : storeLabel;
 
   function handleFocus() {
     focused = true;
@@ -92,7 +95,7 @@
   // solo avisa dónde instalarlo (ver `notInstalled` arriba).
   async function play() {
     if (notInstalled) {
-      showToast(`Instala "${title}" desde ${STORE_LABEL[game.store] || game.store} para poder jugarlo`);
+      showToast($t("card.toast.notInstalled", { title, store: storeLabel }));
       return;
     }
     try {
@@ -126,7 +129,7 @@
   tabindex="-1"
   role="button"
   aria-label={title}
-  title={notInstalled ? `No instalado — instálalo desde ${STORE_LABEL[game.store] || game.store}` : undefined}
+  title={notInstalled ? $t("card.tooltip.notInstalled", { store: storeLabel }) : undefined}
   on:click={play}
   on:gmdetail={detail}
   on:gmcontext={ctx}
@@ -138,9 +141,9 @@
     {#if !hasImage}
       <span class="cover-title">{title}</span>
     {/if}
-    <span class="badge">{STORE_LABEL[game.store] || game.store}</span>
+    <span class="badge">{badgeText}</span>
     {#if showCompleteBadge}
-      <span class="complete-badge" title="Logros 100% completados">100%</span>
+      <span class="complete-badge" title={$t("card.tooltip.complete")}>100%</span>
     {/if}
   </div>
   {#if !$hideCardText}
@@ -225,9 +228,6 @@
   }
   .not-installed .badge {
     background: rgba(8, 10, 14, 0.85);
-  }
-  .not-installed .badge::after {
-    content: " · no instalado";
   }
   .complete-badge {
     position: absolute;

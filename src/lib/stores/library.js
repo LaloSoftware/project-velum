@@ -3,6 +3,7 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 import { openKeyboard } from "./keyboard.js";
 import { groups } from "./groups.js";
 import { groupNameNow } from "../i18n/names.js";
+import { t, tr } from "../i18n/index.js";
 
 /*
  * Estado de la vista Juegos: qué filtros de tienda están habilitados (persistente),
@@ -39,9 +40,9 @@ export const cardAlign = writable("center");
 // con `installed: false` hoy, ver docs/accounts.md) — el resto no trae ese
 // campo y `matchesInstallFilter` los trata siempre como instalados.
 export const INSTALL_FILTER_OPTIONS = [
-  { value: "all", label: "Todos" },
-  { value: "installed", label: "Instalados" },
-  { value: "not-installed", label: "No instalados" },
+  { value: "all", labelKey: "library.filter.all" },
+  { value: "installed", labelKey: "library.filter.installed" },
+  { value: "not-installed", labelKey: "library.filter.notInstalled" },
 ];
 export const installFilter = writable("all");
 
@@ -99,11 +100,11 @@ export async function setStoreEnabled(store, on) {
 // Lista de filtros visibles: "Todos" + tiendas habilitadas + grupos personalizados.
 // Blindado: config persistida corrupta (p. ej. un grupo mal formado) no debe
 // tirar este store abajo, ya que solo lo consume la vista Juegos.
-export const filterList = derived([enabledStores, groups], ([$en, $groups]) => {
+export const filterList = derived([enabledStores, groups, t], ([$en, $groups, $t]) => {
   try {
     const gs = Array.isArray($groups) ? $groups : [];
     return [
-      { id: "all", label: "Todos", type: "all" },
+      { id: "all", label: $t("library.filter.all"), type: "all" },
       ...STORE_DEFS.filter((s) => $en?.[s.id] !== false).map((s) => ({ ...s, type: "store" })),
       ...gs
         .filter((g) => g && g.id)
@@ -111,7 +112,7 @@ export const filterList = derived([enabledStores, groups], ([$en, $groups]) => {
     ];
   } catch (e) {
     console.error("[gm:error] (library:filterList)", e);
-    return [{ id: "all", label: "Todos", type: "all" }];
+    return [{ id: "all", label: $t("library.filter.all"), type: "all" }];
   }
 });
 
@@ -136,6 +137,6 @@ export function cycleFilter(dir) {
 }
 
 export async function runSearch() {
-  const q = await openKeyboard(get(query), "Buscar juego");
+  const q = await openKeyboard(get(query), tr("library.search.title"));
   if (q !== null) query.set(q);
 }

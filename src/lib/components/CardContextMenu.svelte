@@ -14,6 +14,7 @@
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { uiScale } from "../stores/uiprefs.js";
+  import { t, tr } from "../i18n/index.js";
 
   $: menu = $contextMenu; // { game, rect, sub }
   $: game = menu?.game;
@@ -69,7 +70,7 @@
   function ocultar() {
     const a = menu.anchor;
     hide(game.id);
-    showToast(`«${game.title}» oculto`);
+    showToast(tr("ctx.toast.hidden", { title: game.title }));
     closeContext();
     a?.focus({ preventScroll: true });
   }
@@ -80,23 +81,23 @@
   async function addTo(g) {
     const a = menu.anchor;
     await toggleGameInGroup(g.id, game.id);
-    showToast(`Añadido a «${groupNameNow(g)}»`);
+    showToast(tr("ctx.toast.addedTo", { name: groupNameNow(g) }));
     closeContext();
     a?.focus({ preventScroll: true });
   }
   async function removeFrom(g) {
     const a = menu.anchor;
     await toggleGameInGroup(g.id, game.id);
-    showToast(`Quitado de «${groupNameNow(g)}»`);
+    showToast(tr("ctx.toast.removedFrom", { name: groupNameNow(g) }));
     closeContext();
     a?.focus({ preventScroll: true });
   }
   async function nuevoGrupo() {
     const a = menu.anchor;
-    const name = await openKeyboard("", "Nombre del grupo");
+    const name = await openKeyboard("", tr("keyboard.title.groupName"));
     if (name) {
       await createGroup(name, game.id);
-      showToast(`Añadido a «${name}»`);
+      showToast(tr("ctx.toast.addedTo", { name }));
     }
     closeContext();
     a?.focus({ preventScroll: true });
@@ -119,12 +120,12 @@
   >
     {#if !sub}
       <button class="mi" data-focusable data-focus-default tabindex="-1" on:click={play}>
-        {isApp ? "Ejecutar" : "Jugar"}
+        {isApp ? $t("ctx.run") : $t("common.play")}
       </button>
-      <button class="mi" data-focusable tabindex="-1" on:click={detail}>Detalles</button>
+      <button class="mi" data-focusable tabindex="-1" on:click={detail}>{$t("ctx.details")}</button>
       <div class="sep"></div>
       <button class="mi" data-focusable tabindex="-1" on:click={() => setContextSub("add")}>
-        Agregar a grupo ›
+        {$t("ctx.addToGroup")}
       </button>
       <button
         class="mi"
@@ -134,19 +135,19 @@
         tabindex="-1"
         on:click={() => inGroups.length && setContextSub("remove")}
       >
-        Retirar de grupo ›
+        {$t("ctx.removeFromGroup")}
       </button>
       <div class="sep"></div>
-      <button class="mi" data-focusable tabindex="-1" on:click={ocultar}>Ocultar</button>
-      <button class="mi danger" data-focusable tabindex="-1" on:click={eliminar}>Eliminar</button>
+      <button class="mi" data-focusable tabindex="-1" on:click={ocultar}>{$t("ctx.hide")}</button>
+      <button class="mi danger" data-focusable tabindex="-1" on:click={eliminar}>{$t("common.delete")}</button>
     {:else if sub === "add"}
-      <button class="mi back" data-focusable data-focus-default tabindex="-1" on:click={() => setContextSub(null)}>‹ Volver</button>
+      <button class="mi back" data-focusable data-focus-default tabindex="-1" on:click={() => setContextSub(null)}>‹ {$t("common.back")}</button>
       {#each notInGroups as g (g.id)}
         <button class="mi" data-focusable tabindex="-1" on:click={() => addTo(g)}>{$names.group(g)}</button>
       {/each}
-      <button class="mi" data-focusable tabindex="-1" on:click={nuevoGrupo}>+ Nuevo grupo…</button>
+      <button class="mi" data-focusable tabindex="-1" on:click={nuevoGrupo}>{$t("ctx.newGroup")}</button>
     {:else if sub === "remove"}
-      <button class="mi back" data-focusable data-focus-default tabindex="-1" on:click={() => setContextSub(null)}>‹ Volver</button>
+      <button class="mi back" data-focusable data-focus-default tabindex="-1" on:click={() => setContextSub(null)}>‹ {$t("common.back")}</button>
       {#each inGroups as g (g.id)}
         <button class="mi" data-focusable tabindex="-1" on:click={() => removeFrom(g)}>{$names.group(g)}</button>
       {/each}

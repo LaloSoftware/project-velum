@@ -10,13 +10,13 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
 
 // scope: 'both' | 'games' (plataforma solo tiene sentido en juegos).
 export const SORT_OPTIONS = [
-  { id: "original", label: "Original", scope: "both", needsSize: false },
-  { id: "title-asc", label: "Título A → Z", scope: "both", needsSize: false },
-  { id: "title-desc", label: "Título Z → A", scope: "both", needsSize: false },
-  { id: "store-asc", label: "Plataforma A → Z", scope: "games", needsSize: false },
-  { id: "store-desc", label: "Plataforma Z → A", scope: "games", needsSize: false },
-  { id: "size-asc", label: "Tamaño (menor → mayor)", scope: "both", needsSize: true },
-  { id: "size-desc", label: "Tamaño (mayor → menor)", scope: "both", needsSize: true },
+  { id: "original", labelKey: "sort.original", scope: "both", needsSize: false },
+  { id: "title-asc", labelKey: "sort.titleAsc", scope: "both", needsSize: false },
+  { id: "title-desc", labelKey: "sort.titleDesc", scope: "both", needsSize: false },
+  { id: "store-asc", labelKey: "sort.storeAsc", scope: "games", needsSize: false },
+  { id: "store-desc", labelKey: "sort.storeDesc", scope: "games", needsSize: false },
+  { id: "size-asc", labelKey: "sort.sizeAsc", scope: "both", needsSize: true },
+  { id: "size-desc", labelKey: "sort.sizeDesc", scope: "both", needsSize: true },
 ];
 
 export const sortGames = writable("original");

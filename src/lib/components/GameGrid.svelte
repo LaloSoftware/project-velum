@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import GameCard from "./GameCard.svelte";
   import { cardAlign } from "../stores/library.js";
+  import { t } from "../i18n/index.js";
 
   export let items = [];
   export let focusFirst = false;
@@ -43,7 +44,7 @@
     <GameCard game={g} focusDefault={focusFirst && i === 0} />
   {/each}
   {#if items.length === 0}
-    <p class="empty">No hay elementos.</p>
+    <p class="empty">{$t("library.empty")}</p>
   {/if}
 </div>
 

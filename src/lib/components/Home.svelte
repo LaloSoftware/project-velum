@@ -201,7 +201,7 @@
           <GameCard game={g} focusDefault={i === 0} heroOnFocus={true} onFocus={onCardFocus} />
         {/each}
         {#if $recentGames.length === 0}
-          <p class="empty">Aún no has jugado nada. Abre la biblioteca (botón Menú).</p>
+          <p class="empty">{$t("home.empty")}</p>
         {/if}
       </div>
     </div>
@@ -209,7 +209,7 @@
     {#if !$hideLibraryButton}
       <div class="library-cta">
         <button class="cta" data-focusable tabindex="-1" on:click={() => goto("games")}>
-          Ver biblioteca completa ({$onlyGames.length}) →
+          {$t("home.viewLibrary", { count: $onlyGames.length })}
         </button>
       </div>
     {/if}

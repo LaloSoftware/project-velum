@@ -16,6 +16,7 @@
     setSortApps,
     sortOptionsFor,
   } from "../stores/sorting.js";
+  import { t } from "../i18n/index.js";
 
   $: scope = $filtersModal?.scope || "games";
   $: list = scope === "apps" ? $onlyApps : $onlyGames;
@@ -37,16 +38,16 @@
 {#if $filtersModal}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="scrim" on:click={closeFilters} role="presentation"></div>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Filtros y orden">
+  <div class="modal" role="dialog" aria-modal="true" aria-label={$t("filters.title")}>
     <header class="head">
-      <h2>Filtros y orden</h2>
-      <span class="scope">{scope === "apps" ? "Aplicaciones" : "Juegos"}</span>
+      <h2>{$t("filters.title")}</h2>
+      <span class="scope">{scope === "apps" ? $t("nav.apps") : $t("nav.games")}</span>
     </header>
 
     <div class="body">
       {#if showCategories}
         <section class="block">
-          <h3>Categoría</h3>
+          <h3>{$t("filters.category")}</h3>
           <div class="cats">
             {#each $filterList as c (c.id)}
               <button
@@ -64,7 +65,7 @@
         </section>
 
         <section class="block">
-          <h3>Instalación</h3>
+          <h3>{$t("filters.installation")}</h3>
           <div class="cats">
             {#each INSTALL_FILTER_OPTIONS as o (o.value)}
               <button
@@ -74,7 +75,7 @@
                 tabindex="-1"
                 on:click={() => setInstallFilter(o.value)}
               >
-                {o.label}
+                {$t(o.labelKey)}
               </button>
             {/each}
           </div>
@@ -82,7 +83,7 @@
       {/if}
 
       <section class="block">
-        <h3>Ordenar por</h3>
+        <h3>{$t("filters.sortBy")}</h3>
         <div class="sorts">
           {#each options as o (o.id)}
             <button
@@ -93,7 +94,7 @@
               tabindex="-1"
               on:click={() => pickSort(o.id)}
             >
-              <span class="s-label">{o.label}</span>
+              <span class="s-label">{$t(o.labelKey)}</span>
               {#if currentSort === o.id}<span class="tick">✓</span>{/if}
             </button>
           {/each}
@@ -102,7 +103,7 @@
     </div>
 
     <footer class="actions">
-      <button class="done" data-focusable tabindex="-1" on:click={closeFilters}>Listo</button>
+      <button class="done" data-focusable tabindex="-1" on:click={closeFilters}>{$t("common.done")}</button>
     </footer>
   </div>
 {/if}

@@ -147,4 +147,97 @@ export default {
   "settings.home.reading.natural": "Natural",
   "settings.home.reading.invertido": "Invertido",
   "settings.home.reading.centrado": "Principal al centro",
+
+  // --- F2: cascarón (pestañas, footer) ---
+  "nav.home": "Inicio",
+  "nav.games": "Juegos",
+  "nav.apps": "Aplicaciones",
+  "nav.multimedia": "Multimedia",
+  "footer.accept.open": "Abrir",
+  "footer.accept.playTrack": "Reproducir pista",
+  "footer.accept.view": "Ver",
+  "footer.accept.playVideo": "Reproducir",
+  "footer.secondary.detail": "Detalle",
+  "footer.secondary.play": "Reproducir",
+  "footer.secondary.addToPlaylist": "Agregar a lista",
+  "footer.cardMenu": "Menú",
+  "footer.search": "Buscar",
+  "footer.tabs": "Pestañas",
+  "footer.settings": "Configuración",
+  "footer.system": "Sistema",
+  "footer.systemMenu": "Menú de sistema",
+
+  // --- F2: comunes nuevos ---
+  "common.play": "Jugar",
+  "common.cancel": "Cancelar",
+  "common.back": "Volver",
+  "common.delete": "Eliminar",
+
+  // --- F2: modal de Filtros y orden ---
+  "filters.title": "Filtros y orden",
+  "filters.category": "Categoría",
+  "filters.installation": "Instalación",
+  "filters.sortBy": "Ordenar por",
+
+  // --- F2: biblioteca (filtros, búsqueda, grilla vacía) ---
+  "library.filter.all": "Todos",
+  "library.filter.installed": "Instalados",
+  "library.filter.notInstalled": "No instalados",
+  "library.search.title": "Buscar juego",
+  "library.empty": "No hay elementos.",
+
+  // --- F2: orden de Juegos/Apps ---
+  "sort.original": "Original",
+  "sort.titleAsc": "Título A → Z",
+  "sort.titleDesc": "Título Z → A",
+  "sort.storeAsc": "Plataforma A → Z",
+  "sort.storeDesc": "Plataforma Z → A",
+  "sort.sizeAsc": "Tamaño (menor → mayor)",
+  "sort.sizeDesc": "Tamaño (mayor → menor)",
+
+  // --- F2: tarjeta de juego (GameCard) ---
+  "card.toast.notInstalled": "Instala \"{title}\" desde {store} para poder jugarlo",
+  "card.tooltip.notInstalled": "No instalado — instálalo desde {store}",
+  "card.tooltip.complete": "Logros 100% completados",
+  "card.badge.notInstalled": "{store} · no instalado",
+
+  // --- F2: menú contextual de tarjeta ---
+  "ctx.run": "Ejecutar",
+  "ctx.details": "Detalles",
+  "ctx.addToGroup": "Agregar a grupo ›",
+  "ctx.removeFromGroup": "Retirar de grupo ›",
+  "ctx.hide": "Ocultar",
+  "ctx.newGroup": "+ Nuevo grupo…",
+  "ctx.toast.hidden": "«{title}» oculto",
+  "ctx.toast.addedTo": "Añadido a «{name}»",
+  "ctx.toast.removedFrom": "Quitado de «{name}»",
+
+  // --- F2: título del teclado virtual según el campo a completar ---
+  "keyboard.title.groupName": "Nombre del grupo",
+
+  // --- F2: confirmación de eliminar juego ---
+  "confirmDelete.title": "Eliminar juego",
+  "confirmDelete.body.pre": "¿Seguro que quieres eliminar ",
+  "confirmDelete.body.post": "? Se ejecutará su desinstalador.",
+  "confirmDelete.toast.uninstalling": "Ejecutando desinstalador de {title}…",
+
+  // --- F2: teclado virtual ---
+  "vk.write": "Escribir",
+  "vk.shift": "Mayús",
+  "vk.backspace": "Borrar",
+  "vk.space": "Espacio",
+  "vk.accept": "Aceptar",
+  "vk.submit": "Enviar",
+
+  // --- F2: Inicio (estado vacío, botón de biblioteca) ---
+  "home.empty": "Aún no has jugado nada. Abre la biblioteca (botón Menú).",
+  "home.viewLibrary": "Ver biblioteca completa ({count}) →",
+
+  // --- F2: aviso de mando conectado/desconectado ---
+  "gamepad.connected": "Mando conectado",
+  "gamepad.disconnected": "Mando desconectado",
+
+  // --- F2: banner de error ---
+  "error.label": "Error",
+  "error.close": "Cerrar (B)",
 };

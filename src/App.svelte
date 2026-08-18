@@ -38,7 +38,7 @@
   import { initHidden } from "./lib/stores/hidden.js";
   import { initPrompts } from "./lib/stores/prompts.js";
   import { initLanguage } from "./lib/stores/language.js";
-  import { fmt } from "./lib/i18n/index.js";
+  import { fmt, t } from "./lib/i18n/index.js";
   import {
     soundSettings,
     initSounds,
@@ -144,10 +144,10 @@
   import RadialMenu from "./lib/components/RadialMenu.svelte";
 
   const TABS = [
-    { id: "home", label: "Inicio" },
-    { id: "games", label: "Juegos" },
-    { id: "apps", label: "Aplicaciones" },
-    { id: "multimedia", label: "Multimedia" },
+    { id: "home", labelKey: "nav.home" },
+    { id: "games", labelKey: "nav.games" },
+    { id: "apps", labelKey: "nav.apps" },
+    { id: "multimedia", labelKey: "nav.multimedia" },
   ];
 
 
@@ -204,26 +204,27 @@
   // ninguno de los dos tenga un modo "viewer"/"player" propio, alcanza con
   // "grid"/"album" en los tres.
   $: inMultimedia = $view === "multimedia";
-  $: footerAcceptLabel = !inMultimedia
-    ? "Jugar"
-    : $musicFooterMode === "grid"
-      ? "Abrir"
-      : $musicFooterMode === "album" || $musicFooterMode === "playlist"
-        ? "Reproducir pista"
-        : $imagesFooterMode === "grid" || $videoFooterMode === "grid"
-          ? "Abrir"
-          : $imagesFooterMode === "album"
-            ? "Ver"
-            : $videoFooterMode === "album"
-              ? "Reproducir"
-              : null;
-  $: footerSecondaryLabel = !inMultimedia
-    ? "Detalle"
-    : $musicFooterMode === "grid"
-      ? "Reproducir"
-      : $musicFooterMode === "album"
-        ? "Agregar a lista"
-        : null;
+  // Misma lógica que antes (ver historial), ahora devolviendo el texto YA
+  // traducido: se le pasa el store $t como parámetro para que la función siga
+  // siendo una tabla de consulta legible (sin ternarios anidados) y a la vez
+  // cada llamada quede literal, visible para scripts/i18n-check.mjs.
+  function footerAcceptLabelFor($t, inMultimedia, musicMode, imagesMode, videoMode) {
+    if (!inMultimedia) return $t("common.play");
+    if (musicMode === "grid") return $t("footer.accept.open");
+    if (musicMode === "album" || musicMode === "playlist") return $t("footer.accept.playTrack");
+    if (imagesMode === "grid" || videoMode === "grid") return $t("footer.accept.open");
+    if (imagesMode === "album") return $t("footer.accept.view");
+    if (videoMode === "album") return $t("footer.accept.playVideo");
+    return null;
+  }
+  function footerSecondaryLabelFor($t, inMultimedia, musicMode) {
+    if (!inMultimedia) return $t("footer.secondary.detail");
+    if (musicMode === "grid") return $t("footer.secondary.play");
+    if (musicMode === "album") return $t("footer.secondary.addToPlaylist");
+    return null;
+  }
+  $: footerAcceptLabel = footerAcceptLabelFor($t, inMultimedia, $musicFooterMode, $imagesFooterMode, $videoFooterMode);
+  $: footerSecondaryLabel = footerSecondaryLabelFor($t, inMultimedia, $musicFooterMode);
   $: showFooterX = !inMultimedia;
 
   // Auto-ocultar el cursor del mouse cuando se usa mando/teclado: se oculta en
@@ -773,7 +774,7 @@
             tabindex="-1"
             on:click={() => goto(tab.id)}
           >
-            {tab.label}
+            {$t(tab.labelKey)}
           </button>
         {/each}
       </nav>
@@ -826,13 +827,13 @@
       <footer class="hints">
         {#if footerAcceptLabel}<span><ButtonPrompt token="A" button="south" action="accept" /> {footerAcceptLabel}</span>{/if}
         {#if footerSecondaryLabel}<span><ButtonPrompt token="Y" button="north" action="north" /> {footerSecondaryLabel}</span>{/if}
-        {#if showFooterX}<span><ButtonPrompt token="X" button="west" action="west" /> Menú</span>{/if}
-        {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> Buscar</span>{/if}
-        {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> Filtros y orden</span>{/if}
-        <span><ButtonPrompt token="B" button="east" action="back" /> Volver</span>
-        <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Pestañas</span>
-        <span><ButtonPrompt token="Menú" button="start" action="menu" /> Configuración</span>
-        <span><ButtonPrompt token="Ver" button="select" action="quick" /> Sistema</span>
+        {#if showFooterX}<span><ButtonPrompt token="X" button="west" action="west" /> {$t("footer.cardMenu")}</span>{/if}
+        {#if $view === "games"}<span><ButtonPrompt token="L3" button="l3" action="search" /> {$t("footer.search")}</span>{/if}
+        {#if $view === "games" || $view === "apps"}<span><ButtonPrompt token="R3" button="r3" action="filters" /> {$t("filters.title")}</span>{/if}
+        <span><ButtonPrompt token="B" button="east" action="back" /> {$t("common.back")}</span>
+        <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> {$t("footer.tabs")}</span>
+        <span><ButtonPrompt token="Menú" button="start" action="menu" /> {$t("footer.settings")}</span>
+        <span><ButtonPrompt token="Ver" button="select" action="quick" /> {$t("footer.system")}</span>
         <span>
           {#if $inputSource === "keymouse"}
             <!-- Home no existe en teclado; en teclado/mouse se muestra el
@@ -842,7 +843,7 @@
             <!-- Mantener Home abre el menú radial (mando, ver RadialMenu.svelte). -->
             <ButtonPrompt token="Home" button="guide" />
           {/if}
-          Menú de sistema
+          {$t("footer.systemMenu")}
         </span>
       </footer>
     {/if}

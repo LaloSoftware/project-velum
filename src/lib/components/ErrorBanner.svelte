@@ -1,13 +1,14 @@
 <script>
   import { appError, clearAppError } from "../stores/ui.js";
+  import { t } from "../i18n/index.js";
 </script>
 
 {#if $appError}
   <div class="err">
     <div class="head">
-      <span class="tag">⚠ Error{$appError.ctx ? ` · ${$appError.ctx}` : ""}</span>
+      <span class="tag">⚠ {$t("error.label")}{$appError.ctx ? ` · ${$appError.ctx}` : ""}</span>
       <button class="close" data-focusable tabindex="-1" on:click={clearAppError}>
-        Cerrar (B)
+        {$t("error.close")}
       </button>
     </div>
     <p class="msg">{$appError.msg}</p>

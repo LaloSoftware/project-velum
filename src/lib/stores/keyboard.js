@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import { tr } from "../i18n/index.js";
 
 /*
  * Teclado virtual en pantalla. Permite escribir texto SOLO con el mando,
@@ -21,7 +22,7 @@ export const vk = writable({
 
 let resolver = null;
 
-export function openKeyboard(initial = "", title = "Escribir") {
+export function openKeyboard(initial = "", title = tr("vk.write")) {
   return new Promise((resolve) => {
     resolver = resolve;
     vk.set({ open: true, title, value: initial, shift: false, _resolve: resolve });

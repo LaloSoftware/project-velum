@@ -1,5 +1,6 @@
 <script>
   import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
+  import { t } from "../i18n/index.js";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
   // Fila de dígitos: se comparte entre ambos modos (letras/símbolos), solo
@@ -43,7 +44,7 @@
           tabindex="-1"
           on:click={vkToggleShift}
         >
-          ⇧<br />Mayús
+          ⇧<br />{$t("vk.shift")}
         </button>
         <button
           class="key side"
@@ -67,24 +68,24 @@
         {/each}
       </div>
       <button class="key side" data-focusable tabindex="-1" on:click={vkBackspace}>
-        ⌫<br />Borrar
+        ⌫<br />{$t("vk.backspace")}
       </button>
     </div>
 
     <div class="krow bottom">
-      <button class="key cancel" data-focusable tabindex="-1" on:click={() => vkDone(true)}>✕ Cancelar</button>
-      <button class="key space" data-focusable data-focus-default tabindex="-1" on:click={() => vkType(" ")}>Espacio</button>
-      <button class="key done" data-focusable tabindex="-1" on:click={() => vkDone(false)}>✓ Aceptar</button>
+      <button class="key cancel" data-focusable tabindex="-1" on:click={() => vkDone(true)}>✕ {$t("common.cancel")}</button>
+      <button class="key space" data-focusable data-focus-default tabindex="-1" on:click={() => vkType(" ")}>{$t("vk.space")}</button>
+      <button class="key done" data-focusable tabindex="-1" on:click={() => vkDone(false)}>✓ {$t("vk.accept")}</button>
     </div>
 
     <!-- Pistas de atajos de mando -->
     <div class="kb-hints">
-      <span><ButtonPrompt token="A" button="south" action="accept" /> Escribir</span>
-      <span><ButtonPrompt token="Y/△" button="north" action="north" /> Espacio</span>
-      <span><ButtonPrompt token="X/□" button="west" action="west" /> Borrar</span>
-      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> Mayús</span>
-      <span><ButtonPrompt token="B" button="east" action="back" /> Cancelar</span>
-      <span><ButtonPrompt token="RT" button="rt" action="filterNext" /> Enviar</span>
+      <span><ButtonPrompt token="A" button="south" action="accept" /> {$t("vk.write")}</span>
+      <span><ButtonPrompt token="Y/△" button="north" action="north" /> {$t("vk.space")}</span>
+      <span><ButtonPrompt token="X/□" button="west" action="west" /> {$t("vk.backspace")}</span>
+      <span><ButtonPrompt token="LB" button="l1" action="tabLeft" />/<ButtonPrompt token="RB" button="r1" action="tabRight" /> {$t("vk.shift")}</span>
+      <span><ButtonPrompt token="B" button="east" action="back" /> {$t("common.cancel")}</span>
+      <span><ButtonPrompt token="RT" button="rt" action="filterNext" /> {$t("vk.submit")}</span>
     </div>
   </div>
 </div>
