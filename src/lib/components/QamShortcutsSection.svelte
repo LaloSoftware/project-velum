@@ -1,14 +1,14 @@
 <script>
   import { customShortcuts, displayLabel } from "../stores/customShortcuts.js";
   import { runShortcut } from "../ipc/index.js";
+  import { t } from "../i18n/index.js";
 </script>
 
 <div class="qam">
-  <h2>Atajos</h2>
+  <h2>{$t("qam.section.shortcuts")}</h2>
   {#if $customShortcuts.length === 0}
     <p class="dim">
-      No tienes atajos configurados. Créalos en Configuración &gt; Configuración de atajos,
-      en "Atajos personalizados".
+      {$t("qam.shortcuts.empty")}
     </p>
   {:else}
     <div class="list">

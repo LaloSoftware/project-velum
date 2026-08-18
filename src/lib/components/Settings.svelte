@@ -94,24 +94,24 @@
   $: completeColor = active?.tokenOverrides?.["--gm-complete"] || COMPLETE_DEFAULT;
 
   function openAccentPicker() {
-    openColorPicker({ value: accentColor, title: "Color de acento", onApply: pickAccent });
+    openColorPicker({ value: accentColor, title: tr("settings.appearance.accentColor.title"), onApply: pickAccent });
   }
   function openTextPicker() {
-    openColorPicker({ value: textColor, title: "Color de texto", onApply: pickText });
+    openColorPicker({ value: textColor, title: tr("settings.appearance.textColor.title"), onApply: pickText });
   }
   function openCompletePicker() {
     openColorPicker({
       value: completeColor,
-      title: "Color de 100% completado",
+      title: tr("settings.appearance.complete.title"),
       onApply: pickCompleteColor,
     });
   }
 
   async function newProfile() {
-    const name = await openKeyboard("", "Nombre del perfil");
+    const name = await openKeyboard("", tr("keyboard.title.profileName"));
     if (name) {
       await createProfile(name);
-      showToast(`Perfil "${name}" creado y activado`);
+      showToast(tr("settings.toast.profileCreated", { name }));
     }
   }
 
@@ -167,11 +167,11 @@
   }
   async function loadExternalCss() {
     await updateActive({ extraCss: EXAMPLE_EXTERNAL_CSS });
-    showToast("CSS externo de ejemplo aplicado");
+    showToast(tr("settings.toast.cssExampleApplied"));
   }
   async function clearCss() {
     await updateActive({ extraCss: "", tokenOverrides: {} });
-    showToast("Personalización CSS limpiada");
+    showToast(tr("settings.toast.cssCleared"));
   }
   async function editHomeText(field) {
     const current = $homeTexts[field.key]?.text || "";
@@ -183,17 +183,17 @@
   // ArtEditor.svelte::pick() (ruta absoluta, nunca se copia el archivo).
   const WALLPAPER_IMG_EXT = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
   async function pickHomeWallpaper() {
-    if (!isTauri) return showToast("Selección de archivos solo en la app");
+    if (!isTauri) return showToast(tr("common.filesOnlyInApp"));
     const { open } = await import("@tauri-apps/plugin-dialog");
-    const path = await open({ multiple: false, filters: [{ name: "Imágenes", extensions: WALLPAPER_IMG_EXT }] });
+    const path = await open({ multiple: false, filters: [{ name: tr("detail.sections.images"), extensions: WALLPAPER_IMG_EXT }] });
     if (path) {
       await setHomeWallpaper(path);
-      showToast("Wallpaper de Inicio actualizado");
+      showToast(tr("settings.toast.wallpaperUpdated"));
     }
   }
   async function removeHomeWallpaper() {
     await clearHomeWallpaper();
-    showToast("Wallpaper de Inicio quitado");
+    showToast(tr("settings.toast.wallpaperRemoved"));
   }
 
   // Vista previa del wallpaper (data URI, se recarga si cambia la ruta) —
@@ -211,20 +211,20 @@
     }
   }
   async function removeProfile() {
-    if ($profiles.length <= 1) return showToast("No puedes borrar el único perfil");
+    if ($profiles.length <= 1) return showToast(tr("settings.toast.cannotDeleteOnlyProfile"));
     const name = profileNameNow(active);
     await deleteProfile(active.id);
-    showToast(`Perfil "${name}" eliminado`);
+    showToast(tr("settings.toast.profileDeleted", { name }));
   }
   function exportProfileCss() {
-    showToast("Exportar perfil CSS: próximamente");
+    showToast(tr("settings.toast.exportComingSoon"));
   }
 </script>
 
 <section class="settings">
   <h1>{$t("settings.title")} · {$t("settings.sections.appearance")}</h1>
 
-  <h2>Perfil activo</h2>
+  <h2>{$t("settings.appearance.profile.title")}</h2>
   <div class="profile-block">
     <Select
       value={$activeProfileId}
@@ -232,45 +232,44 @@
       onChange={setActive}
     />
     <div class="profile-actions">
-      <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo perfil</button>
-      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>Borrar perfil</button>
+      <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>{$t("settings.appearance.profile.new")}</button>
+      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>{$t("settings.appearance.profile.delete")}</button>
     </div>
   </div>
 
   {#if active}
-    <h2>Tema base del perfil «{$names.profile(active)}»</h2>
+    <h2>{$t("settings.appearance.profile.baseTheme", { name: $names.profile(active) })}</h2>
     <Select
       value={active.baseTheme}
-      options={themes.map((t) => ({ value: t.id, label: t.name + (t.kind === "light" ? " (claro)" : "") }))}
+      options={themes.map((th) => ({ value: th.id, label: th.name + (th.kind === "light" ? $t("settings.appearance.theme.lightSuffix") : "") }))}
       onChange={pickTheme}
     />
 
-    <h2>Color de acento</h2>
+    <h2>{$t("settings.appearance.accentColor.title")}</h2>
     <button class="colorfield" data-focusable tabindex="-1" on:click={openAccentPicker}>
       <span class="swatch-sm" style="background: {accentColor}"></span>
       <span class="cf-val">{accentColor.toUpperCase()}</span>
-      <span class="cf-cta">Personalizar</span>
+      <span class="cf-cta">{$t("common.customize")}</span>
     </button>
 
-    <h2>Color de texto</h2>
+    <h2>{$t("settings.appearance.textColor.title")}</h2>
     <p class="dim">
-      Al cambiar a un tema de fondo claro, el texto se reinicia automáticamente a un
-      tono oscuro legible; puedes volver a personalizarlo aquí.
+      {$t("settings.appearance.textColor.desc")}
     </p>
     <button class="colorfield" data-focusable tabindex="-1" on:click={openTextPicker}>
       <span class="swatch-sm" style="background: {textColor}"></span>
       <span class="cf-val">{textColor.toUpperCase()}</span>
-      <span class="cf-cta">Personalizar</span>
+      <span class="cf-cta">{$t("common.customize")}</span>
     </button>
 
-    <h2>Tipografía</h2>
+    <h2>{$t("settings.appearance.font.title")}</h2>
     <Select
       value={fontValue}
       options={FONT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))}
       onChange={pickFont}
     />
 
-    <h2>Escala de interfaz</h2>
+    <h2>{$t("settings.appearance.uiScale.title")}</h2>
     <div class="sizerow">
       <input
         type="range"
@@ -286,7 +285,7 @@
       <span class="sizeval">{$uiScale.toFixed(2)}x</span>
     </div>
 
-    <h2>Tamaño de tarjeta (biblioteca)</h2>
+    <h2>{$t("settings.appearance.cardSize.title")}</h2>
     <div class="sizerow">
       <input
         type="range"
@@ -302,7 +301,7 @@
       <span class="sizeval">{cardW}px</span>
     </div>
 
-    <h2>Tamaño de tarjeta (Inicio)</h2>
+    <h2>{$t("settings.appearance.cardSizeHome.title")}</h2>
     <div class="sizerow">
       <input
         type="range"
@@ -318,10 +317,10 @@
       <span class="sizeval">{cardWHome}px</span>
     </div>
 
-    <h2>Interfaz</h2>
+    <h2>{$t("settings.appearance.interface.title")}</h2>
     <div class="rows">
       <div class="row">
-        <span class="rlabel">Ocultar textos de las tarjetas</span>
+        <span class="rlabel">{$t("settings.appearance.interface.hideCardText")}</span>
         <button
           class="toggle"
           class:on={$hideCardText}
@@ -329,11 +328,11 @@
           tabindex="-1"
           on:click={() => setHideCardText(!$hideCardText)}
         >
-          {$hideCardText ? "ON" : "OFF"}
+          {$hideCardText ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       <div class="row">
-        <span class="rlabel">Ocultar botón «Ver biblioteca» (Inicio)</span>
+        <span class="rlabel">{$t("settings.appearance.interface.hideLibraryButton")}</span>
         <button
           class="toggle"
           class:on={$hideLibraryButton}
@@ -341,11 +340,11 @@
           tabindex="-1"
           on:click={() => setHideLibraryButton(!$hideLibraryButton)}
         >
-          {$hideLibraryButton ? "ON" : "OFF"}
+          {$hideLibraryButton ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       <div class="row">
-        <span class="rlabel">Ocultar pie con guías de botones</span>
+        <span class="rlabel">{$t("settings.appearance.interface.hideFooter")}</span>
         <button
           class="toggle"
           class:on={$hideFooter}
@@ -353,13 +352,13 @@
           tabindex="-1"
           on:click={() => setHideFooter(!$hideFooter)}
         >
-          {$hideFooter ? "ON" : "OFF"}
+          {$hideFooter ? $t("common.on") : $t("common.off")}
         </button>
       </div>
     </div>
 
-    <h2>Vista de juego</h2>
-    <p class="dim">Datos del juego que se muestran en el detalle (Jugar/Volver siempre visibles).</p>
+    <h2>{$t("settings.appearance.gameView.title")}</h2>
+    <p class="dim">{$t("settings.appearance.gameView.desc")}</p>
     <div class="rows">
       {#each GAME_VIEW_FIELDS as f (f.key)}
         <div class="row">
@@ -371,20 +370,19 @@
             tabindex="-1"
             on:click={() => setGameViewField(f.key, !$gameView[f.key])}
           >
-            {$gameView[f.key] ? "ON" : "OFF"}
+            {$gameView[f.key] ? $t("common.on") : $t("common.off")}
           </button>
         </div>
       {/each}
     </div>
 
-    <h2>Fondo de metadatos (Detalle)</h2>
+    <h2>{$t("settings.appearance.metaBg.title")}</h2>
     <p class="dim">
-      Fondo detrás del título/plataforma/meta del Detalle, para que se lea mejor sobre
-      el hero — se adapta al tema/perfil activo (no es un negro fijo).
+      {$t("settings.appearance.metaBg.desc")}
     </p>
     <div class="rows">
       <div class="row">
-        <span class="rlabel">Visible</span>
+        <span class="rlabel">{$t("common.visible")}</span>
         <button
           class="toggle"
           class:on={$metaBgVisible}
@@ -392,11 +390,11 @@
           tabindex="-1"
           on:click={() => setMetaBgVisible(!$metaBgVisible)}
         >
-          {$metaBgVisible ? "ON" : "OFF"}
+          {$metaBgVisible ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       <div class="row">
-        <span class="rlabel">Opacidad</span>
+        <span class="rlabel">{$t("common.opacity")}</span>
         <div class="sizerow">
           <input
             type="range"
@@ -414,14 +412,13 @@
       </div>
     </div>
 
-    <h2>Difuminado de fondo (Inicio)</h2>
+    <h2>{$t("settings.appearance.homeBgFade.title")}</h2>
     <p class="dim">
-      Qué tan visible se ve la foto de fondo de Inicio antes de desvanecerse hacia el
-      wallpaper del tema — más bajo, más difuminado/tenue.
+      {$t("settings.appearance.homeBgFade.desc")}
     </p>
     <div class="rows">
       <div class="row">
-        <span class="rlabel">Difuminado</span>
+        <span class="rlabel">{$t("settings.appearance.homeBgFade.label")}</span>
         <div class="sizerow">
           <input
             type="range"
@@ -439,46 +436,41 @@
       </div>
     </div>
 
-    <h2>Wallpaper de Inicio</h2>
+    <h2>{$t("settings.appearance.wallpaper.title")}</h2>
     <p class="dim">
-      Reemplaza el fondo de Inicio (la foto que cambia según el juego enfocado en la
-      tira) por una imagen fija para todos los juegos. No afecta las carátulas de las
-      tarjetas ni el Detalle de cada juego.
+      {$t("settings.appearance.wallpaper.desc")}
     </p>
     <div class="rows">
       <div class="row">
-        <span class="rlabel">Imagen</span>
+        <span class="rlabel">{$t("common.image")}</span>
         <div class="wallpaper-actions">
           {#if wallpaperPreview}
             <img class="wallpaper-preview" src={wallpaperPreview} alt="" />
           {/if}
           <button class="chip" data-focusable tabindex="-1" on:click={pickHomeWallpaper}>
-            {$homeWallpaperPath ? "Cambiar imagen…" : "Elegir imagen…"}
+            {$homeWallpaperPath ? $t("settings.appearance.wallpaper.change") : $t("settings.appearance.wallpaper.choose")}
           </button>
           {#if $homeWallpaperPath}
             <button class="chip danger" data-focusable tabindex="-1" on:click={removeHomeWallpaper}>
-              Quitar
+              {$t("common.remove")}
             </button>
           {/if}
         </div>
       </div>
     </div>
 
-    <h2>Resaltado de 100% completado (logros)</h2>
+    <h2>{$t("settings.appearance.complete.title")}</h2>
     <p class="dim">
-      Marca los juegos con todos los logros desbloqueados (tarjeta y badge de logros
-      del Detalle) con este color — cámbialo si choca con el color de acento de tu
-      perfil. Aplica a la insignia de texto y al brillo de abajo, cada uno con su
-      propio interruptor.
+      {$t("settings.appearance.complete.desc")}
     </p>
     <button class="colorfield" data-focusable tabindex="-1" on:click={openCompletePicker}>
       <span class="swatch-sm" style="background: {completeColor}"></span>
       <span class="cf-val">{completeColor.toUpperCase()}</span>
-      <span class="cf-cta">Personalizar</span>
+      <span class="cf-cta">{$t("common.customize")}</span>
     </button>
     <div class="rows spaced">
       <div class="row">
-        <span class="rlabel">Insignia "100%"</span>
+        <span class="rlabel">{$t("settings.appearance.complete.badgeLabel")}</span>
         <button
           class="toggle"
           class:on={$completedBadgeEnabled}
@@ -486,11 +478,11 @@
           tabindex="-1"
           on:click={() => setCompletedBadgeEnabled(!$completedBadgeEnabled)}
         >
-          {$completedBadgeEnabled ? "ON" : "OFF"}
+          {$completedBadgeEnabled ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       <div class="row">
-        <span class="rlabel">Brillo</span>
+        <span class="rlabel">{$t("common.glow")}</span>
         <button
           class="toggle"
           class:on={$completedGlowEnabled}
@@ -498,15 +490,14 @@
           tabindex="-1"
           on:click={() => setCompletedGlowEnabled(!$completedGlowEnabled)}
         >
-          {$completedGlowEnabled ? "ON" : "OFF"}
+          {$completedGlowEnabled ? $t("common.on") : $t("common.off")}
         </button>
       </div>
     </div>
 
-    <h2>Inicio · Bienvenida</h2>
+    <h2>{$t("settings.appearance.home.title")}</h2>
     <p class="dim">
-      Título, subtítulo y encabezado "Reciente" de la pantalla de Inicio: cada uno se
-      puede ocultar o reemplazar por texto personalizado (texto vacío = por defecto).
+      {$t("settings.appearance.home.desc")}
     </p>
     <div class="rows">
       {#each HOME_TEXT_FIELDS as f (f.key)}
@@ -527,7 +518,7 @@
           </button>
           {#if $homeTexts[f.key]?.mode !== "focus"}
             <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
-              Editar texto
+              {$t("settings.appearance.home.editText")}
             </button>
           {/if}
           <button
@@ -537,13 +528,13 @@
             tabindex="-1"
             on:click={() => setHomeTextHidden(f.key, !$homeTexts[f.key]?.hidden)}
           >
-            {$homeTexts[f.key]?.hidden ? "OFF" : "ON"}
+            {$homeTexts[f.key]?.hidden ? $t("common.off") : $t("common.on")}
           </button>
         </div>
       {/each}
     </div>
 
-    <h2>Cantidad de tarjetas (Inicio)</h2>
+    <h2>{$t("settings.appearance.home.cardCount")}</h2>
     <div class="sizerow">
       <input
         type="range"
@@ -559,69 +550,68 @@
       <span class="sizeval">{$homeCardCount}</span>
     </div>
 
-    <h2>Orientación de la tira (Inicio)</h2>
+    <h2>{$t("settings.appearance.home.orientation")}</h2>
     <Select
       value={$homeOrientation}
       options={HOME_ORIENTATION_OPTIONS}
       onChange={setHomeOrientation}
     />
 
-    <h2>Modo de recorrido (Inicio)</h2>
+    <h2>{$t("settings.appearance.home.scrollMode")}</h2>
     <Select
       value={$homeScrollMode}
       options={HOME_SCROLL_MODE_OPTIONS}
       onChange={setHomeScrollMode}
     />
 
-    <h2>Comportamiento de lectura (Inicio)</h2>
+    <h2>{$t("settings.appearance.home.reading")}</h2>
     <Select
       value={$homeReading}
       options={HOME_READING_OPTIONS}
       onChange={setHomeReading}
     />
 
-    <h2>Posición del bloque (Inicio)</h2>
+    <h2>{$t("settings.appearance.home.position")}</h2>
     <Select
       value={$homePosition}
       options={homePositionOptions($homeOrientation)}
       onChange={setHomePosition}
     />
 
-    <h2>Alineación de tarjetas (lista de Inicio)</h2>
+    <h2>{$t("settings.appearance.home.cardAlign")}</h2>
     <Select
       value={$homeCardAlign}
       options={homePositionOptions($homeOrientation)}
       onChange={setHomeCardAlign}
     />
 
-    <h2>Alineación de pestañas (barra superior)</h2>
+    <h2>{$t("settings.appearance.tabsAlign")}</h2>
     <Select
       value={$tabsAlign}
       options={TABS_ALIGN_OPTIONS}
       onChange={setTabsAlign}
     />
 
-    <h2>Posición del reloj (barra superior)</h2>
+    <h2>{$t("settings.appearance.clockPosition")}</h2>
     <Select
       value={$clockPosition}
       options={CLOCK_POSITION_OPTIONS}
       onChange={setClockPosition}
     />
 
-    <h2>Avanzado</h2>
+    <h2>{$t("settings.appearance.advanced.title")}</h2>
     <p class="dim">
-      Prueba de carga de CSS en runtime. En la app real cargarías un archivo .css;
-      aquí se aplica un ejemplo que redefine tokens --gm-*.
+      {$t("settings.appearance.advanced.desc")}
     </p>
     <div class="chips">
       <button class="chip" data-focusable tabindex="-1" on:click={loadExternalCss}>
-        Aplicar CSS de ejemplo
+        {$t("settings.appearance.advanced.applyExample")}
       </button>
       <button class="chip" data-focusable tabindex="-1" on:click={clearCss}>
-        Limpiar personalización
+        {$t("settings.appearance.advanced.clear")}
       </button>
       <button class="chip" data-focusable tabindex="-1" on:click={exportProfileCss}>
-        Exportar perfil CSS
+        {$t("settings.appearance.advanced.exportCss")}
       </button>
     </div>
   {/if}

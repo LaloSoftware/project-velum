@@ -1,6 +1,7 @@
 <script>
   import { shutdownConfirm, closeShutdownConfirm } from "../stores/ui.js";
   import { systemShutdown } from "../ipc/index.js";
+  import { t } from "../i18n/index.js";
 
   async function apagar() {
     closeShutdownConfirm();
@@ -11,8 +12,8 @@
 {#if $shutdownConfirm}
   <div class="scrim">
     <div class="box" role="alertdialog" aria-modal="true">
-      <h2>Apagar el sistema</h2>
-      <p>¿Seguro que quieres apagar el PC?</p>
+      <h2>{$t("system.actions.shutdown")}</h2>
+      <p>{$t("shutdown.confirmMsg")}</p>
       <div class="actions">
         <button
           class="btn cancel"
@@ -21,10 +22,10 @@
           tabindex="-1"
           on:click={closeShutdownConfirm}
         >
-          Cancelar
+          {$t("common.cancel")}
         </button>
         <button class="btn del" data-focusable tabindex="-1" on:click={apagar}>
-          Apagar
+          {$t("shutdown.confirmButton")}
         </button>
       </div>
     </div>

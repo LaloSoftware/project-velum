@@ -18,7 +18,7 @@ fn cache_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_config_dir()
-        .map_err(|e| format!("no se pudo resolver app_config_dir: {e}"))?;
+        .map_err(|e| format!("config.dir_resolve_failed|{e}"))?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join("steam_cache.sqlite"))
 }

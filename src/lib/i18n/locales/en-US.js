@@ -412,4 +412,323 @@ export default {
     "Add a folder with videos (MP4/WebM) — each folder becomes an album. Or add a root folder and each subfolder automatically becomes an album.",
   "videos.noVideosFound": "No videos (MP4/WebM) found in this folder.",
   "videos.exit": "Exit",
+
+  // --- F4: new common strings ---
+  "common.customize": "Customize",
+  "common.visible": "Visible",
+  "common.opacity": "Opacity",
+  "common.image": "Image",
+  "common.glow": "Glow",
+
+  // --- F4: virtual keyboard titles per field (Settings) ---
+  "keyboard.title.profileName": "Profile name",
+
+  // --- F4: Settings → Appearance ---
+  "settings.appearance.profile.title": "Active profile",
+  "settings.appearance.profile.new": "+ New profile",
+  "settings.appearance.profile.delete": "Delete profile",
+  "settings.appearance.profile.baseTheme": "Base theme for profile \"{name}\"",
+  "settings.appearance.theme.lightSuffix": " (light)",
+  "settings.appearance.accentColor.title": "Accent color",
+  "settings.appearance.textColor.title": "Text color",
+  "settings.appearance.textColor.desc":
+    "When switching to a light-background theme, text automatically resets to a readable dark tone; you can customize it again here.",
+  "settings.appearance.font.title": "Font",
+  "settings.appearance.uiScale.title": "Interface scale",
+  "settings.appearance.cardSize.title": "Card size (library)",
+  "settings.appearance.cardSizeHome.title": "Card size (Home)",
+  "settings.appearance.interface.title": "Interface",
+  "settings.appearance.interface.hideCardText": "Hide card titles",
+  "settings.appearance.interface.hideLibraryButton": "Hide \"View library\" button (Home)",
+  "settings.appearance.interface.hideFooter": "Hide button-hint footer",
+  "settings.appearance.gameView.title": "Game view",
+  "settings.appearance.gameView.desc": "Game data shown in the detail view (Play/Back are always visible).",
+  "settings.appearance.metaBg.title": "Metadata background (Detail)",
+  "settings.appearance.metaBg.desc":
+    "Background behind the title/platform/meta in the Detail view, for readability over the hero — adapts to the active theme/profile (not a fixed black).",
+  "settings.appearance.homeBgFade.title": "Home background fade",
+  "settings.appearance.homeBgFade.desc":
+    "How visible the Home background photo is before fading into the theme wallpaper — lower is more faded/dim.",
+  "settings.appearance.homeBgFade.label": "Fade",
+  "settings.appearance.wallpaper.title": "Home wallpaper",
+  "settings.appearance.wallpaper.desc":
+    "Replaces the Home background (the photo that changes with the focused game in the strip) with a fixed image for every game. Doesn't affect card covers or each game's Detail.",
+  "settings.appearance.wallpaper.change": "Change image…",
+  "settings.appearance.wallpaper.choose": "Choose image…",
+  "settings.appearance.complete.title": "100% complete highlight (achievements)",
+  "settings.appearance.complete.desc":
+    "Marks games with every achievement unlocked (card and Detail achievements badge) with this color — change it if it clashes with your profile's accent color. Applies to the text badge and the glow below, each with its own switch.",
+  "settings.appearance.complete.badgeLabel": "\"100%\" badge",
+  "settings.appearance.home.title": "Home · Welcome",
+  "settings.appearance.home.desc":
+    "Title, subtitle, and \"Recent\" heading on the Home screen: each can be hidden or replaced with custom text (empty text = default).",
+  "settings.appearance.home.editText": "Edit text",
+  "settings.appearance.home.cardCount": "Card count (Home)",
+  "settings.appearance.home.orientation": "Strip orientation (Home)",
+  "settings.appearance.home.scrollMode": "Scroll mode (Home)",
+  "settings.appearance.home.reading": "Reading behavior (Home)",
+  "settings.appearance.home.position": "Block position (Home)",
+  "settings.appearance.home.cardAlign": "Card alignment (Home list)",
+  "settings.appearance.tabsAlign": "Tab alignment (top bar)",
+  "settings.appearance.clockPosition": "Clock position (top bar)",
+  "settings.appearance.advanced.title": "Advanced",
+  "settings.appearance.advanced.desc":
+    "Test of runtime CSS loading. In the real app you'd load a .css file; here an example that redefines --gm-* tokens is applied.",
+  "settings.appearance.advanced.applyExample": "Apply example CSS",
+  "settings.appearance.advanced.clear": "Clear customization",
+  "settings.appearance.advanced.exportCss": "Export profile CSS",
+
+  // --- F4: Settings → Appearance toasts ---
+  "settings.toast.profileCreated": "Profile \"{name}\" created and activated",
+  "settings.toast.cssExampleApplied": "Example external CSS applied",
+  "settings.toast.cssCleared": "CSS customization cleared",
+  "settings.toast.wallpaperUpdated": "Home wallpaper updated",
+  "settings.toast.wallpaperRemoved": "Home wallpaper removed",
+  "settings.toast.cannotDeleteOnlyProfile": "You can't delete the only profile",
+  "settings.toast.profileDeleted": "Profile \"{name}\" deleted",
+  "settings.toast.exportComingSoon": "Export profile CSS: coming soon",
+
+  // --- F4: color picker ---
+  "colorPicker.default.title": "Color",
+  "colorPicker.default.heading": "Choose color",
+  "colorPicker.palette.blues": "Blues",
+  "colorPicker.palette.greensTeal": "Greens / Teal",
+  "colorPicker.palette.warm": "Warm",
+  "colorPicker.palette.pinksPurples": "Pinks / Purples",
+  "colorPicker.palette.neutrals": "Neutrals",
+  "keyboard.title.colorHex": "Color hex (RRGGBB)",
+  "colorPicker.wheel.hide": "Hide wheel",
+  "colorPicker.wheel.show": "Show color wheel",
+  "colorPicker.wheel.ariaLabel": "Color wheel",
+  "colorPicker.wheel.hint": "Drag on the wheel with the pointer, or use the sliders with a controller.",
+  "colorPicker.apply": "Apply",
+
+  // --- F4: new common strings ---
+  "common.edit": "Edit",
+
+  // --- F4: virtual keyboard titles per field (Accounts) ---
+  "keyboard.title.steamId": "Steam ID (SteamID64 or profile name)",
+  "keyboard.title.steamApiKey": "API key from steamcommunity.com/dev/apikey",
+
+  // --- F4: Settings → Accounts ---
+  "accounts.toast.missingFields": "Missing the Steam profile or the API key",
+  "accounts.steam.desc":
+    "Brings in your full library (installed and not installed) and your achievements. Each person uses their own personal API key — stored encrypted in the system credential store, never as plain text. Generate one at steamcommunity.com/dev/apikey.",
+  "accounts.showSteamId": "Show Steam ID",
+  "accounts.syncProgress": "achievements {done}/{total} (appid {appid})",
+  "accounts.syncOptions.title": "Sync options",
+  "accounts.syncOptions.includeFreeGames": "Include played free games",
+  "accounts.syncOptions.globalPctLabel": "Refresh global achievement %",
+  "accounts.syncNow": "Sync now",
+  "accounts.steamIdLabel": "Steam ID",
+  "accounts.apiKeyLabel": "API key",
+  "accounts.linking": "Linking…",
+  "accounts.linkAccount": "Link account",
+
+  // --- F4: Settings → Button icons ---
+  "buttonIcons.desc":
+    "Style of the gamepad button indicators in the interface: plain text or a per-platform icon set. Keyboard/mouse shortcuts always show as text.",
+  "buttonIcons.preview": "Preview",
+  "prompts.style.auto": "Automatic (text)",
+  "prompts.style.lineXbox": "Line · Xbox",
+  "prompts.style.linePlaystation": "Line · PlayStation",
+  "prompts.style.lineUniversal": "Line · Universal",
+  "prompts.style.duotonoXbox": "Duotone · Xbox",
+  "prompts.style.duotonoPlaystation": "Duotone · PlayStation",
+  "prompts.style.duotonoUniversal": "Duotone · Universal",
+  "prompts.style.badgeXbox": "Badge · Xbox",
+  "prompts.style.badgePlaystation": "Badge · PlayStation",
+  "prompts.style.badgeUniversal": "Badge · Universal",
+
+  // --- F4: Settings → Library filters ---
+  "filters.toast.groupDeleted": "Group \"{name}\" deleted",
+  "filters.stores.descPre": "Turn store filters on or off in the ",
+  "filters.stores.descPost": " tab. Turning one off hides its filter chip and its games stop showing there.",
+  "filters.stores.title": "Stores shown",
+  "filters.storeBarAlign": "Filter bar alignment",
+  "filters.cardAlign.title": "Card alignment",
+  "filters.cardAlign.desc": "Which side cards group toward in Games and Apps. Spacing between them doesn't change.",
+  "filters.groups.title": "Custom groups",
+  "filters.groups.emptyPre": "You don't have any groups yet. Create them from a ",
+  "filters.groups.emptyBold": "game's detail view",
+  "filters.groups.emptyPost": " (\"New group\" button); they'll show up as a filter in the Games tab.",
+  "filters.groupGameCount": {
+    one: "{count} game",
+    other: "{count} games",
+  },
+
+  // --- F4: new common strings ---
+  "common.show": "Show",
+
+  // --- F4: Settings → Hidden ---
+  "hidden.desc": "Games and apps hidden from the interface. This is the only place to show them again.",
+  "hidden.empty": "No hidden items.",
+  "hidden.emptyFiltered": "No hidden items in this category.",
+  "hidden.kind.apps": "Apps",
+  "hidden.toast.shown": "\"{title}\" visible again",
+
+  // --- F4: Settings → Notifications ---
+  "notifications.desc":
+    "Where floating notices appear on screen (for now: controller connected/disconnected). Affected by the interface scale and the active theme/profile, like the rest of the app.",
+  "notifications.position.title": "Position",
+
+  // --- F4: new common strings ---
+  "common.resetDefault": "Reset to default",
+  "common.reassign": "Reassign",
+  "common.mode": "Mode",
+  "common.duration": "Duration",
+
+  // --- F4: virtual keyboard — assignable actions (Settings → Shortcuts) ---
+  "shortcuts.vk.toggleShift": "Toggle caps",
+  "shortcuts.vk.cancelNoSave": "Cancel (don't save)",
+  "shortcuts.vk.confirmClose": "Confirm and close",
+
+  // --- F4: virtual keyboard title per field (Shortcuts) ---
+  "keyboard.title.shortcutName": "Shortcut name",
+
+  // --- F4: Settings → Shortcuts ---
+  "shortcuts.toast.padAssigned": "Controller shortcut assigned",
+  "shortcuts.toast.kmAssigned": "Keyboard/mouse shortcut assigned",
+  "shortcuts.toast.vkAssigned": "Virtual keyboard shortcut assigned",
+  "shortcuts.toast.vkReset": "Virtual keyboard shortcuts reset to default",
+  "shortcuts.toast.reset": "Shortcuts reset to default",
+  "shortcuts.toast.customCreated": "Custom shortcut created",
+  "shortcuts.desc":
+    "Assign which key/mouse button and which controller button trigger each action — both shortcuts coexist. Directions (d-pad/stick/arrows) are fixed.",
+  "shortcuts.colKeyboardMouse": "Keyboard / Mouse",
+  "shortcuts.colController": "Controller",
+  "shortcuts.vk.title": "Virtual keyboard (controller)",
+  "shortcuts.vk.desc":
+    "Controller buttons for typing on the on-screen keyboard — independent from the rest: the same physical button can do something else outside the virtual keyboard. With a physical keyboard you already type directly (Enter confirms, Esc cancels).",
+  "shortcuts.functions.title": "Functions",
+  "shortcuts.returnToLauncher.title": "Return to launcher (in-game)",
+  "shortcuts.returnToLauncher.shortLabel": "Return to launcher",
+  "shortcuts.returnToLauncher.desc":
+    "While a game is running, this button restores the launcher. Choose whether it triggers on press or on hold.",
+  "shortcuts.buttonLabel": "Button",
+  "shortcuts.mode.press": "Press",
+  "shortcuts.mode.hold": "Hold",
+  "shortcuts.radialMenu.title": "System radial menu (controller)",
+  "shortcuts.radialMenu.desc":
+    "Hold \"Home/Guide\" to open a full-screen menu with 8 fixed positions — 4 over the face buttons, 4 over shoulders/triggers. Freezes the rest of navigation while open. Release Home without choosing one (or press the cancel button configured below) to close it without doing anything.",
+  "shortcuts.radialMenu.cancelWith": "Cancel with",
+  "shortcuts.radialMenu.releaseHome": "Release Home",
+  "shortcuts.systemMenuKm.title": "System menu (keyboard/mouse)",
+  "shortcuts.systemMenuKm.desc":
+    "Alternate shortcut to open the same action list without a controller — there's no \"Home/Guide\" button on keyboard, so it's assigned separately from the radial menu above (which is controller-only).",
+  "shortcuts.systemMenuKm.openLabel": "Open system menu",
+  "shortcuts.custom.title": "Custom shortcuts",
+  "shortcuts.custom.desc":
+    "OS-level key combinations (e.g. Alt+R for an FPS/CPU overlay) you can trigger from the system menu, in its \"Shortcuts\" section. Some combinations (e.g. Alt+Tab, Alt+F4) may be reserved by Windows.",
+  "shortcuts.custom.delete": "Delete",
+  "shortcuts.custom.add": "Add shortcut",
+  "shortcuts.capture.pressButton": "Press a controller button…",
+  "shortcuts.capture.pressKey": "Press a key or mouse button…",
+  "shortcuts.capture.for": "for \"{label}\"",
+  "shortcuts.custom.editorTitle": "New shortcut: \"{name}\"",
+  "shortcuts.custom.editorDesc": "Choose the modifiers and the key (no need to press them).",
+  "shortcuts.custom.save": "Save shortcut",
+
+  // --- F4: Settings → Sounds ---
+  "sounds.startupHint": "The startup sound is set in Settings > Startup.",
+  "sounds.nav.title": "Navigation",
+  "sounds.nav.desc": "Moving between cards/menus, accepting, switching tabs, and canceling/going back.",
+  "sounds.nav.volume": "Navigation volume",
+  "sounds.notifications.desc": "Error messages, and opening/closing the Settings and System menus.",
+  "sounds.notifications.volume": "Notifications volume",
+  "sounds.musicPlayer.title": "Music player",
+  "sounds.musicPlayer.desc":
+    "Music player preferences (Multimedia → Music) relative to the rest of the app. All 3 are enabled by default.",
+  "sounds.musicPlayer.stopOnGame": "Stop music when starting a game",
+  "sounds.musicPlayer.stopOnApp": "Stop music when starting an app",
+  "sounds.musicPlayer.muteNavDuringMusic": "Mute navigation sounds while using the music player",
+
+  // --- F4: Settings → Startup ---
+  "startup.initialView.title": "Startup view",
+  "startup.fullscreen.title": "Fullscreen on startup",
+  "startup.sound.title": "Startup sound",
+  "startup.soundToPlay.title": "Sound to play",
+  "startup.testSound": "Test startup sound",
+  "startup.soundVolume.title": "Startup sound volume",
+  "startup.autostart.title": "Autostart with Windows",
+  "startup.autostart.desc":
+    "Launches the app on its own when you sign in to Windows — meant to leave the PC ready as a console without touching anything. Only works in the installed app.",
+  "startup.toast.autostartOnlyInApp": "Autostart only available in the installed app",
+
+  // --- F4: Settings → System actions ---
+  "systemActions.powerFooter.title": "Show window/power buttons footer",
+  "systemActions.powerFooter.desc":
+    "Minimize, maximize, fullscreen, close, and shut down at the bottom of the Settings menu. Hidden by default — reach the same actions faster with the button combo (see \"Shortcuts\" → Functions).",
+  "systemActions.order.title": "System menu order",
+  "systemActions.order.desc":
+    "Order of the quick menu options (button combo or keyboard/mouse shortcut — see \"Shortcuts\" → Functions).",
+
+  // --- F4: new common strings ---
+  "common.disabled": "Disabled",
+  "common.network": "Network",
+  "common.volume": "Volume",
+  "common.muted": "Muted",
+  "common.output": "Output",
+
+  // --- F4: system quick access menu (QAM) ---
+  "qam.section.system": "System",
+  "qam.section.shortcuts": "Shortcuts",
+  "qam.section.utilities": "Utilities",
+  "qam.shortcuts.empty":
+    "You don't have any shortcuts set up. Create them in Settings > Shortcuts, under \"Custom shortcuts\".",
+  "qam.system.noConnection": "No connection",
+  "qam.system.deviceCount": {
+    one: "{count} device",
+    other: "{count} devices",
+  },
+  "qam.system.audioOutput": "Audio output",
+  "qam.utilities.steam.library": "Library",
+  "qam.utilities.steam.store": "Store",
+  "qam.utilities.steam.myProfile": "My profile",
+  "qam.utilities.steam.friends": "Friends",
+  "qam.utilities.steam.downloads": "Downloads",
+  "qam.utilities.steam.screenshots": "Screenshots",
+  "qam.utilities.steam.activateProduct": "Activate a product",
+  "qam.utilities.steam.steamSettings": "Steam settings",
+  "qam.utilities.steam.shortcuts": "Shortcuts",
+  "qam.utilities.gog.comingSoon": "Coming soon",
+  "qam.utilities.gog.emptyHint": "No GOG shortcuts yet.",
+  "qam.music.nothingPlaying": "Nothing playing — open Multimedia → Music to choose an album or a playlist.",
+
+  // --- F4: system radial menu ---
+  "radial.music.hint": "▲▼ Volume · ◀▶ Track",
+  "radial.hint.withCancel": "Release Home or press the cancel button",
+  "radial.hint.releaseOnly": "Release Home to cancel",
+
+  // --- F4: shutdown confirmation ---
+  "shutdown.confirmMsg": "Are you sure you want to shut down the PC?",
+  "shutdown.confirmButton": "Shut down",
+
+  // --- F4: keyboard/mouse labels (shortcuts) ---
+  "keyBindings.backspace": "Backspace",
+  "keyBindings.clickLeft": "Left click",
+  "keyBindings.clickMiddle": "Middle click",
+  "keyBindings.clickRight": "Right click",
+  "keyBindings.mouseBack": "Back button (mouse)",
+  "keyBindings.mouseForward": "Forward button (mouse)",
+  "keyBindings.mouseButton": "Button {n} (mouse)",
+
+  // --- F4: unnamed custom shortcut (defensive fallback) ---
+  "shortcuts.custom.defaultName": "Shortcut",
+
+  // --- F4: Rust backend errors ("code" or "code|detail", see i18n/errors.js) ---
+  "errors.steam.key_read_failed":
+    "Couldn't read the saved API key: {detail} — link your account again if the problem persists",
+  "errors.steam.profile_resolve_failed": "Couldn't resolve the Steam profile: {detail}",
+  "errors.steam.no_steamid_returned": "Steam didn't return a SteamID",
+  "errors.steam.profile_not_found": "That Steam profile wasn't found (check the name or use your SteamID64)",
+  "errors.steam.key_validation_failed": "Couldn't validate the API key: {detail}",
+  "errors.steam.invalid_key": "Invalid API key or SteamID",
+  "errors.steam.missing_fields": "Missing the Steam profile or the API key",
+  "errors.steam.key_save_failed": "Couldn't securely save the API key: {detail}",
+  "errors.assets.unsupported_image_ext": "Unsupported image extension: {detail}",
+  "errors.assets.unsupported_audio_ext": "Unsupported audio extension: {detail}",
+  "errors.shortcuts.unsupported_key": "Unsupported key: {detail}",
+  "errors.shortcuts.send_input_failed": "SendInput couldn't send all events",
+  "errors.config.dir_resolve_failed": "Couldn't resolve the config directory: {detail}",
 };

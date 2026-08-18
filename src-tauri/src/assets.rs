@@ -22,7 +22,7 @@ pub async fn read_image(path: String) -> Result<String, String> {
         "gif" => "image/gif",
         "ico" => "image/x-icon",
         "bmp" => "image/bmp",
-        _ => return Err(format!("extensión de imagen no soportada: {ext}")),
+        _ => return Err(format!("assets.unsupported_image_ext|{ext}")),
     };
     let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
     let b64 = general_purpose::STANDARD.encode(&bytes);
@@ -45,7 +45,7 @@ pub async fn read_audio(path: String) -> Result<String, String> {
         "flac" => "audio/flac",
         "m4a" => "audio/mp4",
         "aac" => "audio/aac",
-        _ => return Err(format!("extensión de audio no soportada: {ext}")),
+        _ => return Err(format!("assets.unsupported_audio_ext|{ext}")),
     };
     let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
     let b64 = general_purpose::STANDARD.encode(&bytes);

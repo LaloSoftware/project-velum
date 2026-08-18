@@ -5,12 +5,13 @@
   import { soundNames, soundFor } from "../theming/sounds.js";
   import { isTauri } from "../ipc/index.js";
   import { showToast, reportError } from "../stores/ui.js";
+  import { t, tr } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
   const VIEWS = [
-    { id: "home", label: "Inicio" },
-    { id: "games", label: "Juegos" },
-    { id: "apps", label: "Aplicaciones" },
+    { id: "home", labelKey: "nav.home" },
+    { id: "games", labelKey: "nav.games" },
+    { id: "apps", labelKey: "nav.apps" },
   ];
 
   const STARTUP_SOUNDS = soundNames("startup");
@@ -38,7 +39,7 @@
   });
 
   async function toggleAutostart() {
-    if (!isTauri) return showToast("Autoarranque solo en la app instalada");
+    if (!isTauri) return showToast(tr("startup.toast.autostartOnlyInApp"));
     try {
       const { enable, disable } = await import("@tauri-apps/plugin-autostart");
       if (autostartEnabled) await disable();
@@ -51,16 +52,16 @@
 </script>
 
 <section class="panel">
-  <h1>Configuración de inicio</h1>
+  <h1>{$t("settings.sections.startup")}</h1>
 
-  <h2>Vista al arrancar</h2>
+  <h2>{$t("startup.initialView.title")}</h2>
   <Select
     value={$startup.initialView}
-    options={VIEWS.map((v) => ({ value: v.id, label: v.label }))}
+    options={VIEWS.map((v) => ({ value: v.id, labelKey: v.labelKey }))}
     onChange={(v) => updateStartup({ initialView: v })}
   />
 
-  <h2>Pantalla completa al arrancar</h2>
+  <h2>{$t("startup.fullscreen.title")}</h2>
   <button
     class="toggle"
     class:on={$startup.fullscreen}
@@ -68,10 +69,10 @@
     tabindex="-1"
     on:click={() => updateStartup({ fullscreen: !$startup.fullscreen })}
   >
-    {$startup.fullscreen ? "ON" : "OFF"}
+    {$startup.fullscreen ? $t("common.on") : $t("common.off")}
   </button>
 
-  <h2>Sonido de inicio</h2>
+  <h2>{$t("startup.sound.title")}</h2>
   <button
     class="toggle"
     class:on={$soundSettings.startupEnabled}
@@ -79,21 +80,21 @@
     tabindex="-1"
     on:click={() => updateSounds({ startupEnabled: !$soundSettings.startupEnabled })}
   >
-    {$soundSettings.startupEnabled ? "ON" : "OFF"}
+    {$soundSettings.startupEnabled ? $t("common.on") : $t("common.off")}
   </button>
 
   {#if STARTUP_SOUNDS.length}
-    <h2>Sonido a reproducir</h2>
+    <h2>{$t("startup.soundToPlay.title")}</h2>
     <Select
       value={$soundSettings.startupSound}
       options={STARTUP_SOUNDS.map((n) => ({ value: n, label: n }))}
       onChange={(v) => updateSounds({ startupSound: v })}
     />
     <button class="chip wide" data-focusable tabindex="-1" on:click={previewStartupSound}>
-      Probar sonido de inicio
+      {$t("startup.testSound")}
     </button>
 
-    <h2>Volumen del sonido de inicio</h2>
+    <h2>{$t("startup.soundVolume.title")}</h2>
     <div class="sizerow">
       <input
         type="range"
@@ -110,13 +111,12 @@
     </div>
   {/if}
 
-  <h2>Autoarranque con Windows</h2>
+  <h2>{$t("startup.autostart.title")}</h2>
   <p class="dim">
-    Arranca la app sola al iniciar sesión en Windows — pensada para dejar el PC
-    listo como consola sin tocar nada. Solo funciona en la app instalada.
+    {$t("startup.autostart.desc")}
   </p>
   <button class="toggle" class:on={autostartEnabled} data-focusable tabindex="-1" on:click={toggleAutostart}>
-    {autostartEnabled ? "ON" : "OFF"}
+    {autostartEnabled ? $t("common.on") : $t("common.off")}
   </button>
 </section>
 

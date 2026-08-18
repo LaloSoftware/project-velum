@@ -1,6 +1,7 @@
 <script>
   import { radialMenu, radialSlots, radialCancelButton, RADIAL_LABEL } from "../stores/radialMenu.js";
   import { musicPlayer } from "../stores/musicPlayer.js";
+  import { t } from "../i18n/index.js";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
   // Token corto por posición, mismo criterio que el pie de App.svelte (los
@@ -35,7 +36,7 @@
         <div class="pos" class:dim={!assigned} class:cancel={isCancel} style="top: {LAYOUT[pos].top}; left: {LAYOUT[pos].left}">
           <span class="btn"><ButtonPrompt token={TOKEN[pos]} button={pos} /></span>
           {#if isCancel}
-            <span class="label cancel-label">Cancelar</span>
+            <span class="label cancel-label">{$t("common.cancel")}</span>
           {:else if actionId}
             <span class="label">{$RADIAL_LABEL[actionId] || actionId}</span>
           {/if}
@@ -52,11 +53,11 @@
             <div class="mp-bar"><div class="mp-fill" style="width: {Math.round($musicPlayer.volume * 100)}%"></div></div>
             <span class="mp-pct">{Math.round($musicPlayer.volume * 100)}</span>
           </div>
-          <div class="mp-hint">▲▼ Volumen · ◀▶ Pista</div>
+          <div class="mp-hint">{$t("radial.music.hint")}</div>
         </div>
       {/if}
       <div class="hint">
-        {cancelBtn ? "Suelta Home o presiona el botón de cancelar" : "Suelta Home para cancelar"}
+        {cancelBtn ? $t("radial.hint.withCancel") : $t("radial.hint.releaseOnly")}
       </div>
     </div>
   </div>

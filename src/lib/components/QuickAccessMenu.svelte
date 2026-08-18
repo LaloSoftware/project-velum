@@ -6,16 +6,17 @@
   import QamMusicSection from "./QamMusicSection.svelte";
   import { focusFirstIn } from "../input/navigation.js";
   import { steamAccount } from "../stores/steamAccount.js";
+  import { t } from "../i18n/index.js";
 
   const BASE_SECTIONS = [
-    { id: "system", icon: "⚙️", label: "Sistema" },
-    { id: "music", icon: "🎵", label: "Música" },
-    { id: "shortcuts", icon: "⌨️", label: "Atajos" },
+    { id: "system", icon: "⚙️", labelKey: "qam.section.system" },
+    { id: "music", icon: "🎵", labelKey: "multimedia.section.music" },
+    { id: "shortcuts", icon: "⌨️", labelKey: "qam.section.shortcuts" },
   ];
   // "Utilidades" (accesos directos de Steam/GOG) solo con cuenta de Steam
   // vinculada — hoy es la única fuente de accesos útiles ahí.
   $: SECTIONS = $steamAccount
-    ? [...BASE_SECTIONS, { id: "utilities", icon: "🧰", label: "Utilidades" }]
+    ? [...BASE_SECTIONS, { id: "utilities", icon: "🧰", labelKey: "qam.section.utilities" }]
     : BASE_SECTIONS;
   let section = "system";
   let contentEl;
@@ -38,7 +39,7 @@
         data-focusable
         data-focus-default={i === 0 ? "" : undefined}
         tabindex="-1"
-        aria-label={s.label}
+        aria-label={$t(s.labelKey)}
         on:focus={() => (section = s.id)}
         on:click={() => enterSection(s.id)}
       >

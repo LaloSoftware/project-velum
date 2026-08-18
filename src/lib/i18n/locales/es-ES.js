@@ -419,4 +419,323 @@ export default {
     "Agrega una carpeta con videos (MP4/WebM) — cada carpeta se convierte en un álbum. O agrega una carpeta raíz y cada subcarpeta se convierte en un álbum automáticamente.",
   "videos.noVideosFound": "No se encontraron videos (MP4/WebM) en esta carpeta.",
   "videos.exit": "Salir",
+
+  // --- F4: comunes nuevos ---
+  "common.customize": "Personalizar",
+  "common.visible": "Visible",
+  "common.opacity": "Opacidad",
+  "common.image": "Imagen",
+  "common.glow": "Brillo",
+
+  // --- F4: teclado virtual — títulos por campo (Configuración) ---
+  "keyboard.title.profileName": "Nombre del perfil",
+
+  // --- F4: Configuración → Apariencia ---
+  "settings.appearance.profile.title": "Perfil activo",
+  "settings.appearance.profile.new": "+ Nuevo perfil",
+  "settings.appearance.profile.delete": "Borrar perfil",
+  "settings.appearance.profile.baseTheme": "Tema base del perfil «{name}»",
+  "settings.appearance.theme.lightSuffix": " (claro)",
+  "settings.appearance.accentColor.title": "Color de acento",
+  "settings.appearance.textColor.title": "Color de texto",
+  "settings.appearance.textColor.desc":
+    "Al cambiar a un tema de fondo claro, el texto se reinicia automáticamente a un tono oscuro legible; puedes volver a personalizarlo aquí.",
+  "settings.appearance.font.title": "Tipografía",
+  "settings.appearance.uiScale.title": "Escala de interfaz",
+  "settings.appearance.cardSize.title": "Tamaño de tarjeta (biblioteca)",
+  "settings.appearance.cardSizeHome.title": "Tamaño de tarjeta (Inicio)",
+  "settings.appearance.interface.title": "Interfaz",
+  "settings.appearance.interface.hideCardText": "Ocultar textos de las tarjetas",
+  "settings.appearance.interface.hideLibraryButton": "Ocultar botón «Ver biblioteca» (Inicio)",
+  "settings.appearance.interface.hideFooter": "Ocultar pie con guías de botones",
+  "settings.appearance.gameView.title": "Vista de juego",
+  "settings.appearance.gameView.desc": "Datos del juego que se muestran en el detalle (Jugar/Volver siempre visibles).",
+  "settings.appearance.metaBg.title": "Fondo de metadatos (Detalle)",
+  "settings.appearance.metaBg.desc":
+    "Fondo detrás del título/plataforma/meta del Detalle, para que se lea mejor sobre el hero — se adapta al tema/perfil activo (no es un negro fijo).",
+  "settings.appearance.homeBgFade.title": "Difuminado de fondo (Inicio)",
+  "settings.appearance.homeBgFade.desc":
+    "Qué tan visible se ve la foto de fondo de Inicio antes de desvanecerse hacia el wallpaper del tema — más bajo, más difuminado/tenue.",
+  "settings.appearance.homeBgFade.label": "Difuminado",
+  "settings.appearance.wallpaper.title": "Wallpaper de Inicio",
+  "settings.appearance.wallpaper.desc":
+    "Reemplaza el fondo de Inicio (la foto que cambia según el juego enfocado en la tira) por una imagen fija para todos los juegos. No afecta las carátulas de las tarjetas ni el Detalle de cada juego.",
+  "settings.appearance.wallpaper.change": "Cambiar imagen…",
+  "settings.appearance.wallpaper.choose": "Elegir imagen…",
+  "settings.appearance.complete.title": "Resaltado de 100% completado (logros)",
+  "settings.appearance.complete.desc":
+    "Marca los juegos con todos los logros desbloqueados (tarjeta y badge de logros del Detalle) con este color — cámbialo si choca con el color de acento de tu perfil. Aplica a la insignia de texto y al brillo de abajo, cada uno con su propio interruptor.",
+  "settings.appearance.complete.badgeLabel": "Insignia \"100%\"",
+  "settings.appearance.home.title": "Inicio · Bienvenida",
+  "settings.appearance.home.desc":
+    "Título, subtítulo y encabezado \"Reciente\" de la pantalla de Inicio: cada uno se puede ocultar o reemplazar por texto personalizado (texto vacío = por defecto).",
+  "settings.appearance.home.editText": "Editar texto",
+  "settings.appearance.home.cardCount": "Cantidad de tarjetas (Inicio)",
+  "settings.appearance.home.orientation": "Orientación de la tira (Inicio)",
+  "settings.appearance.home.scrollMode": "Modo de recorrido (Inicio)",
+  "settings.appearance.home.reading": "Comportamiento de lectura (Inicio)",
+  "settings.appearance.home.position": "Posición del bloque (Inicio)",
+  "settings.appearance.home.cardAlign": "Alineación de tarjetas (lista de Inicio)",
+  "settings.appearance.tabsAlign": "Alineación de pestañas (barra superior)",
+  "settings.appearance.clockPosition": "Posición del reloj (barra superior)",
+  "settings.appearance.advanced.title": "Avanzado",
+  "settings.appearance.advanced.desc":
+    "Prueba de carga de CSS en runtime. En la app real cargarías un archivo .css; aquí se aplica un ejemplo que redefine tokens --gm-*.",
+  "settings.appearance.advanced.applyExample": "Aplicar CSS de ejemplo",
+  "settings.appearance.advanced.clear": "Limpiar personalización",
+  "settings.appearance.advanced.exportCss": "Exportar perfil CSS",
+
+  // --- F4: toasts de Configuración → Apariencia ---
+  "settings.toast.profileCreated": "Perfil \"{name}\" creado y activado",
+  "settings.toast.cssExampleApplied": "CSS externo de ejemplo aplicado",
+  "settings.toast.cssCleared": "Personalización CSS limpiada",
+  "settings.toast.wallpaperUpdated": "Wallpaper de Inicio actualizado",
+  "settings.toast.wallpaperRemoved": "Wallpaper de Inicio quitado",
+  "settings.toast.cannotDeleteOnlyProfile": "No puedes borrar el único perfil",
+  "settings.toast.profileDeleted": "Perfil \"{name}\" eliminado",
+  "settings.toast.exportComingSoon": "Exportar perfil CSS: próximamente",
+
+  // --- F4: selector de color ---
+  "colorPicker.default.title": "Color",
+  "colorPicker.default.heading": "Elegir color",
+  "colorPicker.palette.blues": "Azules",
+  "colorPicker.palette.greensTeal": "Verdes / Teal",
+  "colorPicker.palette.warm": "Cálidos",
+  "colorPicker.palette.pinksPurples": "Rosas / Morados",
+  "colorPicker.palette.neutrals": "Neutros",
+  "keyboard.title.colorHex": "Color hex (RRGGBB)",
+  "colorPicker.wheel.hide": "Ocultar rueda",
+  "colorPicker.wheel.show": "Mostrar rueda de colores",
+  "colorPicker.wheel.ariaLabel": "Rueda de color",
+  "colorPicker.wheel.hint": "Arrastra en la rueda con el puntero, o usa los sliders con el mando.",
+  "colorPicker.apply": "Aplicar",
+
+  // --- F4: comunes nuevos ---
+  "common.edit": "Editar",
+
+  // --- F4: teclado virtual — títulos por campo (Cuentas) ---
+  "keyboard.title.steamId": "Steam ID (SteamID64 o nombre de perfil)",
+  "keyboard.title.steamApiKey": "API key de steamcommunity.com/dev/apikey",
+
+  // --- F4: Configuración → Cuentas ---
+  "accounts.toast.missingFields": "Falta el perfil de Steam o la API key",
+  "accounts.steam.desc":
+    "Trae tu biblioteca completa (instalados y no instalados) y tus logros. Cada persona usa su propia API key personal — se guarda cifrada en el almacén de credenciales del sistema, nunca en texto plano. Generarla en steamcommunity.com/dev/apikey.",
+  "accounts.showSteamId": "Mostrar Steam ID",
+  "accounts.syncProgress": "logros {done}/{total} (appid {appid})",
+  "accounts.syncOptions.title": "Opciones de sincronización",
+  "accounts.syncOptions.includeFreeGames": "Incluir juegos gratuitos jugados",
+  "accounts.syncOptions.globalPctLabel": "Actualizar % global de logros",
+  "accounts.syncNow": "Sincronizar ahora",
+  "accounts.steamIdLabel": "Steam ID",
+  "accounts.apiKeyLabel": "API key",
+  "accounts.linking": "Vinculando…",
+  "accounts.linkAccount": "Vincular cuenta",
+
+  // --- F4: Configuración → Iconos de botones ---
+  "buttonIcons.desc":
+    "Estilo de los indicadores de botón de mando en la interfaz: texto plano o un set de iconos por plataforma. Los atajos de teclado/mouse siempre se muestran como texto.",
+  "buttonIcons.preview": "Vista previa",
+  "prompts.style.auto": "Automático (texto)",
+  "prompts.style.lineXbox": "Línea · Xbox",
+  "prompts.style.linePlaystation": "Línea · PlayStation",
+  "prompts.style.lineUniversal": "Línea · Universal",
+  "prompts.style.duotonoXbox": "Duotono · Xbox",
+  "prompts.style.duotonoPlaystation": "Duotono · PlayStation",
+  "prompts.style.duotonoUniversal": "Duotono · Universal",
+  "prompts.style.badgeXbox": "Badge · Xbox",
+  "prompts.style.badgePlaystation": "Badge · PlayStation",
+  "prompts.style.badgeUniversal": "Badge · Universal",
+
+  // --- F4: Configuración → Filtros de biblioteca ---
+  "filters.toast.groupDeleted": "Grupo «{name}» eliminado",
+  "filters.stores.descPre": "Activa o desactiva los filtros de tienda en la pestaña ",
+  "filters.stores.descPost": ". Al desactivar uno, se oculta su chip de filtro y sus juegos dejan de aparecer allí.",
+  "filters.stores.title": "Tiendas mostradas",
+  "filters.storeBarAlign": "Alineación de la barra de filtros",
+  "filters.cardAlign.title": "Alineación de las tarjetas",
+  "filters.cardAlign.desc": "Hacia qué lado se agrupan las tarjetas en Juegos y Aplicaciones. El espaciado entre ellas no cambia.",
+  "filters.groups.title": "Grupos personalizados",
+  "filters.groups.emptyPre": "Aún no tienes grupos. Créalos desde el ",
+  "filters.groups.emptyBold": "detalle de un juego",
+  "filters.groups.emptyPost": " (botón «Nuevo grupo»); aparecerán como filtro en la pestaña Juegos.",
+  "filters.groupGameCount": {
+    one: "{count} juego",
+    other: "{count} juegos",
+  },
+
+  // --- F4: comunes nuevos ---
+  "common.show": "Mostrar",
+
+  // --- F4: Configuración → Ocultos ---
+  "hidden.desc": "Juegos y apps ocultos de la interfaz. Este es el único sitio para volver a mostrarlos.",
+  "hidden.empty": "No hay elementos ocultos.",
+  "hidden.emptyFiltered": "No hay elementos ocultos en esta categoría.",
+  "hidden.kind.apps": "Apps",
+  "hidden.toast.shown": "«{title}» visible de nuevo",
+
+  // --- F4: Configuración → Notificaciones ---
+  "notifications.desc":
+    "Dónde aparecen en pantalla los avisos flotantes (por ahora: mando conectado/desconectado). Se ven afectados por la escala de interfaz y por el tema/perfil activo, igual que el resto de la app.",
+  "notifications.position.title": "Posición",
+
+  // --- F4: comunes nuevos ---
+  "common.resetDefault": "Restaurar por defecto",
+  "common.reassign": "Reasignar",
+  "common.mode": "Modo",
+  "common.duration": "Duración",
+
+  // --- F4: teclado virtual — acciones asignables (Configuración → Atajos) ---
+  "shortcuts.vk.toggleShift": "Alternar mayúsculas",
+  "shortcuts.vk.cancelNoSave": "Cancelar (sin guardar)",
+  "shortcuts.vk.confirmClose": "Confirmar y cerrar",
+
+  // --- F4: teclado virtual — título por campo (Atajos) ---
+  "keyboard.title.shortcutName": "Nombre del atajo",
+
+  // --- F4: Configuración → Configuración de atajos ---
+  "shortcuts.toast.padAssigned": "Atajo de mando asignado",
+  "shortcuts.toast.kmAssigned": "Atajo de teclado/mouse asignado",
+  "shortcuts.toast.vkAssigned": "Atajo de teclado virtual asignado",
+  "shortcuts.toast.vkReset": "Atajos de teclado virtual restaurados por defecto",
+  "shortcuts.toast.reset": "Atajos restaurados por defecto",
+  "shortcuts.toast.customCreated": "Atajo personalizado creado",
+  "shortcuts.desc":
+    "Asigna qué tecla/botón de mouse y qué botón de mando ejecutan cada acción — ambos atajos conviven a la vez. Las direcciones (d-pad/stick/flechas) son fijas.",
+  "shortcuts.colKeyboardMouse": "Teclado / Mouse",
+  "shortcuts.colController": "Control",
+  "shortcuts.vk.title": "Teclado virtual (mando)",
+  "shortcuts.vk.desc":
+    "Botones de mando para escribir en el teclado en pantalla — independientes del resto: el mismo botón físico puede servir para otra cosa fuera del teclado virtual. Con teclado físico ya se escribe directo (Enter confirma, Esc cancela).",
+  "shortcuts.functions.title": "Funciones",
+  "shortcuts.returnToLauncher.title": "Volver al launcher (en juego)",
+  "shortcuts.returnToLauncher.shortLabel": "Volver al launcher",
+  "shortcuts.returnToLauncher.desc":
+    "Mientras un juego está en marcha, este botón restaura el launcher. Elige si actúa al pulsarlo o al mantenerlo pulsado.",
+  "shortcuts.buttonLabel": "Botón",
+  "shortcuts.mode.press": "Pulsar",
+  "shortcuts.mode.hold": "Mantener",
+  "shortcuts.radialMenu.title": "Menú radial de sistema (mando)",
+  "shortcuts.radialMenu.desc":
+    "Mantén presionado \"Home/Guide\" para abrir un menú a pantalla completa con 8 posiciones fijas — 4 sobre los botones de cara, 4 sobre hombros/gatillos. Congela el resto de la navegación mientras está abierto. Suelta Home sin elegir ninguna (o presiona el botón de cancelar configurado abajo) para cerrarlo sin hacer nada.",
+  "shortcuts.radialMenu.cancelWith": "Cancelar con",
+  "shortcuts.radialMenu.releaseHome": "Soltar Home",
+  "shortcuts.systemMenuKm.title": "Menú de sistema (teclado/mouse)",
+  "shortcuts.systemMenuKm.desc":
+    "Atajo alterno para abrir la misma lista de acciones sin mando — no hay botón \"Home/Guide\" en teclado, así que se asigna aparte del menú radial de arriba (que sí es solo de mando).",
+  "shortcuts.systemMenuKm.openLabel": "Abrir menú de sistema",
+  "shortcuts.custom.title": "Atajos personalizados",
+  "shortcuts.custom.desc":
+    "Combinaciones de teclas del sistema operativo (ej. Alt+R para un overlay de FPS/CPU) que podrás disparar desde el menú de sistema, en su sección \"Atajos\". Algunas combinaciones (ej. Alt+Tab, Alt+F4) pueden estar reservadas por Windows.",
+  "shortcuts.custom.delete": "Borrar",
+  "shortcuts.custom.add": "Agregar atajo",
+  "shortcuts.capture.pressButton": "Pulsa un botón del mando…",
+  "shortcuts.capture.pressKey": "Pulsa una tecla o botón del mouse…",
+  "shortcuts.capture.for": "para «{label}»",
+  "shortcuts.custom.editorTitle": "Nuevo atajo: «{name}»",
+  "shortcuts.custom.editorDesc": "Elige los modificadores y la tecla (no hace falta pulsarlos).",
+  "shortcuts.custom.save": "Guardar atajo",
+
+  // --- F4: Configuración → Sonidos ---
+  "sounds.startupHint": "El sonido de inicio se configura en Configuración > Configuración de inicio.",
+  "sounds.nav.title": "Navegación",
+  "sounds.nav.desc": "Moverse entre tarjetas/menús, aceptar, cambiar de pestaña, y cancelar/retroceder.",
+  "sounds.nav.volume": "Volumen de navegación",
+  "sounds.notifications.desc": "Mensajes de error, y abrir/cerrar los menús de Configuración y Sistema.",
+  "sounds.notifications.volume": "Volumen de notificaciones",
+  "sounds.musicPlayer.title": "Reproductor de música",
+  "sounds.musicPlayer.desc":
+    "Preferencias del reproductor de música (Multimedia → Música) frente al resto de la app. Las 3 vienen habilitadas por defecto.",
+  "sounds.musicPlayer.stopOnGame": "Detener la música al iniciar un juego",
+  "sounds.musicPlayer.stopOnApp": "Detener la música al iniciar una aplicación",
+  "sounds.musicPlayer.muteNavDuringMusic": "Silenciar sonidos de navegación al usar el reproductor de música",
+
+  // --- F4: Configuración → Configuración de inicio ---
+  "startup.initialView.title": "Vista al arrancar",
+  "startup.fullscreen.title": "Pantalla completa al arrancar",
+  "startup.sound.title": "Sonido de inicio",
+  "startup.soundToPlay.title": "Sonido a reproducir",
+  "startup.testSound": "Probar sonido de inicio",
+  "startup.soundVolume.title": "Volumen del sonido de inicio",
+  "startup.autostart.title": "Autoarranque con Windows",
+  "startup.autostart.desc":
+    "Arranca la app sola al iniciar sesión en Windows — pensada para dejar el PC listo como consola sin tocar nada. Solo funciona en la app instalada.",
+  "startup.toast.autostartOnlyInApp": "Autoarranque solo en la app instalada",
+
+  // --- F4: Configuración → Acciones del sistema ---
+  "systemActions.powerFooter.title": "Mostrar pie con botones de ventana/energía",
+  "systemActions.powerFooter.desc":
+    "Minimizar, maximizar, pantalla completa, cerrar y apagar al final del menú de Configuración. Oculto por defecto — accede a lo mismo más rápido con el combo de botones (ver \"Configuración de atajos\" → Funciones).",
+  "systemActions.order.title": "Orden del menú de sistema",
+  "systemActions.order.desc":
+    "Orden de las opciones del menú rápido (combo de botones o atajo de teclado/mouse — ver \"Configuración de atajos\" → Funciones).",
+
+  // --- F4: comunes nuevos ---
+  "common.disabled": "Desactivado",
+  "common.network": "Red",
+  "common.volume": "Volumen",
+  "common.muted": "Silenciado",
+  "common.output": "Salida",
+
+  // --- F4: menú rápido de sistema (QAM) ---
+  "qam.section.system": "Sistema",
+  "qam.section.shortcuts": "Atajos",
+  "qam.section.utilities": "Utilidades",
+  "qam.shortcuts.empty":
+    "No tienes atajos configurados. Créalos en Configuración > Configuración de atajos, en \"Atajos personalizados\".",
+  "qam.system.noConnection": "Sin conexión",
+  "qam.system.deviceCount": {
+    one: "{count} dispositivo",
+    other: "{count} dispositivos",
+  },
+  "qam.system.audioOutput": "Salida de audio",
+  "qam.utilities.steam.library": "Biblioteca",
+  "qam.utilities.steam.store": "Tienda",
+  "qam.utilities.steam.myProfile": "Mi perfil",
+  "qam.utilities.steam.friends": "Amigos",
+  "qam.utilities.steam.downloads": "Descargas",
+  "qam.utilities.steam.screenshots": "Capturas de pantalla",
+  "qam.utilities.steam.activateProduct": "Activar un producto",
+  "qam.utilities.steam.steamSettings": "Configuración de Steam",
+  "qam.utilities.steam.shortcuts": "Accesos directos",
+  "qam.utilities.gog.comingSoon": "Próximamente",
+  "qam.utilities.gog.emptyHint": "Todavía no hay accesos directos de GOG.",
+  "qam.music.nothingPlaying": "Nada reproduciéndose — abre Multimedia → Música para elegir un álbum o una lista.",
+
+  // --- F4: menú radial de sistema ---
+  "radial.music.hint": "▲▼ Volumen · ◀▶ Pista",
+  "radial.hint.withCancel": "Suelta Home o presiona el botón de cancelar",
+  "radial.hint.releaseOnly": "Suelta Home para cancelar",
+
+  // --- F4: confirmación de apagado ---
+  "shutdown.confirmMsg": "¿Seguro que quieres apagar el PC?",
+  "shutdown.confirmButton": "Apagar",
+
+  // --- F4: etiquetas de teclado/mouse (atajos) ---
+  "keyBindings.backspace": "Retroceso",
+  "keyBindings.clickLeft": "Clic izq.",
+  "keyBindings.clickMiddle": "Clic medio",
+  "keyBindings.clickRight": "Clic der.",
+  "keyBindings.mouseBack": "Botón atrás (mouse)",
+  "keyBindings.mouseForward": "Botón adelante (mouse)",
+  "keyBindings.mouseButton": "Botón {n} (mouse)",
+
+  // --- F4: atajo personalizado sin nombre (fallback defensivo) ---
+  "shortcuts.custom.defaultName": "Atajo",
+
+  // --- F4: errores de Rust (códigos "codigo" o "codigo|detalle", ver i18n/errors.js) ---
+  "errors.steam.key_read_failed":
+    "No se pudo leer la API key guardada: {detail} — vincúlala de nuevo si el problema persiste",
+  "errors.steam.profile_resolve_failed": "No se pudo resolver el perfil de Steam: {detail}",
+  "errors.steam.no_steamid_returned": "Steam no devolvió un SteamID",
+  "errors.steam.profile_not_found": "No se encontró ese perfil de Steam (revisa el nombre o usa tu SteamID64)",
+  "errors.steam.key_validation_failed": "No se pudo validar la API key: {detail}",
+  "errors.steam.invalid_key": "API key o SteamID inválidos",
+  "errors.steam.missing_fields": "Falta el perfil de Steam o la API key",
+  "errors.steam.key_save_failed": "No se pudo guardar la API key de forma segura: {detail}",
+  "errors.assets.unsupported_image_ext": "Extensión de imagen no soportada: {detail}",
+  "errors.assets.unsupported_audio_ext": "Extensión de audio no soportada: {detail}",
+  "errors.shortcuts.unsupported_key": "Tecla no soportada: {detail}",
+  "errors.shortcuts.send_input_failed": "SendInput no pudo enviar todos los eventos",
+  "errors.config.dir_resolve_failed": "No se pudo resolver el directorio de configuración: {detail}",
 };

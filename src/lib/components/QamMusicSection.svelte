@@ -7,16 +7,16 @@
     toggleShuffle,
     setVolume,
   } from "../stores/musicPlayer.js";
+  import { t } from "../i18n/index.js";
 
   $: pct = $musicPlayer.duration ? Math.round(($musicPlayer.currentTime / $musicPlayer.duration) * 100) : 0;
 </script>
 
 <div class="qam">
-  <h2>Música</h2>
+  <h2>{$t("multimedia.section.music")}</h2>
   {#if !$musicPlayer.current}
     <p class="dim">
-      Nada reproduciéndose — abre Multimedia → Música para elegir un álbum o una
-      lista.
+      {$t("qam.music.nothingPlaying")}
     </p>
   {:else}
     <div class="now">
@@ -28,18 +28,18 @@
     </div>
 
     <div class="controls">
-      <button class="step" data-focusable tabindex="-1" on:click={previous} aria-label="Anterior">⏮</button>
-      <button class="step big" data-focusable data-focus-default tabindex="-1" on:click={togglePlayPause} aria-label="Reproducir/pausar">
+      <button class="step" data-focusable tabindex="-1" on:click={previous} aria-label={$t("music.previous")}>⏮</button>
+      <button class="step big" data-focusable data-focus-default tabindex="-1" on:click={togglePlayPause} aria-label={$t("music.playPause")}>
         {$musicPlayer.playing ? "⏸" : "▶"}
       </button>
-      <button class="step" data-focusable tabindex="-1" on:click={next} aria-label="Siguiente">⏭</button>
+      <button class="step" data-focusable tabindex="-1" on:click={next} aria-label={$t("music.next")}>⏭</button>
       <button
         class="step"
         class:on={$musicPlayer.shuffle}
         data-focusable
         tabindex="-1"
         on:click={toggleShuffle}
-        aria-label="Aleatorio"
+        aria-label={$t("common.shuffle")}
       >
         🔀
       </button>

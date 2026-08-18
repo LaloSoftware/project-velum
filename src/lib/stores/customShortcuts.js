@@ -1,5 +1,6 @@
 import { writable, get } from "svelte/store";
 import { loadAppConfig, patchAppConfig } from "./appConfig.js";
+import { tr } from "../i18n/index.js";
 
 /*
  * Atajos de teclado del sistema operativo, definidos por el usuario (ej. Alt+R
@@ -39,7 +40,7 @@ async function persist() {
 }
 
 export async function createCustomShortcut(label, modifiers, code) {
-  const s = { id: `cs_${Date.now()}`, label: label || "Atajo", modifiers, code };
+  const s = { id: `cs_${Date.now()}`, label: label || tr("shortcuts.custom.defaultName"), modifiers, code };
   customShortcuts.update((l) => [...l, s]);
   await persist();
   return s;

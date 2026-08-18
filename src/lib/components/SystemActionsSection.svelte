@@ -15,13 +15,11 @@
 </script>
 
 <section class="panel">
-  <h1>Acciones del sistema</h1>
+  <h1>{$t("settings.sections.system-actions")}</h1>
 
-  <h2>Mostrar pie con botones de ventana/energía</h2>
+  <h2>{$t("systemActions.powerFooter.title")}</h2>
   <p class="dim">
-    Minimizar, maximizar, pantalla completa, cerrar y apagar al final del menú de
-    Configuración. Oculto por defecto — accede a lo mismo más rápido con el combo de
-    botones (ver "Configuración de atajos" → Funciones).
+    {$t("systemActions.powerFooter.desc")}
   </p>
   <button
     class="toggle"
@@ -30,13 +28,12 @@
     tabindex="-1"
     on:click={() => setShowPowerFooter(!$showPowerFooter)}
   >
-    {$showPowerFooter ? "ON" : "OFF"}
+    {$showPowerFooter ? $t("common.on") : $t("common.off")}
   </button>
 
-  <h2>Orden del menú de sistema</h2>
+  <h2>{$t("systemActions.order.title")}</h2>
   <p class="dim">
-    Orden de las opciones del menú rápido (combo de botones o atajo de teclado/mouse
-    — ver "Configuración de atajos" → Funciones).
+    {$t("systemActions.order.desc")}
   </p>
   <div class="rows">
     {#each $quickMenuOrder as id, i (id)}
@@ -48,7 +45,7 @@
           tabindex="-1"
           disabled={i === 0}
           on:click={() => moveQuickMenuAction(id, -1)}
-          aria-label="Mover arriba"
+          aria-label={$t("music.moveUp")}
         >
           ↑
         </button>
@@ -58,7 +55,7 @@
           tabindex="-1"
           disabled={i === $quickMenuOrder.length - 1}
           on:click={() => moveQuickMenuAction(id, 1)}
-          aria-label="Mover abajo"
+          aria-label={$t("music.moveDown")}
         >
           ↓
         </button>
@@ -66,7 +63,7 @@
     {/each}
   </div>
   <button class="reset" data-focusable tabindex="-1" on:click={resetQuickMenuOrder}>
-    Restaurar por defecto
+    {$t("common.resetDefault")}
   </button>
 </section>
 

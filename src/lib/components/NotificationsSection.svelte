@@ -14,14 +14,12 @@
 </script>
 
 <section class="panel">
-  <h1>Notificaciones</h1>
+  <h1>{$t("settings.sections.notifications")}</h1>
   <p class="dim">
-    Dónde aparecen en pantalla los avisos flotantes (por ahora: mando conectado/
-    desconectado). Se ven afectados por la escala de interfaz y por el tema/perfil
-    activo, igual que el resto de la app.
+    {$t("notifications.desc")}
   </p>
 
-  <h2>Posición</h2>
+  <h2>{$t("notifications.position.title")}</h2>
   <div class="pos-grid">
     {#each GRID as code, i (i)}
       {#if code}

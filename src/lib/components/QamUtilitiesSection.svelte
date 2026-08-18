@@ -1,5 +1,6 @@
 <script>
   import { startSteamUtility } from "../stores/playsession.js";
+  import { t, tr } from "../i18n/index.js";
 
   // Accesos directos fijos a Steam (protocolo steam://, resuelto por el SO —
   // ver launch.rs::open_url). Mismo mecanismo que ya usa steam_open_install
@@ -8,26 +9,26 @@
   // openUrl directo) suspende el input de GM igual que un juego real mientras
   // Steam tiene el foco — ver playsession.js::startSteamUtility.
   const STEAM_UTILITIES = [
-    { icon: "📚", label: "Biblioteca", target: "steam://open/games" },
-    { icon: "🛒", label: "Tienda", target: "steam://store" },
-    { icon: "👤", label: "Mi perfil", target: "steam://url/SteamIDMyProfile" },
-    { icon: "🧑‍🤝‍🧑", label: "Amigos", target: "steam://open/friends" },
-    { icon: "⬇️", label: "Descargas", target: "steam://open/downloads" },
-    { icon: "🖼️", label: "Capturas de pantalla", target: "steam://open/screenshots" },
-    { icon: "🔑", label: "Activar un producto", target: "steam://open/activateproduct" },
-    { icon: "⚙️", label: "Configuración de Steam", target: "steam://open/settings" },
+    { icon: "📚", labelKey: "qam.utilities.steam.library", target: "steam://open/games" },
+    { icon: "🛒", labelKey: "qam.utilities.steam.store", target: "steam://store" },
+    { icon: "👤", labelKey: "qam.utilities.steam.myProfile", target: "steam://url/SteamIDMyProfile" },
+    { icon: "🧑‍🤝‍🧑", labelKey: "qam.utilities.steam.friends", target: "steam://open/friends" },
+    { icon: "⬇️", labelKey: "qam.utilities.steam.downloads", target: "steam://open/downloads" },
+    { icon: "🖼️", labelKey: "qam.utilities.steam.screenshots", target: "steam://open/screenshots" },
+    { icon: "🔑", labelKey: "qam.utilities.steam.activateProduct", target: "steam://open/activateproduct" },
+    { icon: "⚙️", labelKey: "qam.utilities.steam.steamSettings", target: "steam://open/settings" },
   ];
 </script>
 
 <div class="qam">
-  <h2>Utilidades</h2>
+  <h2>{$t("qam.section.utilities")}</h2>
 
   <div class="cat" data-focus-group="steam">
     <div class="head">
       <span class="ico">🎮</span>
       <div class="grow">
         <div class="label">Steam</div>
-        <div class="sub dim">Accesos directos</div>
+        <div class="sub dim">{$t("qam.utilities.steam.shortcuts")}</div>
       </div>
     </div>
     <div class="chips">
@@ -37,9 +38,9 @@
           data-focusable
           data-focus-default={i === 0 ? "" : undefined}
           tabindex="-1"
-          on:click={() => startSteamUtility(u.label, u.target)}
+          on:click={() => startSteamUtility(tr(u.labelKey), u.target)}
         >
-          {u.icon} {u.label}
+          {u.icon} {$t(u.labelKey)}
         </button>
       {/each}
     </div>
@@ -53,10 +54,10 @@
       <span class="ico">🎮</span>
       <div class="grow">
         <div class="label">GOG</div>
-        <div class="sub dim">Próximamente</div>
+        <div class="sub dim">{$t("qam.utilities.gog.comingSoon")}</div>
       </div>
     </div>
-    <p class="dim empty-hint">Todavía no hay accesos directos de GOG.</p>
+    <p class="dim empty-hint">{$t("qam.utilities.gog.emptyHint")}</p>
   </div>
 </div>
 

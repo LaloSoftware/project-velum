@@ -40,7 +40,7 @@
   } from "../stores/radialMenu.js";
   import { MUSIC_RADIAL_ACTIONS } from "../stores/musicPlayer.js";
   import { VK_ACTIONS, vkBindings, assignVkAction, resetVkBindings } from "../stores/vkBindings.js";
-  import { t } from "../i18n/index.js";
+  import { t, tr } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
   // Reactivo, no `const`: si no, las opciones quedan congeladas en el idioma
@@ -108,6 +108,7 @@
   // Tecla/botón de mouse (etiqueta) asignado a una acción, reactivo a $keyBindings.
   $: kmLabelFor = (action) => {
     $keyBindings; // dependencia reactiva explícita
+    $t; // ídem: labelForToken() traduce internamente con tr()
     return labelForToken(tokenForAction(action));
   };
 
@@ -131,7 +132,7 @@
     setCapture((rawButton) => {
       assignAction(action, rawButton);
       stopListening();
-      showToast("Atajo de mando asignado");
+      showToast(tr("shortcuts.toast.padAssigned"));
     });
     // Auto-cancela por si no se pulsa nada.
     clearTimeout(timer);
@@ -143,7 +144,7 @@
     setKeyCapture((token) => {
       assignKeyAction(action, token);
       stopListening();
-      showToast("Atajo de teclado/mouse asignado");
+      showToast(tr("shortcuts.toast.kmAssigned"));
     });
     clearTimeout(timer);
     timer = setTimeout(stopListening, 6000);
@@ -154,7 +155,7 @@
     setCapture((rawButton) => {
       assignVkAction(action, rawButton);
       stopListening();
-      showToast("Atajo de teclado virtual asignado");
+      showToast(tr("shortcuts.toast.vkAssigned"));
     });
     clearTimeout(timer);
     timer = setTimeout(stopListening, 6000);
@@ -162,17 +163,17 @@
 
   async function resetVk() {
     await resetVkBindings();
-    showToast("Atajos de teclado virtual restaurados por defecto");
+    showToast(tr("shortcuts.toast.vkReset"));
   }
 
   async function reset() {
     await resetBindings();
     await resetKeyBindings();
-    showToast("Atajos restaurados por defecto");
+    showToast(tr("shortcuts.toast.reset"));
   }
 
   async function addCustomShortcut() {
-    const name = await openKeyboard("", "Nombre del atajo");
+    const name = await openKeyboard("", tr("keyboard.title.shortcutName"));
     if (!name) return;
     newShortcut = {
       name,
@@ -192,7 +193,7 @@
     const modifiers = Object.keys(newShortcut.mods).filter((k) => newShortcut.mods[k]);
     await createCustomShortcut(newShortcut.name, modifiers, newShortcut.code);
     newShortcut = null;
-    showToast("Atajo personalizado creado");
+    showToast(tr("shortcuts.toast.customCreated"));
   }
 
   function cancelShortcut() {
@@ -206,17 +207,16 @@
 </script>
 
 <section class="panel">
-  <h1>Configuración de atajos</h1>
+  <h1>{$t("settings.sections.shortcuts")}</h1>
   <p class="dim">
-    Asigna qué tecla/botón de mouse y qué botón de mando ejecutan cada acción — ambos
-    atajos conviven a la vez. Las direcciones (d-pad/stick/flechas) son fijas.
+    {$t("shortcuts.desc")}
   </p>
 
   <div class="action-rows">
     <div class="action-row head">
       <span></span>
-      <span class="col-title">Teclado / Mouse</span>
-      <span class="col-title">Control</span>
+      <span class="col-title">{$t("shortcuts.colKeyboardMouse")}</span>
+      <span class="col-title">{$t("shortcuts.colController")}</span>
     </div>
     {#each ACTIONS as a}
       <div class="action-row">
@@ -250,53 +250,50 @@
   </div>
 
   <button class="reset" data-focusable tabindex="-1" on:click={reset}>
-    Restaurar por defecto
+    {$t("common.resetDefault")}
   </button>
 
-  <h2 class="subhead">Teclado virtual (mando)</h2>
+  <h2 class="subhead">{$t("shortcuts.vk.title")}</h2>
   <p class="dim">
-    Botones de mando para escribir en el teclado en pantalla — independientes del
-    resto: el mismo botón físico puede servir para otra cosa fuera del teclado
-    virtual. Con teclado físico ya se escribe directo (Enter confirma, Esc cancela).
+    {$t("shortcuts.vk.desc")}
   </p>
   <div class="rows">
     {#each VK_ACTIONS as a (a.id)}
       <div class="row">
-        <span class="label">{a.label}</span>
+        <span class="label">{$t(a.labelKey)}</span>
         <span class="btn">{vkLabelFor(a.id)}</span>
         <button class="rebind" data-focusable tabindex="-1" on:click={() => rebindVk(a.id)}>
-          Reasignar
+          {$t("common.reassign")}
         </button>
       </div>
     {/each}
   </div>
   <button class="reset" data-focusable tabindex="-1" on:click={resetVk}>
-    Restaurar por defecto
+    {$t("common.resetDefault")}
   </button>
 
-  <h2 class="subhead">Funciones</h2>
+  <h2 class="subhead">{$t("shortcuts.functions.title")}</h2>
 
-  <div class="minihead">Volver al launcher (en juego)</div>
+  <div class="minihead">{$t("shortcuts.returnToLauncher.title")}</div>
   <p class="dim">
-    Mientras un juego está en marcha, este botón restaura el launcher. Elige si actúa al
-    pulsarlo o al mantenerlo pulsado.
+    {$t("shortcuts.returnToLauncher.desc")}
   </p>
   <div class="rows">
     <div class="row">
-      <span class="label">Botón</span>
+      <span class="label">{$t("shortcuts.buttonLabel")}</span>
       <span class="btn">{$BUTTON_LABELS[$playConfig.returnButton] || "—"}</span>
       <button class="rebind" data-focusable tabindex="-1" on:click={rebindReturn}>
-        Reasignar
+        {$t("common.reassign")}
       </button>
     </div>
     <div class="row">
-      <span class="label">Modo</span>
+      <span class="label">{$t("common.mode")}</span>
       <div class="ctrl">
         <Select
           value={$playConfig.returnMode}
           options={[
-            { value: "press", label: "Pulsar" },
-            { value: "hold", label: "Mantener" },
+            { value: "press", labelKey: "shortcuts.mode.press" },
+            { value: "hold", labelKey: "shortcuts.mode.hold" },
           ]}
           onChange={(v) => updatePlayConfig({ returnMode: v })}
         />
@@ -304,7 +301,7 @@
     </div>
     {#if $playConfig.returnMode === "hold"}
       <div class="row">
-        <span class="label">Duración</span>
+        <span class="label">{$t("common.duration")}</span>
         <div class="ctrl">
           <Select
             value={$playConfig.holdMs}
@@ -316,13 +313,9 @@
     {/if}
   </div>
 
-  <div class="minihead">Menú radial de sistema (mando)</div>
+  <div class="minihead">{$t("shortcuts.radialMenu.title")}</div>
   <p class="dim">
-    Mantén presionado "Home/Guide" para abrir un menú a pantalla completa con 8
-    posiciones fijas — 4 sobre los botones de cara, 4 sobre hombros/gatillos.
-    Congela el resto de la navegación mientras está abierto. Suelta Home sin
-    elegir ninguna (o presiona el botón de cancelar configurado abajo) para
-    cerrarlo sin hacer nada.
+    {$t("shortcuts.radialMenu.desc")}
   </p>
   <div class="rows">
     {#each RADIAL_POSITIONS as pos (pos)}
@@ -338,12 +331,12 @@
       </div>
     {/each}
     <div class="row">
-      <span class="label">Cancelar con</span>
+      <span class="label">{$t("shortcuts.radialMenu.cancelWith")}</span>
       <div class="ctrl">
         <Select
           value={$radialCancelButton ?? ""}
           options={[
-            { value: "", label: "Soltar Home" },
+            { value: "", labelKey: "shortcuts.radialMenu.releaseHome" },
             ...RADIAL_POSITIONS.map((p) => ({ value: p, label: $BUTTON_LABELS[p] })),
           ]}
           onChange={(v) => setRadialCancelButton(v || null)}
@@ -352,15 +345,13 @@
     </div>
   </div>
 
-  <div class="minihead">Menú de sistema (teclado/mouse)</div>
+  <div class="minihead">{$t("shortcuts.systemMenuKm.title")}</div>
   <p class="dim">
-    Atajo alterno para abrir la misma lista de acciones sin mando — no hay
-    botón "Home/Guide" en teclado, así que se asigna aparte del menú radial de
-    arriba (que sí es solo de mando).
+    {$t("shortcuts.systemMenuKm.desc")}
   </p>
   <div class="rows">
     <div class="row">
-      <span class="label">Abrir menú de sistema</span>
+      <span class="label">{$t("shortcuts.systemMenuKm.openLabel")}</span>
       <span class="btn">{kmLabelFor("openSystemMenu")}</span>
       <button
         class="rebind"
@@ -368,16 +359,14 @@
         tabindex="-1"
         on:click={() => rebindKeyMouse("openSystemMenu")}
       >
-        Reasignar
+        {$t("common.reassign")}
       </button>
     </div>
   </div>
 
-  <h2 class="subhead">Atajos personalizados</h2>
+  <h2 class="subhead">{$t("shortcuts.custom.title")}</h2>
   <p class="dim">
-    Combinaciones de teclas del sistema operativo (ej. Alt+R para un overlay de
-    FPS/CPU) que podrás disparar desde el menú de sistema, en su sección "Atajos".
-    Algunas combinaciones (ej. Alt+Tab, Alt+F4) pueden estar reservadas por Windows.
+    {$t("shortcuts.custom.desc")}
   </p>
   <div class="rows">
     {#each $customShortcuts as s (s.id)}
@@ -390,12 +379,12 @@
           tabindex="-1"
           on:click={() => deleteCustomShortcut(s.id)}
         >
-          Borrar
+          {$t("shortcuts.custom.delete")}
         </button>
       </div>
     {/each}
     <button class="add" data-focusable tabindex="-1" on:click={addCustomShortcut}>
-      + Agregar atajo
+      + {$t("shortcuts.custom.add")}
     </button>
   </div>
 </section>
@@ -405,17 +394,19 @@
     <div class="box">
       <div class="big">
         {capturingReturn || listening.mode === "pad" || listening.mode === "vk"
-          ? "Pulsa un botón del mando…"
-          : "Pulsa una tecla o botón del mouse…"}
+          ? $t("shortcuts.capture.pressButton")
+          : $t("shortcuts.capture.pressKey")}
       </div>
       <div class="dim">
-        para «{capturingReturn
-          ? "Volver al launcher"
-          : listening.action === "openSystemMenu"
-            ? "Menú de sistema"
-            : listening.mode === "vk"
-              ? VK_ACTIONS.find((a) => a.id === listening.action)?.label
-              : $t(ACTIONS.find((a) => a.id === listening.action)?.labelKey ?? "")}»
+        {$t("shortcuts.capture.for", {
+          label: capturingReturn
+            ? $t("shortcuts.returnToLauncher.shortLabel")
+            : listening.action === "openSystemMenu"
+              ? $t("footer.systemMenu")
+              : listening.mode === "vk"
+                ? $t(VK_ACTIONS.find((a) => a.id === listening.action)?.labelKey ?? "")
+                : $t(ACTIONS.find((a) => a.id === listening.action)?.labelKey ?? ""),
+        })}
       </div>
     </div>
   </div>
@@ -424,8 +415,8 @@
 {#if newShortcut}
   <div class="capture">
     <div class="box editor" data-focus-group="new-shortcut" bind:this={newShortcutEl}>
-      <div class="big">Nuevo atajo: «{newShortcut.name}»</div>
-      <div class="dim">Elige los modificadores y la tecla (no hace falta pulsarlos).</div>
+      <div class="big">{$t("shortcuts.custom.editorTitle", { name: newShortcut.name })}</div>
+      <div class="dim">{$t("shortcuts.custom.editorDesc")}</div>
       <div class="mods">
         {#each MODIFIER_OPTS as m (m.key)}
           <button
@@ -448,10 +439,10 @@
       </div>
       <div class="editor-actions">
         <button class="rebind" data-focusable tabindex="-1" on:click={cancelShortcut}>
-          Cancelar
+          {$t("common.cancel")}
         </button>
         <button class="rebind primary" data-focusable tabindex="-1" on:click={confirmShortcut}>
-          Guardar atajo
+          {$t("shortcuts.custom.save")}
         </button>
       </div>
     </div>

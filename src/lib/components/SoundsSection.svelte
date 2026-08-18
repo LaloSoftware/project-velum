@@ -2,17 +2,18 @@
   // El sonido de inicio se configura en Ajustes > Configuración de inicio
   // (StartupSection.svelte), junto al resto de lo que pasa al arrancar.
   import { soundSettings, updateSounds } from "../stores/sounds.js";
+  import { t } from "../i18n/index.js";
 </script>
 
 <section class="panel">
-  <h1>Sonidos</h1>
+  <h1>{$t("settings.sections.sounds")}</h1>
   <p class="dim">
-    El sonido de inicio se configura en Configuración &gt; Configuración de inicio.
+    {$t("sounds.startupHint")}
   </p>
 
-  <h2>Navegación</h2>
+  <h2>{$t("sounds.nav.title")}</h2>
   <p class="dim">
-    Moverse entre tarjetas/menús, aceptar, cambiar de pestaña, y cancelar/retroceder.
+    {$t("sounds.nav.desc")}
   </p>
   <button
     class="toggle"
@@ -21,10 +22,10 @@
     tabindex="-1"
     on:click={() => updateSounds({ navigationEnabled: !$soundSettings.navigationEnabled })}
   >
-    {$soundSettings.navigationEnabled ? "ON" : "OFF"}
+    {$soundSettings.navigationEnabled ? $t("common.on") : $t("common.off")}
   </button>
 
-  <h2>Volumen de navegación</h2>
+  <h2>{$t("sounds.nav.volume")}</h2>
   <div class="sizerow">
     <input
       type="range"
@@ -40,9 +41,9 @@
     <span class="sizeval">{Math.round($soundSettings.navigationVolume * 100)}%</span>
   </div>
 
-  <h2>Notificaciones</h2>
+  <h2>{$t("settings.sections.notifications")}</h2>
   <p class="dim">
-    Mensajes de error, y abrir/cerrar los menús de Configuración y Sistema.
+    {$t("sounds.notifications.desc")}
   </p>
   <button
     class="toggle"
@@ -51,10 +52,10 @@
     tabindex="-1"
     on:click={() => updateSounds({ notificationsEnabled: !$soundSettings.notificationsEnabled })}
   >
-    {$soundSettings.notificationsEnabled ? "ON" : "OFF"}
+    {$soundSettings.notificationsEnabled ? $t("common.on") : $t("common.off")}
   </button>
 
-  <h2>Volumen de notificaciones</h2>
+  <h2>{$t("sounds.notifications.volume")}</h2>
   <div class="sizerow">
     <input
       type="range"
@@ -70,14 +71,13 @@
     <span class="sizeval">{Math.round($soundSettings.notificationsVolume * 100)}%</span>
   </div>
 
-  <h2>Reproductor de música</h2>
+  <h2>{$t("sounds.musicPlayer.title")}</h2>
   <p class="dim">
-    Preferencias del reproductor de música (Multimedia → Música) frente al resto
-    de la app. Las 3 vienen habilitadas por defecto.
+    {$t("sounds.musicPlayer.desc")}
   </p>
   <div class="rows">
     <div class="row">
-      <span class="rlabel">Detener la música al iniciar un juego</span>
+      <span class="rlabel">{$t("sounds.musicPlayer.stopOnGame")}</span>
       <button
         class="rowtoggle"
         class:on={$soundSettings.stopMusicOnGame}
@@ -85,11 +85,11 @@
         tabindex="-1"
         on:click={() => updateSounds({ stopMusicOnGame: !$soundSettings.stopMusicOnGame })}
       >
-        {$soundSettings.stopMusicOnGame ? "ON" : "OFF"}
+        {$soundSettings.stopMusicOnGame ? $t("common.on") : $t("common.off")}
       </button>
     </div>
     <div class="row">
-      <span class="rlabel">Detener la música al iniciar una aplicación</span>
+      <span class="rlabel">{$t("sounds.musicPlayer.stopOnApp")}</span>
       <button
         class="rowtoggle"
         class:on={$soundSettings.stopMusicOnApp}
@@ -97,11 +97,11 @@
         tabindex="-1"
         on:click={() => updateSounds({ stopMusicOnApp: !$soundSettings.stopMusicOnApp })}
       >
-        {$soundSettings.stopMusicOnApp ? "ON" : "OFF"}
+        {$soundSettings.stopMusicOnApp ? $t("common.on") : $t("common.off")}
       </button>
     </div>
     <div class="row">
-      <span class="rlabel">Silenciar sonidos de navegación al usar el reproductor de música</span>
+      <span class="rlabel">{$t("sounds.musicPlayer.muteNavDuringMusic")}</span>
       <button
         class="rowtoggle"
         class:on={$soundSettings.muteNavDuringMusic}
@@ -109,7 +109,7 @@
         tabindex="-1"
         on:click={() => updateSounds({ muteNavDuringMusic: !$soundSettings.muteNavDuringMusic })}
       >
-        {$soundSettings.muteNavDuringMusic ? "ON" : "OFF"}
+        {$soundSettings.muteNavDuringMusic ? $t("common.on") : $t("common.off")}
       </button>
     </div>
   </div>

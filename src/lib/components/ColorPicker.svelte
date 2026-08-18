@@ -2,6 +2,7 @@
   import { colorPicker, closeColorPicker } from "../stores/ui.js";
   import { openKeyboard } from "../stores/keyboard.js";
   import { normalizeHex, hexToRgb, rgbToHex, hexToHsv, hsvToHex } from "../util/color.js";
+  import { t, tr } from "../i18n/index.js";
 
   $: cfg = $colorPicker;
 
@@ -18,11 +19,11 @@
 
   // Grupos de colores predefinidos.
   const PALETTE_GROUPS = [
-    { name: "Azules", colors: ["#4c8dff", "#3a7bd5", "#5aa9e6", "#7aa7ff", "#2668bf", "#00b4d8"] },
-    { name: "Verdes / Teal", colors: ["#37e6b4", "#52d69a", "#2ecc71", "#14b8a6", "#3ddc97", "#8ee7c1"] },
-    { name: "Cálidos", colors: ["#ff7a59", "#ffd166", "#ff9f1c", "#f4a261", "#ffb27a", "#ff5d5d"] },
-    { name: "Rosas / Morados", colors: ["#c77dff", "#ff5d8f", "#a06cd5", "#e0aaff", "#ff8fab", "#9d4edd"] },
-    { name: "Neutros", colors: ["#e8edf3", "#9aa6b4", "#6b7280", "#3a4453", "#1d232c", "#0e1116"] },
+    { labelKey: "colorPicker.palette.blues", colors: ["#4c8dff", "#3a7bd5", "#5aa9e6", "#7aa7ff", "#2668bf", "#00b4d8"] },
+    { labelKey: "colorPicker.palette.greensTeal", colors: ["#37e6b4", "#52d69a", "#2ecc71", "#14b8a6", "#3ddc97", "#8ee7c1"] },
+    { labelKey: "colorPicker.palette.warm", colors: ["#ff7a59", "#ffd166", "#ff9f1c", "#f4a261", "#ffb27a", "#ff5d5d"] },
+    { labelKey: "colorPicker.palette.pinksPurples", colors: ["#c77dff", "#ff5d8f", "#a06cd5", "#e0aaff", "#ff8fab", "#9d4edd"] },
+    { labelKey: "colorPicker.palette.neutrals", colors: ["#e8edf3", "#9aa6b4", "#6b7280", "#3a4453", "#1d232c", "#0e1116"] },
   ];
 
   let showWheel = false;
@@ -37,7 +38,7 @@
   }
 
   async function editHex() {
-    const q = await openKeyboard(working.replace(/^#/, ""), "Color hex (RRGGBB)");
+    const q = await openKeyboard(working.replace(/^#/, ""), tr("keyboard.title.colorHex"));
     if (q === null) return;
     const norm = normalizeHex(q);
     if (norm) working = norm;
@@ -90,9 +91,9 @@
 {#if cfg}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="scrim" on:click={closeColorPicker} role="presentation"></div>
-  <div class="modal" role="dialog" aria-modal="true" aria-label={cfg.title || "Color"}>
+  <div class="modal" role="dialog" aria-modal="true" aria-label={cfg.title || $t("colorPicker.default.title")}>
     <header class="head">
-      <h2>{cfg.title || "Elegir color"}</h2>
+      <h2>{cfg.title || $t("colorPicker.default.heading")}</h2>
       <div class="preview" style="background: {working}"></div>
       <span class="hexval">{working.toUpperCase()}</span>
     </header>
@@ -101,7 +102,7 @@
       <div class="col">
         {#each PALETTE_GROUPS as grp}
           <div class="group">
-            <div class="gname">{grp.name}</div>
+            <div class="gname">{$t(grp.labelKey)}</div>
             <div class="swatches">
               {#each grp.colors as c}
                 <button
@@ -148,7 +149,7 @@
         </div>
 
         <button class="wheeltoggle" data-focusable tabindex="-1" on:click={() => (showWheel = !showWheel)}>
-          {showWheel ? "Ocultar rueda" : "Mostrar rueda de colores"}
+          {showWheel ? $t("colorPicker.wheel.hide") : $t("colorPicker.wheel.show")}
         </button>
 
         {#if showWheel}
@@ -159,7 +160,7 @@
               bind:this={wheelEl}
               on:pointerdown={onWheelDown}
               role="slider"
-              aria-label="Rueda de color"
+              aria-label={$t("colorPicker.wheel.ariaLabel")}
               aria-valuenow={hsv.h}
               tabindex="-1"
             >
@@ -167,7 +168,7 @@
               <div class="thumb" style="left: {thumb.x}px; top: {thumb.y}px"></div>
             </div>
             <div class="sliderrow vrow">
-              <span class="slbl">Brillo</span>
+              <span class="slbl">{$t("common.glow")}</span>
               <input
                 type="range"
                 class="slider"
@@ -181,15 +182,15 @@
               />
               <span class="sval">{hsv.v}</span>
             </div>
-            <p class="hint">Arrastra en la rueda con el puntero, o usa los sliders con el mando.</p>
+            <p class="hint">{$t("colorPicker.wheel.hint")}</p>
           </div>
         {/if}
       </div>
     </div>
 
     <footer class="actions">
-      <button class="btn apply" data-focusable tabindex="-1" on:click={apply}>✓ Aplicar</button>
-      <button class="btn cancel" data-focusable tabindex="-1" on:click={closeColorPicker}>✕ Cancelar</button>
+      <button class="btn apply" data-focusable tabindex="-1" on:click={apply}>✓ {$t("colorPicker.apply")}</button>
+      <button class="btn cancel" data-focusable tabindex="-1" on:click={closeColorPicker}>✕ {$t("common.cancel")}</button>
     </footer>
   </div>
 {/if}

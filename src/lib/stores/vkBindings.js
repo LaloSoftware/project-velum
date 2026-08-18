@@ -19,11 +19,11 @@ import { loadAppConfig, patchAppConfig } from "./appConfig.js";
  */
 
 export const VK_ACTIONS = [
-  { id: "vkSpace", label: "Espacio" },
-  { id: "vkBackspace", label: "Borrar" },
-  { id: "vkShift", label: "Alternar mayúsculas" },
-  { id: "vkCancel", label: "Cancelar (sin guardar)" },
-  { id: "vkConfirm", label: "Confirmar y cerrar" },
+  { id: "vkSpace", labelKey: "vk.space" },
+  { id: "vkBackspace", labelKey: "vk.backspace" },
+  { id: "vkShift", labelKey: "shortcuts.vk.toggleShift" },
+  { id: "vkCancel", labelKey: "shortcuts.vk.cancelNoSave" },
+  { id: "vkConfirm", labelKey: "shortcuts.vk.confirmClose" },
 ];
 
 // Semilla = mismos botones físicos que antes reinterpretaban su acción

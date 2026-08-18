@@ -68,12 +68,7 @@ pub(crate) fn describe_http_error(e: ureq::Error) -> String {
 pub(crate) fn stored_key(steamid: &str) -> Result<String, String> {
     Entry::new(KEYRING_SERVICE, steamid)
         .and_then(|e| e.get_password())
-        .map_err(|e| {
-            format!(
-                "No se pudo leer la API key guardada para esta cuenta ({e}) — \
-                 vincúlala de nuevo si el problema persiste"
-            )
-        })
+        .map_err(|e| format!("steam.key_read_failed|{e}"))
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -121,15 +116,15 @@ fn resolve_vanity_url(api_key: &str, vanity: &str) -> Result<String, String> {
             .query("key", api_key)
             .query("vanityurl", vanity)
             .call()
-            .map_err(|e| format!("no se pudo resolver el perfil de Steam: {}", describe_http_error(e)))?
+            .map_err(|e| format!("steam.profile_resolve_failed|{}", describe_http_error(e)))?
             .into_json()
             .map_err(|e| e.to_string())?;
     if resp.response.success == 1 {
         resp.response
             .steamid
-            .ok_or_else(|| "Steam no devolvió un SteamID".to_string())
+            .ok_or_else(|| "steam.no_steamid_returned".to_string())
     } else {
-        Err("No se encontró ese perfil de Steam (revisa el nombre o usa tu SteamID64)".to_string())
+        Err("steam.profile_not_found".to_string())
     }
 }
 
@@ -139,7 +134,7 @@ fn fetch_player_summary(api_key: &str, steamid: &str) -> Result<SteamAccountInfo
             .query("key", api_key)
             .query("steamids", steamid)
             .call()
-            .map_err(|e| format!("no se pudo validar la API key: {}", describe_http_error(e)))?
+            .map_err(|e| format!("steam.key_validation_failed|{}", describe_http_error(e)))?
             .into_json()
             .map_err(|e| e.to_string())?;
     let player = resp
@@ -147,7 +142,7 @@ fn fetch_player_summary(api_key: &str, steamid: &str) -> Result<SteamAccountInfo
         .players
         .into_iter()
         .next()
-        .ok_or_else(|| "API key o SteamID inválidos".to_string())?;
+        .ok_or_else(|| "steam.invalid_key".to_string())?;
     Ok(SteamAccountInfo {
         steamid: player.steamid,
         persona_name: player.personaname,
@@ -165,7 +160,7 @@ pub fn steam_link_account(
     let profile_input = profile_input.trim();
     let api_key = api_key.trim();
     if profile_input.is_empty() || api_key.is_empty() {
-        return Err("Falta el perfil de Steam o la API key".to_string());
+        return Err("steam.missing_fields".to_string());
     }
     let steamid = if looks_like_steamid64(profile_input) {
         profile_input.to_string()
@@ -175,7 +170,7 @@ pub fn steam_link_account(
     let info = fetch_player_summary(api_key, &steamid)?;
     Entry::new(KEYRING_SERVICE, &info.steamid)
         .and_then(|e| e.set_password(api_key))
-        .map_err(|e| format!("no se pudo guardar la API key de forma segura: {e}"))?;
+        .map_err(|e| format!("steam.key_save_failed|{e}"))?;
     println!(
         "[steam] cuenta vinculada: steamid={} persona=\"{}\"",
         info.steamid, info.persona_name

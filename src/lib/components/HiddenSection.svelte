@@ -3,12 +3,13 @@
   import { hidden, unhide } from "../stores/hidden.js";
   import { showToast } from "../stores/ui.js";
   import Select from "./Select.svelte";
+  import { t, tr } from "../i18n/index.js";
 
   const STORE_LABEL = { steam: "Steam", gog: "GOG", epic: "Epic", ea: "EA", ubisoft: "Ubisoft", other: "App" };
   const KIND_OPTIONS = [
-    { value: "all", label: "Todos" },
-    { value: "game", label: "Juegos" },
-    { value: "app", label: "Apps" },
+    { value: "all", labelKey: "library.filter.all" },
+    { value: "game", labelKey: "nav.games" },
+    { value: "app", labelKey: "hidden.kind.apps" },
   ];
   let kindFilter = "all";
 
@@ -17,29 +18,29 @@
 
   async function show(g) {
     await unhide(g.id);
-    showToast(`«${g.title}» visible de nuevo`);
+    showToast(tr("hidden.toast.shown", { title: g.title }));
   }
 </script>
 
 <section class="panel">
-  <h1>Ocultos</h1>
+  <h1>{$t("settings.sections.hidden")}</h1>
   <p class="dim">
-    Juegos y apps ocultos de la interfaz. Este es el único sitio para volver a mostrarlos.
+    {$t("hidden.desc")}
   </p>
 
   {#if hiddenItems.length === 0}
-    <p class="dim empty">No hay elementos ocultos.</p>
+    <p class="dim empty">{$t("hidden.empty")}</p>
   {:else}
     <div class="filter">
       <Select
-        label="Mostrar"
+        label={$t("common.show")}
         value={kindFilter}
         options={KIND_OPTIONS}
         onChange={(v) => (kindFilter = v)}
       />
     </div>
     {#if items.length === 0}
-      <p class="dim empty">No hay elementos ocultos en esta categoría.</p>
+      <p class="dim empty">{$t("hidden.emptyFiltered")}</p>
     {:else}
       <div class="rows">
         {#each items as g, i (g.id)}
@@ -53,7 +54,7 @@
               tabindex="-1"
               on:click={() => show(g)}
             >
-              Mostrar
+              {$t("common.show")}
             </button>
           </div>
         {/each}

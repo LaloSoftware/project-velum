@@ -20,8 +20,8 @@
 
 {#if $systemQuickMenu}
   <div class="scrim">
-    <div class="box" role="dialog" aria-modal="true" aria-label="Menú de sistema">
-      <h2>Menú de sistema</h2>
+    <div class="box" role="dialog" aria-modal="true" aria-label={$t("footer.systemMenu")}>
+      <h2>{$t("footer.systemMenu")}</h2>
       <div class="list">
         {#each orderedActions as a (a.id)}
           <button

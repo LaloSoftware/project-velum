@@ -24,7 +24,7 @@ fn send_shortcut_windows(modifiers: &[String], code: &str) -> Result<(), String>
         KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_SHIFT,
     };
 
-    let key_vk = code_to_vk(code).ok_or_else(|| format!("Tecla no soportada: {code}"))?;
+    let key_vk = code_to_vk(code).ok_or_else(|| format!("shortcuts.unsupported_key|{code}"))?;
     let mod_vks: Vec<VIRTUAL_KEY> = modifiers
         .iter()
         .filter_map(|m| match m.as_str() {
@@ -63,7 +63,7 @@ fn send_shortcut_windows(modifiers: &[String], code: &str) -> Result<(), String>
 
     let sent = unsafe { SendInput(&sequence, std::mem::size_of::<INPUT>() as i32) };
     if sent as usize != sequence.len() {
-        return Err("SendInput no pudo enviar todos los eventos".into());
+        return Err("shortcuts.send_input_failed".into());
     }
     Ok(())
 }

@@ -134,9 +134,11 @@ usa como `$t("clave")` en componentes y `tr("clave")` en stores. Fechas y horas
 persistidos no se traducen ni se renombran — ver la "regla de oro" en
 `docs/i18n.md`. Antes de cerrar un cambio con texto: `npm run i18n:check`.
 
-**La interfaz todavía está mayormente en español**: la infraestructura y los
-selectores están (Fase 1), la traducción de las ~550 cadenas restantes va por
-tandas (ver `feature-internacionalizacion.md`).
+**Migración a `$t`/`tr` completa** (fases F1-F4, ver `feature-internacionalizacion.md`):
+UI, stores y mensajes de error de Rust (códigos `"codigo"`/`"codigo|detalle"`,
+`i18n/errors.js`). Cualquier texto que aparezca en español al poner la interfaz
+en English es, por definición, una cadena sin migrar (regresión, no lo
+esperado) — reportarla como bug puntual, no como fase pendiente.
 
 `PRODUCT.md` (raíz) — verdad de producto para trabajo de diseño (impeccable): usuarios,
 propósito, posición, principios. No es visual; el mundo visual se documenta aparte.

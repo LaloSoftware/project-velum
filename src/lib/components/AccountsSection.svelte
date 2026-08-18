@@ -17,7 +17,7 @@
     setSteamLangPref,
   } from "../stores/steamAccount.js";
   import { STEAM_LANGUAGES, steamLanguageLabel } from "../i18n/steamLanguages.js";
-  import { t } from "../i18n/index.js";
+  import { t, tr } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
   let profileInput = "";
@@ -25,17 +25,17 @@
   let linking = false;
 
   async function editProfileInput() {
-    const v = await openKeyboard(profileInput, "Steam ID (SteamID64 o nombre de perfil)");
+    const v = await openKeyboard(profileInput, tr("keyboard.title.steamId"));
     if (v !== null) profileInput = v;
   }
   async function editApiKey() {
-    const v = await openKeyboard(apiKey, "API key de steamcommunity.com/dev/apikey");
+    const v = await openKeyboard(apiKey, tr("keyboard.title.steamApiKey"));
     if (v !== null) apiKey = v;
   }
 
   async function doLink() {
     if (!profileInput.trim() || !apiKey.trim()) {
-      showToast("Falta el perfil de Steam o la API key");
+      showToast(tr("accounts.toast.missingFields"));
       return;
     }
     linking = true;
@@ -66,14 +66,11 @@
 </script>
 
 <section class="panel">
-  <h1>Cuentas</h1>
+  <h1>{$t("settings.sections.accounts")}</h1>
 
   <h2>Steam</h2>
   <p class="dim">
-    Trae tu biblioteca completa (instalados y no instalados) y tus logros. Cada
-    persona usa su propia API key personal — se guarda cifrada en el almacén de
-    credenciales del sistema, nunca en texto plano. Generarla en
-    steamcommunity.com/dev/apikey.
+    {$t("accounts.steam.desc")}
   </p>
 
   {#if $steamAccount}
@@ -89,7 +86,7 @@
       </div>
     </div>
     <div class="row show-steamid-row">
-      <span class="rlabel wide">Mostrar Steam ID</span>
+      <span class="rlabel wide">{$t("accounts.showSteamId")}</span>
       <button
         class="toggle"
         class:on={$showSteamId}
@@ -97,23 +94,23 @@
         tabindex="-1"
         on:click={() => setShowSteamId(!$showSteamId)}
       >
-        {$showSteamId ? "ON" : "OFF"}
+        {$showSteamId ? $t("common.on") : $t("common.off")}
       </button>
     </div>
 
     {#if $steamSyncing}
       <p class="dim">
-        Sincronizando…
+        {$t("detail.sync.syncing")}
         {#if $steamSyncProgress}
-          logros {$steamSyncProgress.done}/{$steamSyncProgress.total} (appid {$steamSyncProgress.appid})
+          {$t("accounts.syncProgress", { done: $steamSyncProgress.done, total: $steamSyncProgress.total, appid: $steamSyncProgress.appid })}
         {/if}
       </p>
     {/if}
 
-    <h2>Opciones de sincronización</h2>
+    <h2>{$t("accounts.syncOptions.title")}</h2>
     <div class="rows">
       <div class="row">
-        <span class="rlabel wide">Incluir juegos gratuitos jugados</span>
+        <span class="rlabel wide">{$t("accounts.syncOptions.includeFreeGames")}</span>
         <button
           class="toggle"
           class:on={$steamSyncOptions.includePlayedFreeGames}
@@ -121,11 +118,11 @@
           tabindex="-1"
           on:click={toggleIncludeFreeGames}
         >
-          {$steamSyncOptions.includePlayedFreeGames ? "ON" : "OFF"}
+          {$steamSyncOptions.includePlayedFreeGames ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       <div class="row">
-        <span class="rlabel wide">Actualizar % global de logros</span>
+        <span class="rlabel wide">{$t("accounts.syncOptions.globalPctLabel")}</span>
         <Select
           value={$steamSyncOptions.globalPctInterval}
           options={GLOBAL_PCT_INTERVALS}
@@ -152,24 +149,24 @@
         tabindex="-1"
         on:click={() => syncNow({ full: true })}
       >
-        {$steamSyncing ? "Sincronizando…" : "Sincronizar ahora"}
+        {$steamSyncing ? $t("detail.sync.syncing") : $t("accounts.syncNow")}
       </button>
       <button class="btn danger" data-focusable tabindex="-1" on:click={openConfirmUnlinkSteam}>
-        Desvincular
+        {$t("steamAccount.unlink.confirm")}
       </button>
     </div>
   {:else}
     <div class="rows">
       <div class="row">
-        <span class="rlabel">Steam ID</span>
+        <span class="rlabel">{$t("accounts.steamIdLabel")}</span>
         <button class="field" data-focusable tabindex="-1" on:click={editProfileInput}>
-          {profileInput || "Editar"}
+          {profileInput || $t("common.edit")}
         </button>
       </div>
       <div class="row">
-        <span class="rlabel">API key</span>
+        <span class="rlabel">{$t("accounts.apiKeyLabel")}</span>
         <button class="field" data-focusable tabindex="-1" on:click={editApiKey}>
-          {apiKey ? "•".repeat(Math.min(apiKey.length, 24)) : "Editar"}
+          {apiKey ? "•".repeat(Math.min(apiKey.length, 24)) : $t("common.edit")}
         </button>
       </div>
       <!-- Visible ya al vincular: llega preseleccionado según el idioma
@@ -181,7 +178,7 @@
       </div>
     </div>
     <button class="btn" data-focusable tabindex="-1" disabled={linking} on:click={doLink}>
-      {linking ? "Vinculando…" : "Vincular cuenta"}
+      {linking ? $t("accounts.linking") : $t("accounts.linkAccount")}
     </button>
   {/if}
 </section>

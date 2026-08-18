@@ -1,5 +1,6 @@
 <script>
   import { PROMPT_STYLES, promptStyle, setPromptStyle } from "../stores/prompts.js";
+  import { t } from "../i18n/index.js";
   import Select from "./Select.svelte";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
@@ -8,21 +9,20 @@
 </script>
 
 <section class="panel">
-  <h1>Iconos de botones</h1>
+  <h1>{$t("settings.sections.buttonicons")}</h1>
   <p class="dim">
-    Estilo de los indicadores de botón de mando en la interfaz: texto plano o un set
-    de iconos por plataforma. Los atajos de teclado/mouse siempre se muestran como texto.
+    {$t("buttonIcons.desc")}
   </p>
 
   <div class="wrap">
     <Select
       value={$promptStyle}
-      options={PROMPT_STYLES.map((s) => ({ value: s.id, label: s.label }))}
+      options={PROMPT_STYLES.map((s) => ({ value: s.id, labelKey: s.labelKey }))}
       onChange={setPromptStyle}
     />
   </div>
 
-  <p class="dim preview-label">Vista previa</p>
+  <p class="dim preview-label">{$t("buttonIcons.preview")}</p>
   <div class="preview">
     {#each PREVIEW_BUTTONS as b}
       <ButtonPrompt token={b} button={b} />

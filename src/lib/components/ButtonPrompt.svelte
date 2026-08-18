@@ -3,6 +3,7 @@
   import { inputSource } from "../stores/inputSource.js";
   import { keyBindings, tokenForAction, labelForToken } from "../stores/keyBindings.js";
   import { iconFor } from "../theming/icons.js";
+  import { t } from "../i18n/index.js";
 
   // Indicador de botón. `token` = "A" | "B" | "LT" | "RT" | "Menú" | ...
   // Si se da `action` (id de ACTIONS en stores/bindings.js) y la última fuente
@@ -23,7 +24,7 @@
   const BIG_ICON_BUTTONS = new Set(["l1", "r1", "lt", "rt", "l3", "r3"]);
 
   $: isKeymouse = action && $inputSource === "keymouse";
-  $: display = isKeymouse ? ($keyBindings, labelForToken(tokenForAction(action))) : token;
+  $: display = isKeymouse ? ($keyBindings, $t, labelForToken(tokenForAction(action))) : token;
   $: [iconSet, iconPlatform] = $promptStyle === "auto" ? [null, null] : $promptStyle.split("-");
   $: iconSrc = !isKeymouse && iconSet && button ? iconFor(iconSet, iconPlatform, button) : null;
   $: iconBig = iconSrc && BIG_ICON_BUTTONS.has(button);

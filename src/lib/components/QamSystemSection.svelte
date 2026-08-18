@@ -8,6 +8,7 @@
     systemSetWifi,
     systemSetBluetooth,
   } from "../ipc/index.js";
+  import { t, tr } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
   let s = null;
@@ -42,9 +43,9 @@
 </script>
 
 <div class="qam">
-  <h2>Sistema</h2>
+  <h2>{$t("qam.section.system")}</h2>
   {#if !s}
-    <p class="dim">Cargando…</p>
+    <p class="dim">{$t("common.loading")}</p>
   {:else}
     <!-- Wi-Fi -->
     <div class="cat" data-focus-group="wifi" on:focusin={() => (active = "wifi")}>
@@ -53,7 +54,7 @@
         <div class="grow">
           <div class="label">Wi-Fi</div>
           <div class="sub dim">
-            {s.wifiEnabled ? s.currentNetwork || "Sin conexión" : "Desactivado"}
+            {s.wifiEnabled ? s.currentNetwork || $t("qam.system.noConnection") : $t("common.disabled")}
           </div>
         </div>
         <button
@@ -64,13 +65,13 @@
           tabindex="-1"
           on:click={toggleWifi}
         >
-          {s.wifiEnabled ? "ON" : "OFF"}
+          {s.wifiEnabled ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       {#if active === "wifi" && s.wifiEnabled}
         <div class="expand">
           <Select
-            label="Red"
+            label={$t("common.network")}
             value={s.currentNetwork}
             options={s.networks.map((n) => ({ value: n, label: n }))}
             onChange={(n) => (s = { ...s, currentNetwork: n })}
@@ -86,11 +87,11 @@
         <div class="grow">
           <div class="label">Bluetooth</div>
           <div class="sub dim">
-            {s.bluetoothEnabled ? `${s.btDevices.length} dispositivos` : "Desactivado"}
+            {s.bluetoothEnabled ? $t("qam.system.deviceCount", { count: s.btDevices.length }) : $t("common.disabled")}
           </div>
         </div>
         <button class="toggle" class:on={s.bluetoothEnabled} data-focusable tabindex="-1" on:click={toggleBt}>
-          {s.bluetoothEnabled ? "ON" : "OFF"}
+          {s.bluetoothEnabled ? $t("common.on") : $t("common.off")}
         </button>
       </div>
       {#if active === "bt" && s.bluetoothEnabled}
@@ -107,8 +108,8 @@
       <div class="head">
         <span class="ico">{s.muted ? "🔇" : "🔊"}</span>
         <div class="grow">
-          <div class="label">Volumen</div>
-          <div class="sub dim">{s.muted ? "Silenciado" : `${s.volume}%`}</div>
+          <div class="label">{$t("common.volume")}</div>
+          <div class="sub dim">{s.muted ? $t("common.muted") : `${s.volume}%`}</div>
         </div>
         <button class="toggle mute" class:on={!s.muted} data-focusable tabindex="-1" on:click={toggleMute}>
           {s.muted ? "🔇" : "🔊"}
@@ -121,10 +122,10 @@
           <span class="pct">{s.volume}</span>
           <button class="step" data-focusable tabindex="-1" on:click={() => setVol(5)}>+</button>
         </div>
-        <div class="sublabel dim">Salida de audio</div>
+        <div class="sublabel dim">{$t("qam.system.audioOutput")}</div>
         <div class="expand">
           <Select
-            label="Salida"
+            label={$t("common.output")}
             value={s.currentOutput}
             options={s.outputDevices.map((d) => ({ value: d.id, label: d.name }))}
             onChange={pickOutput}
