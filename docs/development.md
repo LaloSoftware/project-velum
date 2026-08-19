@@ -39,21 +39,36 @@ Ver `CLAUDE.md` (mapa del proyecto) y `docs/architecture.md`.
 
 ## Estrategia de ramas git
 
-Repo **local** (sin remoto por ahora). Cuatro niveles, de más volátil a más estable:
+`origin` apunta a `https://github.com/LaloSoftware/project-velum.git`. Cinco niveles, de más
+volátil a más estable — **`dev` nunca se pushea**, solo `develop` y `release` viven en GitHub:
 
 - **`testing/<nombre>`** — rama de la **sesión de pruebas**, creada a partir de los últimos
   cambios (de su `feature/<nombre>`, o de `dev` si es algo nuevo). Aquí van commits WIP de
   **cualquier cosa que haya que probar**, sin miedo a ensuciar.
 - **`feature/<nombre>`** — código **limpio/definitivo** de la funcionalidad. Recibe el
   merge de `testing/<nombre>` cuando la prueba y los ajustes están listos.
-- **`dev`** — integración. Recibe `feature/<nombre>` cuando la funcionalidad está
-  **terminada**.
-- **`release`** — solo versiones estables (con tag). Se pasa de `dev` a `release`
-  **solo cuando el responsable lo indica** explícitamente.
+- **`dev`** — integración completa, **privada** (nunca se pushea a `origin`). Recibe
+  `feature/<nombre>` cuando la funcionalidad está **terminada**. Incluye toda la doc interna
+  (`docs/decisions.md`, `docs/roadmap.md`, `CLAUDE.md`, `PRODUCT.md`, `DESIGN.md`,
+  `design_icons.md`).
+- **`develop`** — espejo **público** de `dev`, sin esos 6 archivos internos. Es lo que se
+  publica en GitHub para trabajo/colaboración. Se sincroniza con un merge real + `git rm`
+  de los excluidos (no se reescribe historial, es seguro aunque ya esté publicada):
+  ```bash
+  git switch develop
+  git merge --no-ff dev -m "merge: dev -> develop"
+  # si algún path excluido reaparece por cambios en dev:
+  git rm docs/decisions.md docs/roadmap.md CLAUDE.md PRODUCT.md DESIGN.md design_icons.md
+  git commit -m "chore: quita docs/config internos para la rama pública develop"
+  git push origin develop
+  ```
+- **`release`** — solo versiones estables (con tag), fusiona **`develop`** (nunca `dev`
+  directo) **solo cuando el responsable lo indica** explícitamente. Push a `origin` de
+  `release` y del tag siempre con permiso explícito previo.
 
 Flujo:
-`testing/<n>` → (probar y ajustar) → `feature/<n>` → (feature terminada) → `dev` →
-(bajo indicación) → `release` + tag.
+`testing/<n>` → (probar y ajustar) → `feature/<n>` → (feature terminada) → `dev` (privada) →
+`develop` (pública, filtrada) → (bajo indicación) → `release` + tag.
 
 ```bash
 # 1) Empezar una funcionalidad
@@ -74,12 +89,17 @@ git branch -D testing/mi-cambio          # opcional: cerrar la rama de pruebas
 # 4) Feature terminada -> integrar en dev
 git switch dev && git merge --no-ff feature/mi-cambio
 
-# 5) Publicar versión estable (SOLO cuando se indique)
-git switch release && git merge --no-ff dev && git tag v0.1.0
+# 5) Publicar en develop (ver recipe arriba)
+git switch develop && git merge --no-ff dev -m "merge: dev -> develop"
+
+# 6) Publicar versión estable (SOLO cuando se indique, con permiso para el push)
+git switch release && git merge --no-ff develop -m "merge: develop -> release"
+git tag -a v0.1.0 -m "<notas del release>"
 ```
 
 > Regla: los commits de prueba viven en `testing/*`; a `feature/*` solo llega el código
-> final ya validado; a `dev` solo features terminadas; a `release` solo bajo indicación.
+> final ya validado; a `dev` solo features terminadas; a `develop` solo lo público (sin los 6
+> archivos internos); a `release` solo bajo indicación explícita, con permiso para el push.
 
 ## Notas
 

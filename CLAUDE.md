@@ -115,8 +115,10 @@ CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md
 
 ## Git / ramas
 
-`release` (estables, con tags) ← `dev` (integración) ← `feature/*` (cambios importantes).
-El MVP vive en `dev`. Detalle en `docs/development.md`.
+`release` (estables, con tags) ← `develop` (pública, filtrada, sin este archivo ni
+`PRODUCT.md`/`DESIGN.md`/`design_icons.md`/`docs/decisions.md`/`docs/roadmap.md`) ← `dev`
+(integración, privada, nunca se pushea) ← `feature/*` (cambios importantes). Detalle en
+`docs/development.md`.
 
 ## Más documentación
 
