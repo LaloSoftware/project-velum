@@ -44,7 +44,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNERkI0MjdGNDBERjUzREQKUldUZFU5OUFmMEw3UFJzSUI2RHJhRzRoY1RyWUUwTlJGb3ZzdURyRlphNUlya2d1Zm82bGRkaHkK",
       "endpoints": [
         "https://github.com/LaloSoftware/project-velum/releases/download/channels/beta.json"
       ],
