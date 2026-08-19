@@ -5,8 +5,7 @@
 <h1 align="center">VELUM</h1>
 
 <p align="center">
-  Launcher de sala tipo consola para PC — 100% manejable con mando, aspecto totalmente
-  repintable por CSS/perfiles.
+  Launcher de sala tipo consola para PC — buscamos generar una experiencia en PC alternativa a Steam en modo Big Picture y el modo X Box de windows manejable con mando, con un aspecto customizable por CSS y el uso de perfiles, más sin embargo no representar una barrera de entrada enorme a los usuarios poco experimentados.
 </p>
 
 <p align="center">
@@ -26,7 +25,7 @@
 
 VELUM convierte una PC (alcance actual para Windows) en una experiencia tipo consola para la
 sala/salón: arranca a pantalla completa, muestra la biblioteca de juegos instalados y
-busca manejarse **100% con mando** — reduciendo drásticamente el uso de mouse y teclado, sin salir a Windows.
+Nuestro objetivo es lograr una experiencia **100% con mando** — reduciendo drásticamente el uso de mouse y teclado, sin salir a Windows.
 Una de las principales características es el aspecto, se busca que sea completa y fácilmente **editable**: no hay
 colores/medidas fijas en la interfaz y a la mano de cualquier usuario ya que el diseño fue pensado para mantener
 temas y perfiles para adaptarse a múltiples configuraciones de interfaz, esto otorga completa capacidad al usuario
@@ -53,7 +52,16 @@ suspende al lanzar un juego y se restaura solo al volver o al usar un comando co
 
 ## Capturas
 
-_Próximamente._
+<table>
+  <tr>
+    <td><img src="docs/screenshots/inicio.jpg" alt="Inicio" width="400" /><br/><sub>Inicio</sub></td>
+    <td><img src="docs/screenshots/libreria.jpg" alt="Biblioteca" width="400" /><br/><sub>Biblioteca</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/detalle.jpg" alt="Detalle de juego" width="400" /><br/><sub>Detalle de juegos</sub></td>
+    <td><img src="docs/screenshots/multimedia.jpg" alt="Multimedia" width="400" /><br/><sub>Multimedia</sub></td>
+  </tr>
+</table>
 
 ## Instalación
 
@@ -108,8 +116,8 @@ máquina).
 
 ## Roadmap
 
-- **Internacionalización**: selector de idioma/región para la interfaz (hoy 100% en
-  español) y para las preferencias regionales de Steam.
+- **Internacionalización** (trabajo en proceso): selector de idioma/región para la interfaz (hoy 100% en
+  español con opción de menúes en inglés) y para las preferencias regionales de Steam.
 - **Sistema de actualizaciones**: poder ver si hay una versión nueva e instalarla
   desde la propia app instalada, sin tener que bajar un instalador a mano de nuevo.
 - Soporte de Steam Controller y otros controles por medios inalámbricos.
