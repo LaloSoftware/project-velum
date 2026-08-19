@@ -1,0 +1,105 @@
+# Publica una versión de VELUM al pushear un tag `v*` a `release`.
+#
+# Compila el instalador de Windows, lo firma con la clave minisign del updater
+# y publica en el release del tag: el .exe, su .sig y el manifiesto latest.json.
+#
+# El segundo job republica ese manifiesto en un release-puntero fijo con tag
+# `channels`, que es a donde apunta la app (src-tauri/src/update.rs). Hace falta
+# porque `releases/latest/download/…` de GitHub resuelve solo al último release
+# que NO sea prerelease, y las betas se publican como prerelease.
+#
+#   v0.2.0-beta.1  ->  prerelease  ->  channels/beta.json
+#   v0.2.0         ->  release     ->  channels/latest.json
+#
+# Secrets necesarios (ver docs/development.md → Publicar una versión):
+#   TAURI_SIGNING_PRIVATE_KEY           contenido de ~/.tauri/velum.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  su passphrase
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      manifest: ${{ steps.chan.outputs.manifest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - run: npm ci
+
+      # Un tag con guion (v0.2.0-beta.1) es prerelease semver -> canal beta.
+      - name: Resolver canal desde el tag
+        id: chan
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "manifest=beta.json"   >> "$GITHUB_OUTPUT"
+            echo "prerelease=true"      >> "$GITHUB_OUTPUT"
+          else
+            echo "manifest=latest.json" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false"     >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: VELUM ${{ github.ref_name }}
+          releaseDraft: false
+          # Las notas que la app muestra en "Novedades" son las de este
+          # release en el momento del build: editarlas después no cambia el
+          # manifiesto ya publicado.
+          generateReleaseNotes: true
+          prerelease: ${{ steps.chan.outputs.prerelease }}
+          # Solo NSIS: WiX/MSI rechaza versiones semver con prerelease
+          # (0.2.0-beta.1), y el updater de Windows instala el setup.exe.
+          args: --bundles nsis
+          updaterJsonPreferNsis: true
+          uploadUpdaterJson: true
+
+  # Job aparte en Linux solo para usar `gh` con bash (en windows-latest habría
+  # que pelear con el quoting de PowerShell para nada).
+  publish-channel:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Republicar el manifiesto en el release-puntero "channels"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          MANIFEST: ${{ needs.build.outputs.manifest }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # --prerelease para que este puntero no aparezca como "Latest release"
+          # del repo y nadie descargue de acá pensando que es la app.
+          gh release view channels -R "$REPO" >/dev/null 2>&1 || \
+            gh release create channels -R "$REPO" \
+              --title "Canales de actualización" \
+              --notes "Punteros de latest.json / beta.json para el updater de la app. No descargues nada de acá." \
+              --prerelease
+          mkdir -p m
+          gh release download "$TAG" -R "$REPO" -p latest.json -D m
+          mv "m/latest.json" "m/$MANIFEST"
+          gh release upload channels "m/$MANIFEST" -R "$REPO" --clobber

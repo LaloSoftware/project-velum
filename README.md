@@ -118,8 +118,6 @@ máquina).
 
 - **Internacionalización** (trabajo en proceso): selector de idioma/región para la interfaz (hoy 100% en
   español con opción de menúes en inglés) y para las preferencias regionales de Steam.
-- **Sistema de actualizaciones**: poder ver si hay una versión nueva e instalarla
-  desde la propia app instalada, sin tener que bajar un instalador a mano de nuevo.
 - Soporte de Steam Controller y otros controles por medios inalámbricos.
 - Controles de sistema reales de Windows (Wi-Fi/Bluetooth/volumen) en el menú rápido.
 - Selección de pantalla de salida (multi-monitor / TV).

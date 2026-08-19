@@ -29,6 +29,7 @@ export default {
   "settings.sections.system-actions": "System actions",
   "settings.sections.accounts": "Accounts",
   "settings.sections.notifications": "Notifications",
+  "settings.sections.updates": "Updates",
 
   // --- Settings → Language ---
   "settings.language.title": "Language",
@@ -716,6 +717,42 @@ export default {
   // --- F4: unnamed custom shortcut (defensive fallback) ---
   "shortcuts.custom.defaultName": "Shortcut",
 
+  // --- App updates (Settings → Updates) ---
+  "updates.current": "Installed version: v{version}",
+  "updates.channel.title": "Channel",
+  "updates.channel.desc":
+    "The beta channel gets new things first, with a higher chance of bugs. After switching channels, an update only shows up once that channel publishes a version higher than the installed one.",
+  "updates.channel.options.stable": "Stable",
+  "updates.channel.options.beta": "Beta",
+  "updates.channel.stableEmpty":
+    "No stable releases yet: for now, new versions ship only on the beta channel.",
+  "updates.checkOnStart.title": "Check on startup",
+  "updates.checkOnStart.desc":
+    "Looks for a new version every time you open VELUM. Installing is always up to you.",
+  "updates.status.title": "Status",
+  "updates.status.idle": "Not checked yet.",
+  "updates.status.checking": "Checking for updates…",
+  "updates.status.uptodate": "You're up to date.",
+  "updates.status.ready": "Update ready to install.",
+  "updates.status.installing": "Installing…",
+  "updates.available.title": "New version available: v{version}",
+  "updates.published": "Published on {date}",
+  "updates.notes.title": "What's new",
+  "updates.progress": "Downloading… {pct}%",
+  "updates.progress.unknown": "Downloading…",
+  "updates.aria.progress": "Download progress",
+  "updates.restartHint": "VELUM will close and reopen to finish.",
+  "updates.installHint": "The app will close on its own — don't shut down the machine.",
+  "updates.check.action": "Check for updates",
+  "updates.check.checking": "Checking…",
+  "updates.download.action": "Download",
+  "updates.install.action": "Install and restart",
+  "updates.later.action": "Later",
+  "updates.retry.action": "Retry",
+  "updates.webOnly":
+    "In the browser this is a simulation: real updates only work in the installed app.",
+  "updates.toast.found": "New version available: v{version}",
+
   // --- F4: Rust backend errors ("code" or "code|detail", see i18n/errors.js) ---
   "errors.steam.key_read_failed":
     "Couldn't read the saved API key: {detail} — link your account again if the problem persists",
@@ -731,4 +768,13 @@ export default {
   "errors.shortcuts.unsupported_key": "Unsupported key: {detail}",
   "errors.shortcuts.send_input_failed": "SendInput couldn't send all events",
   "errors.config.dir_resolve_failed": "Couldn't resolve the config directory: {detail}",
+  "errors.update.unknown_channel": "Unknown update channel: {detail}",
+  "errors.update.endpoint_invalid": "The update channel address isn't valid: {detail}",
+  "errors.update.builder_failed":
+    "Couldn't set up the update check: {detail} — the signing public key may be missing",
+  "errors.update.check_failed": "Couldn't check for updates: {detail}",
+  "errors.update.no_pending": "There's no pending update — check again",
+  "errors.update.download_failed": "The update download failed: {detail}",
+  "errors.update.install_failed": "The update install failed: {detail}",
+  "errors.update.relaunch_failed": "Couldn't restart the app: {detail}",
 };

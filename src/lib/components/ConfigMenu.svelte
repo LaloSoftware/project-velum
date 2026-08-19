@@ -11,6 +11,7 @@
   import SystemActionsSection from "./SystemActionsSection.svelte";
   import AccountsSection from "./AccountsSection.svelte";
   import NotificationsSection from "./NotificationsSection.svelte";
+  import UpdatesSection from "./UpdatesSection.svelte";
   import { showPowerFooter } from "../stores/systemActions.js";
   import {
     minimizeWindow,
@@ -71,6 +72,7 @@
     { id: "system-actions", labelKey: "settings.sections.system-actions" },
     { id: "accounts", labelKey: "settings.sections.accounts" },
     { id: "notifications", labelKey: "settings.sections.notifications" },
+    { id: "updates", labelKey: "settings.sections.updates" },
   ];
   let section = "appearance";
   let contentEl;
@@ -141,6 +143,8 @@
         <AccountsSection />
       {:else if section === "notifications"}
         <NotificationsSection />
+      {:else if section === "updates"}
+        <UpdatesSection />
       {/if}
     </div>
   </div>

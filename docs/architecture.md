@@ -17,9 +17,27 @@ usa **datos mock en JS**, de modo que la UI se desarrolla y verifica sin backend
 ## Frontera frontend ↔ Rust
 
 - **Comandos** (`invoke`): `list_games`, `system_get_state`, `system_set_*`,
-  `launch_game`, `open_launcher`, `load_config`, `save_config`.
+  `launch_game`, `open_launcher`, `load_config`, `save_config`, `update_*`.
 - **Eventos** (Rust → JS): `gm://input` con `{ action, pressed }` desde el hilo de
-  `gilrs` (ver `docs/input.md`).
+  `gilrs` (ver `docs/input.md`); `gm://update-progress` con
+  `{ downloaded, total }` durante la descarga de una actualización.
+
+### Auto-actualización (`src-tauri/src/update.rs`)
+
+`tauri-plugin-updater` va envuelto en comandos propios (`update_check`,
+`update_download`, `update_install`, `update_relaunch`, `update_discard`) en vez de
+usarse desde JavaScript, por una razón concreta: el `check()` del lado JS **no acepta
+`endpoints`**, así que el selector de canal (estable/beta) sería imposible. Desde Rust,
+`UpdaterBuilder::endpoints()` sobreescribe lo que declara `tauri.conf.json`.
+
+Efecto secundario deseable: `capabilities/default.json` no expone ningún permiso
+`updater:*` a la WebView — el frontend solo puede pedir un id de canal, nunca una URL.
+
+Los endpoints apuntan a un release-puntero fijo con tag `channels`
+(`channels/latest.json`, `channels/beta.json`) y no al release de cada versión, porque
+`releases/latest/download/…` de GitHub resuelve solo al último release que **no** sea
+prerelease — y las betas se publican como prerelease. Ver `docs/development.md` →
+"Publicar una versión".
 
 ## Capas abstraídas (clave para dev-en-Mac / deploy-Windows)
 
