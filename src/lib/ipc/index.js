@@ -301,3 +301,63 @@ export async function steamGlobalAchievementPercentages(appid, maxAgeSecs) {
 export async function steamAchievementsSummary(steamid) {
   return invoke("steam_achievements_summary", { steamid });
 }
+
+// ------- Actualizaciones de la app (Configuración → Actualizaciones) -------
+// Igual criterio que los wrappers de Steam: dentro de Tauri el error se
+// propaga tal cual (un fallo de red tiene que llegar a reportError, no
+// convertirse en un mock silencioso). Fuera de Tauri sí hay mock, porque el
+// ciclo completo de la UI (buscar → descargar → listo) debe poder recorrerse
+// en `npm run web`.
+
+// Suscriptores al progreso de descarga: en Tauri los alimenta el evento
+// gm://update-progress; en web, el mock de updateDownload().
+const _updateProgressSubs = new Set();
+
+export async function updateCheck(channel) {
+  if (isTauri) return invoke("update_check", { channel });
+  await new Promise((r) => setTimeout(r, 600));
+  if (channel !== "beta") return null; // el canal estable aún no tiene releases
+  return {
+    version: "0.2.0-beta.1",
+    currentVersion: "0.1.0",
+    notes: "[mock] Sección de actualizaciones\n[mock] Correcciones varias",
+    pubDate: new Date().toISOString(),
+    channel,
+  };
+}
+
+export async function updateDownload() {
+  if (isTauri) return invoke("update_download");
+  const total = 14 * 1024 * 1024;
+  for (let downloaded = 0; downloaded < total; ) {
+    await new Promise((r) => setTimeout(r, 120));
+    downloaded = Math.min(total, downloaded + total / 12);
+    _updateProgressSubs.forEach((cb) => cb({ downloaded, total }));
+  }
+}
+
+export async function updateInstall() {
+  if (isTauri) return invoke("update_install");
+  await new Promise((r) => setTimeout(r, 800));
+  console.info("[mock] update_install");
+}
+
+export async function updateRelaunch() {
+  if (isTauri) return invoke("update_relaunch");
+  console.info("[mock] update_relaunch");
+}
+
+export async function updateDiscard() {
+  if (isTauri) return invoke("update_discard");
+  console.info("[mock] update_discard");
+}
+
+// Devuelve la función para dejar de escuchar (mismo contrato que `listen`).
+export async function onUpdateProgress(cb) {
+  if (!isTauri) {
+    _updateProgressSubs.add(cb);
+    return () => _updateProgressSubs.delete(cb);
+  }
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen("gm://update-progress", (event) => cb(event.payload));
+}

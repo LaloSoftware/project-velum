@@ -50,6 +50,11 @@ keyring = { version = "3", features = ["apple-native", "windows-native"] }
 # caché en sí no depende del SO.
 rusqlite = { version = "0.32", features = ["bundled"] }
 tauri-plugin-clipboard-manager = "2.3.2"
+# Auto-actualización. Su API es async (a diferencia del resto del backend,
+# que usa ureq bloqueante): no hace falta sumar tokio, los comandos async de
+# Tauri ya corren en tauri::async_runtime. Sí arrastra reqwest — es el precio
+# de la feature, igual con la API de JS que con esta.
+tauri-plugin-updater = "2"
 
 # Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
 # traer al frente la ventana del juego en marcha (Win32), y simular atajos de
