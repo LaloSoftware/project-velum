@@ -23,6 +23,10 @@ gm.bundle
 /feature-*.md
 /feature-*
 
+# Notas de investigación de "gaps" (decisiones/contexto para sesiones futuras,
+# no versionadas — mismo criterio que feature-*.md)
+/gap_*.md
+
 # Sistema / editor
 .DS_Store
 .idea/
