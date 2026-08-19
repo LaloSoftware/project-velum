@@ -45,6 +45,9 @@ impl SystemControls for MockSystemControls {
     fn set_volume(&mut self, v: u8) {
         self.state.volume = v.min(100);
     }
+    fn set_muted(&mut self, muted: bool) {
+        self.state.muted = muted;
+    }
     fn set_output(&mut self, id: String) {
         self.state.current_output = id;
     }

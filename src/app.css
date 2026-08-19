@@ -20,10 +20,25 @@
   --gm-accent-2: #7aa7ff;
   --gm-danger: #ff5d5d;
   --gm-success: #52d69a;
+  /* Resaltado de "juego 100% completado" (logros) — aparte de --gm-success
+     (que también colorea cualquier toggle ON) para que un perfil pueda
+     recolorear uno sin afectar el otro. Mismo valor por defecto. */
+  --gm-complete: #52d69a;
 
-  /* Foco (navegación por mando/teclado) — tematizable */
-  --gm-focus-ring: 0 0 0 3px var(--gm-accent), 0 0 22px 2px color-mix(in srgb, var(--gm-accent) 55%, transparent);
+  /* Scrollbar (thumb) acorde al tema. Un tema puede sobreescribirlo. */
+  --gm-scrollbar: color-mix(in srgb, var(--gm-text-dim) 45%, transparent);
+  --gm-scrollbar-hover: color-mix(in srgb, var(--gm-text-dim) 70%, transparent);
+
+  /* Foco (navegación por mando/teclado) — tematizable. Difuminado (no línea
+     sólida): borde fino semitransparente + glow. Token de tarjeta aparte
+     (--gm-focus-ring-card) más difuso, editable por separado. */
+  --gm-focus-ring: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 50%, transparent),
+    0 0 20px 3px color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  --gm-focus-ring-card: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 40%, transparent),
+    0 0 16px 2px color-mix(in srgb, var(--gm-accent) 48%, transparent);
   --gm-focus-scale: 1.06;
+  /* Aire alrededor de las tarjetas para que el grow + el anillo no se recorten */
+  --gm-focus-space: 26px;
 
   /* Tipografía */
   --gm-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -36,9 +51,12 @@
   --gm-gap: 18px;
   --gm-pad: 28px;
 
-  /* Tarjetas de juego */
+  /* Tarjetas de juego (biblioteca: Juegos/Apps) */
   --gm-card-w: 190px;
   --gm-card-ratio: 3 / 4;
+
+  /* Tarjetas de Inicio (tamaño independiente del de la biblioteca) */
+  --gm-card-w-home: 190px;
 
   /* Fondo de sala (wallpaper). Un tema puede reemplazarlo. */
   --gm-wallpaper: radial-gradient(1200px 800px at 15% -10%, #1b2740 0%, transparent 55%),
@@ -69,10 +87,49 @@ body {
   cursor: default;
 }
 
+/*
+ * Scrollbars limpios y acordes al tema: solo el thumb (track/botones ocultos),
+ * fino y con un tono derivado del tema. Solo aparece cuando hay overflow.
+ * Los scrollbars intencionalmente ocultos (chips/strip) los anulan localmente.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gm-scrollbar) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gm-scrollbar);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gm-scrollbar-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Foco visible en cualquier elemento navegable */
 [data-focusable]:focus {
   outline: none;
   box-shadow: var(--gm-focus-ring);
+}
+
+/* Modo edición de un <input type="range"> (ver navigation.js activate()):
+   Aceptar lo activa/desactiva; mientras está activo, izquierda/derecha
+   ajustan el valor. Anillo distinto del foco normal para que se note que
+   el mando ya no navega, sino que está ajustando el valor. Selector con
+   suficiente especificidad para ganarle al box-shadow :focus de cada
+   componente sin tener que tocarlos uno por uno. */
+input[type="range"].range-editing:focus {
+  box-shadow:
+    0 0 0 2px var(--gm-success),
+    0 0 16px 3px color-mix(in srgb, var(--gm-success) 55%, transparent);
 }
 
 button {

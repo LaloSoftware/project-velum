@@ -35,6 +35,7 @@ pub struct SystemState {
 pub trait SystemControls: Send + Sync {
     fn state(&self) -> SystemState;
     fn set_volume(&mut self, v: u8);
+    fn set_muted(&mut self, muted: bool);
     fn set_output(&mut self, id: String);
     fn set_wifi(&mut self, enabled: bool);
     fn set_bluetooth(&mut self, enabled: bool);
@@ -54,6 +55,11 @@ pub fn system_set_volume(volume: u8, state: State<SystemHandle>) {
 }
 
 #[tauri::command]
+pub fn system_set_muted(muted: bool, state: State<SystemHandle>) {
+    state.0.lock().unwrap().set_muted(muted);
+}
+
+#[tauri::command]
 pub fn system_set_output_device(id: String, state: State<SystemHandle>) {
     state.0.lock().unwrap().set_output(id);
 }
@@ -66,4 +72,21 @@ pub fn system_set_wifi(enabled: bool, state: State<SystemHandle>) {
 #[tauri::command]
 pub fn system_set_bluetooth(enabled: bool, state: State<SystemHandle>) {
     state.0.lock().unwrap().set_bluetooth(enabled);
+}
+
+/// Apaga el PC (botón "Apagar" de Configuración, tras confirmar en el modal).
+/// Acción disparar-y-olvidar sin estado — no pasa por `SystemControls`/`SystemHandle`,
+/// mismo criterio que `shortcuts::run_shortcut` o `launch::focus_window_under`.
+#[tauri::command]
+pub fn system_shutdown() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        std::process::Command::new("shutdown")
+            .args(["/s", "/t", "0"])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(windows))]
+    println!("[mock] system_shutdown");
+    Ok(())
 }

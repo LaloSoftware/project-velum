@@ -2,11 +2,81 @@
  * Temas integrados. Cada tema es un conjunto de overrides de tokens --gm-*
  * (y, opcionalmente, CSS extra). Demuestran que SOLO con tokens/CSS cambia
  * radicalmente el aspecto. El usuario puede crear los suyos (ver docs/theming.md).
+ *
+ * `kind` ("dark" | "light") no afecta el CSS directamente: lo usa Settings.svelte
+ * para decidir si al activar el tema hace falta reiniciar el override de
+ * --gm-text del perfil (ver pickTheme() ahí) y para separarlos en el selector.
  */
 
 export const BUILTIN_THEMES = {
+  // Tema de marca (VELUM) — nuevo default, ver feature-rebrand-y-setup.md.
+  // Paleta: Vanguard Blue #2F6BFF (primario), Pulse Cyan #22D3EE (acento/
+  // foco), Void #07080C (fondo), Surface #131824 (paneles), Cloud #E6EDF7
+  // (texto). El "Launch Gradient" (135° azul→cian) se traduce al mismo
+  // patrón de 2 radial-gradient + color base que ya usan los demás temas.
+  velum: {
+    name: "Velum",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#07080c",
+      "--gm-bg-elev": "#0d0f16",
+      "--gm-surface": "#131824",
+      "--gm-surface-2": "#1b2233",
+      "--gm-text": "#e6edf7",
+      "--gm-text-dim": "#8d98b3",
+      "--gm-accent": "#2f6bff",
+      "--gm-accent-2": "#22d3ee",
+      "--gm-wallpaper":
+        "radial-gradient(1200px 800px at 15% -10%, color-mix(in srgb, #2f6bff 30%, transparent) 0%, transparent 55%), radial-gradient(1000px 700px at 110% 10%, color-mix(in srgb, #22d3ee 26%, transparent) 0%, transparent 50%), #07080c",
+    },
+    extraCss: "",
+  },
+
+  // Variante clara — mismos acentos, fondos invertidos (el Void de la
+  // variante oscura pasa a ser el color de texto acá).
+  velumWhite: {
+    name: "Velum White",
+    kind: "light",
+    tokens: {
+      "--gm-bg": "#eef2fa",
+      "--gm-bg-elev": "#e6ecf8",
+      "--gm-surface": "#dce4f2",
+      "--gm-surface-2": "#cbd6ec",
+      "--gm-text": "#07080c",
+      "--gm-text-dim": "#4a5568",
+      "--gm-accent": "#2f6bff",
+      "--gm-accent-2": "#12afcb",
+      "--gm-wallpaper":
+        "radial-gradient(1200px 800px at 15% -10%, color-mix(in srgb, #2f6bff 12%, transparent) 0%, transparent 55%), radial-gradient(1000px 700px at 110% 10%, color-mix(in srgb, #22d3ee 12%, transparent) 0%, transparent 50%), #eef2fa",
+    },
+    extraCss: "",
+  },
+
+  // Variante enérgica — invierte primario/secundario (el cian pasa a ser el
+  // acento principal) y un foco un poco más marcado, mismo criterio con el
+  // que Aurora/Sunset ajustan forma/peso además del color para diferenciarse.
+  velumPulse: {
+    name: "Velum Pulse",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#07080c",
+      "--gm-bg-elev": "#0d0f16",
+      "--gm-surface": "#131824",
+      "--gm-surface-2": "#1b2233",
+      "--gm-text": "#e6edf7",
+      "--gm-text-dim": "#8d98b3",
+      "--gm-accent": "#22d3ee",
+      "--gm-accent-2": "#2f6bff",
+      "--gm-focus-scale": "1.1",
+      "--gm-wallpaper":
+        "radial-gradient(1200px 800px at 15% -10%, color-mix(in srgb, #22d3ee 32%, transparent) 0%, transparent 55%), radial-gradient(1000px 700px at 110% 10%, color-mix(in srgb, #2f6bff 28%, transparent) 0%, transparent 50%), #07080c",
+    },
+    extraCss: "",
+  },
+
   midnight: {
-    name: "Midnight (por defecto)",
+    name: "Midnight",
+    kind: "dark",
     // Sin overrides: usa el tema base de app.css.
     tokens: {},
     extraCss: "",
@@ -14,6 +84,7 @@ export const BUILTIN_THEMES = {
 
   aurora: {
     name: "Aurora",
+    kind: "dark",
     tokens: {
       "--gm-bg": "#07131a",
       "--gm-bg-elev": "#0c1d26",
@@ -34,6 +105,7 @@ export const BUILTIN_THEMES = {
 
   sunset: {
     name: "Sunset (retro)",
+    kind: "dark",
     tokens: {
       "--gm-bg": "#1a0e18",
       "--gm-bg-elev": "#26121f",
@@ -55,7 +127,147 @@ export const BUILTIN_THEMES = {
       .gm-card { text-transform: uppercase; letter-spacing: 0.5px; }
     `,
   },
+
+  carbon: {
+    name: "Carbón",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#0b0c0e",
+      "--gm-bg-elev": "#141518",
+      "--gm-surface": "#1c1e22",
+      "--gm-surface-2": "#26282d",
+      "--gm-text": "#eef0f2",
+      "--gm-text-dim": "#9199a3",
+      "--gm-accent": "#c9cdd3",
+      "--gm-accent-2": "#e6e9ec",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 15% -10%, #1c1e22 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #26282d 0%, transparent 50%), #0b0c0e",
+    },
+    extraCss: "",
+  },
+
+  neon: {
+    name: "Neón Arcade",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#0a0014",
+      "--gm-bg-elev": "#150726",
+      "--gm-surface": "#1f0d38",
+      "--gm-surface-2": "#2b1350",
+      "--gm-text": "#f5ecff",
+      "--gm-text-dim": "#b79ddb",
+      "--gm-accent": "#ff2e9c",
+      "--gm-accent-2": "#00e5ff",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 10% -10%, #3a0a5c 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #06283a 0%, transparent 50%), #0a0014",
+    },
+    extraCss: "",
+  },
+
+  forest: {
+    name: "Bosque",
+    kind: "dark",
+    tokens: {
+      "--gm-bg": "#0c140f",
+      "--gm-bg-elev": "#131f17",
+      "--gm-surface": "#1a2b20",
+      "--gm-surface-2": "#22392b",
+      "--gm-text": "#eaf5ed",
+      "--gm-text-dim": "#9ab8a4",
+      "--gm-accent": "#4caf6e",
+      "--gm-accent-2": "#7fd99b",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 10% -10%, #17301f 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #123024 0%, transparent 50%), #0c140f",
+    },
+    extraCss: "",
+  },
+
+  paper: {
+    name: "Papel",
+    kind: "light",
+    tokens: {
+      "--gm-bg": "#f6f1e7",
+      "--gm-bg-elev": "#efe8d8",
+      "--gm-surface": "#e8dfc9",
+      "--gm-surface-2": "#ddd2b6",
+      "--gm-text": "#211d15",
+      "--gm-text-dim": "#6b5f47",
+      "--gm-accent": "#2f6fed",
+      "--gm-accent-2": "#5b8ff2",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 15% -10%, #efe6cf 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #e6dcc0 0%, transparent 50%), #f6f1e7",
+    },
+    extraCss: "",
+  },
+
+  cloud: {
+    name: "Nube",
+    kind: "light",
+    tokens: {
+      "--gm-bg": "#eef2f7",
+      "--gm-bg-elev": "#e4eaf2",
+      "--gm-surface": "#d9e1ec",
+      "--gm-surface-2": "#cdd7e6",
+      "--gm-text": "#151a21",
+      "--gm-text-dim": "#5b6472",
+      "--gm-accent": "#4c8dff",
+      "--gm-accent-2": "#7aa7ff",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 15% -10%, #e2e9f3 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #d6e0ee 0%, transparent 50%), #eef2f7",
+    },
+    extraCss: "",
+  },
+
+  sand: {
+    name: "Arena",
+    kind: "light",
+    tokens: {
+      "--gm-bg": "#f2e9d8",
+      "--gm-bg-elev": "#ecdfc7",
+      "--gm-surface": "#e3d3b3",
+      "--gm-surface-2": "#d6c299",
+      "--gm-text": "#241c0f",
+      "--gm-text-dim": "#6e5c3c",
+      "--gm-accent": "#d97b3f",
+      "--gm-accent-2": "#e8a06b",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 15% -10%, #ecdfc4 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #e2cfa8 0%, transparent 50%), #f2e9d8",
+    },
+    extraCss: "",
+  },
+
+  mint: {
+    name: "Menta",
+    kind: "light",
+    tokens: {
+      "--gm-bg": "#eaf7f0",
+      "--gm-bg-elev": "#dcf0e4",
+      "--gm-surface": "#cfe8da",
+      "--gm-surface-2": "#bfdccb",
+      "--gm-text": "#0f2116",
+      "--gm-text-dim": "#4d715c",
+      "--gm-accent": "#1fae72",
+      "--gm-accent-2": "#4fd499",
+      "--gm-wallpaper":
+        "radial-gradient(1100px 700px at 15% -10%, #dcf1e6 0%, transparent 55%), radial-gradient(900px 650px at 110% 10%, #cfe9da 0%, transparent 50%), #eaf7f0",
+    },
+    extraCss: "",
+  },
 };
+
+// Font-stacks curadas para el selector de tipografía global (Ajustes → Apariencia).
+// Todas disponibles de forma nativa en Windows 10/11 — el launcher es offline, no
+// depende de fuentes descargadas.
+export const FONT_OPTIONS = [
+  { id: "system", label: "Sistema (Segoe UI)", value: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
+  { id: "arial", label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { id: "verdana", label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { id: "trebuchet", label: "Trebuchet MS", value: '"Trebuchet MS", sans-serif' },
+  { id: "georgia", label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
+  { id: "times", label: "Times New Roman", value: '"Times New Roman", Times, serif' },
+  { id: "consolas", label: "Consolas (monoespaciada)", value: "Consolas, 'Courier New', monospace" },
+  { id: "courier", label: "Courier New (monoespaciada)", value: "'Courier New', Courier, monospace" },
+];
 
 // Ejemplo de "CSS externo" tal cual lo escribiría un usuario en un .css.
 // En el MVP se ofrece pegarlo/activarlo desde Ajustes para probar la carga en runtime.

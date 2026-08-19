@@ -1,25 +1,18 @@
 <script>
   import { onlyApps } from "../stores/games.js";
+  import { sortApps, sortList } from "../stores/sorting.js";
   import GameGrid from "./GameGrid.svelte";
+
+  // Orden persistente (Apps), separado del de Juegos.
+  $: shownApps = sortList($onlyApps, $sortApps);
 </script>
 
 <section class="apps">
-  <h1>Aplicaciones</h1>
-  <p class="sub">Apps que no son juegos (multimedia, chat, navegador…).</p>
-  <GameGrid items={$onlyApps} focusFirst={true} />
+  <GameGrid items={shownApps} focusFirst={true} />
 </section>
 
 <style>
   .apps {
     padding: var(--gm-pad);
-  }
-  h1 {
-    font-size: 2.2rem;
-    font-weight: var(--gm-title-weight);
-    margin: 0;
-  }
-  .sub {
-    color: var(--gm-text-dim);
-    margin: 6px 0 24px;
   }
 </style>

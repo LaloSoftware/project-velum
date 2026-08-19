@@ -2,15 +2,29 @@
   "name": "gm",
   "version": "0.1.0",
   "description": "GM - launcher de sala tipo consola para PC (Tauri + Svelte)",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "go": "node scripts/dev.mjs",
+    "go:fixtures": "node scripts/dev-fixtures.mjs",
+    "web": "vite --open",
+    "dist": "tauri build",
+    "bundle": "node scripts/bundle.mjs",
+    "clean": "node scripts/clean.mjs",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "rebuild": "node scripts/clean.mjs && npm run go",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "i18n:smoke": "node scripts/i18n-smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-shell": "^2"
   },
   "devDependencies": {

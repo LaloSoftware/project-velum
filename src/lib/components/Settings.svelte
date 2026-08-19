@@ -8,112 +8,610 @@
     deleteProfile,
   } from "../stores/profiles.js";
   import { themeOptions } from "../theming/index.js";
-  import { EXAMPLE_EXTERNAL_CSS } from "../theming/themes.js";
+  import { BUILTIN_THEMES, EXAMPLE_EXTERNAL_CSS, FONT_OPTIONS } from "../theming/themes.js";
   import { openKeyboard } from "../stores/keyboard.js";
-  import { showToast } from "../stores/ui.js";
+  import { showToast, openColorPicker } from "../stores/ui.js";
+  import { isTauri } from "../ipc/index.js";
+  import { imageUrl } from "../util/asset.js";
+  import {
+    hideCardText,
+    hideLibraryButton,
+    hideFooter,
+    setHideCardText,
+    setHideLibraryButton,
+    setHideFooter,
+    gameView,
+    GAME_VIEW_FIELDS,
+    setGameViewField,
+    metaBgVisible,
+    metaBgOpacity,
+    META_BG_OPACITY_MIN,
+    META_BG_OPACITY_MAX,
+    setMetaBgVisible,
+    setMetaBgOpacity,
+    homeBgFade,
+    HOME_BG_FADE_MIN,
+    HOME_BG_FADE_MAX,
+    setHomeBgFade,
+    homeWallpaperPath,
+    setHomeWallpaper,
+    clearHomeWallpaper,
+    completedBadgeEnabled,
+    completedGlowEnabled,
+    setCompletedBadgeEnabled,
+    setCompletedGlowEnabled,
+    uiScale,
+    UI_SCALE_MIN,
+    UI_SCALE_MAX,
+    UI_SCALE_STEP,
+    setUiScale,
+    homeCardCount,
+    HOME_CARD_COUNT_MIN,
+    HOME_CARD_COUNT_MAX,
+    setHomeCardCount,
+    homeTexts,
+    HOME_TEXT_FIELDS,
+    setHomeTextHidden,
+    setHomeTextValue,
+    setHomeTextMode,
+    homeOrientation,
+    HOME_ORIENTATION_OPTIONS,
+    setHomeOrientation,
+    homeScrollMode,
+    HOME_SCROLL_MODE_OPTIONS,
+    setHomeScrollMode,
+    homeReading,
+    HOME_READING_OPTIONS,
+    setHomeReading,
+    homePosition,
+    homePositionOptions,
+    setHomePosition,
+    homeCardAlign,
+    setHomeCardAlign,
+    tabsAlign,
+    TABS_ALIGN_OPTIONS,
+    setTabsAlign,
+    clockPosition,
+    CLOCK_POSITION_OPTIONS,
+    setClockPosition,
+  } from "../stores/uiprefs.js";
+  import { t, tr } from "../i18n/index.js";
+  import { names, profileNameNow } from "../i18n/names.js";
+  import Select from "./Select.svelte";
 
   const themes = themeOptions();
-  const ACCENTS = ["#4c8dff", "#37e6b4", "#ff7a59", "#ffd166", "#c77dff", "#ff5d8f"];
+  const ACCENT_DEFAULT = "#4c8dff";
+  const CARD_W_DEFAULT = 190;
+  const COMPLETE_DEFAULT = "#52d69a";
 
   $: active = $profiles.find((p) => p.id === $activeProfileId) || $profiles[0];
+  $: cardW = parseInt(active?.tokenOverrides?.["--gm-card-w"]) || CARD_W_DEFAULT;
+  $: cardWHome = parseInt(active?.tokenOverrides?.["--gm-card-w-home"]) || CARD_W_DEFAULT;
+  $: accentColor = active?.tokenOverrides?.["--gm-accent"] || ACCENT_DEFAULT;
+  $: baseThemeTokens = BUILTIN_THEMES[active?.baseTheme]?.tokens || {};
+  $: textColor = active?.tokenOverrides?.["--gm-text"] || baseThemeTokens["--gm-text"] || "#e8edf3";
+  $: fontValue = active?.tokenOverrides?.["--gm-font"] || FONT_OPTIONS[0].value;
+  $: completeColor = active?.tokenOverrides?.["--gm-complete"] || COMPLETE_DEFAULT;
+
+  function openAccentPicker() {
+    openColorPicker({ value: accentColor, title: tr("settings.appearance.accentColor.title"), onApply: pickAccent });
+  }
+  function openTextPicker() {
+    openColorPicker({ value: textColor, title: tr("settings.appearance.textColor.title"), onApply: pickText });
+  }
+  function openCompletePicker() {
+    openColorPicker({
+      value: completeColor,
+      title: tr("settings.appearance.complete.title"),
+      onApply: pickCompleteColor,
+    });
+  }
 
   async function newProfile() {
-    const name = await openKeyboard("", "Nombre del perfil");
+    const name = await openKeyboard("", tr("keyboard.title.profileName"));
     if (name) {
       await createProfile(name);
-      showToast(`Perfil "${name}" creado y activado`);
+      showToast(tr("settings.toast.profileCreated", { name }));
     }
   }
 
   async function pickTheme(id) {
-    await updateActive({ baseTheme: id });
+    // Al pasar de un tema oscuro a uno claro, se descarta un --gm-text
+    // personalizado previo (probablemente pensado para fondo oscuro) para que
+    // el texto no desaparezca — el tema claro ya trae su propio texto oscuro
+    // por defecto. El usuario puede volver a personalizarlo con el control de
+    // "Color de texto". No se toca si ya se estaba en un tema claro.
+    const prevKind = BUILTIN_THEMES[active.baseTheme]?.kind || "dark";
+    const nextKind = BUILTIN_THEMES[id]?.kind || "dark";
+    const patch = { baseTheme: id };
+    if (nextKind === "light" && prevKind !== "light" && active.tokenOverrides?.["--gm-text"]) {
+      const { "--gm-text": _drop, ...rest } = active.tokenOverrides;
+      patch.tokenOverrides = rest;
+    }
+    await updateActive(patch);
   }
   async function pickAccent(color) {
     await updateActive({
       tokenOverrides: { ...active.tokenOverrides, "--gm-accent": color },
     });
   }
+  async function pickText(color) {
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-text": color },
+    });
+  }
+  async function pickCompleteColor(color) {
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-complete": color },
+    });
+  }
+  async function pickFont(value) {
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-font": value },
+    });
+  }
+  async function pickCardSize(e) {
+    const px = e.target.value;
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-card-w": `${px}px` },
+    });
+  }
+  async function pickCardSizeHome(e) {
+    const px = e.target.value;
+    await updateActive({
+      tokenOverrides: { ...active.tokenOverrides, "--gm-card-w-home": `${px}px` },
+    });
+  }
+  async function pickHomeCardCount(e) {
+    await setHomeCardCount(e.target.value);
+  }
   async function loadExternalCss() {
     await updateActive({ extraCss: EXAMPLE_EXTERNAL_CSS });
-    showToast("CSS externo de ejemplo aplicado");
+    showToast(tr("settings.toast.cssExampleApplied"));
   }
   async function clearCss() {
     await updateActive({ extraCss: "", tokenOverrides: {} });
-    showToast("Personalización CSS limpiada");
+    showToast(tr("settings.toast.cssCleared"));
+  }
+  async function editHomeText(field) {
+    const current = $homeTexts[field.key]?.text || "";
+    const text = await openKeyboard(current, tr(field.labelKey));
+    if (text !== null) await setHomeTextValue(field.key, text);
+  }
+
+  // Wallpaper general de Inicio — mismo patrón de diálogo nativo que
+  // ArtEditor.svelte::pick() (ruta absoluta, nunca se copia el archivo).
+  const WALLPAPER_IMG_EXT = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+  async function pickHomeWallpaper() {
+    if (!isTauri) return showToast(tr("common.filesOnlyInApp"));
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const path = await open({ multiple: false, filters: [{ name: tr("detail.sections.images"), extensions: WALLPAPER_IMG_EXT }] });
+    if (path) {
+      await setHomeWallpaper(path);
+      showToast(tr("settings.toast.wallpaperUpdated"));
+    }
+  }
+  async function removeHomeWallpaper() {
+    await clearHomeWallpaper();
+    showToast(tr("settings.toast.wallpaperRemoved"));
+  }
+
+  // Vista previa del wallpaper (data URI, se recarga si cambia la ruta) —
+  // mismo mecanismo que las miniaturas de ArtEditor.svelte.
+  let wallpaperPreview = null;
+  let wallpaperPreviewFor = null;
+  $: if ($homeWallpaperPath !== wallpaperPreviewFor) {
+    wallpaperPreviewFor = $homeWallpaperPath;
+    wallpaperPreview = null;
+    if ($homeWallpaperPath) {
+      const path = $homeWallpaperPath;
+      imageUrl(path).then((u) => {
+        if (path === wallpaperPreviewFor) wallpaperPreview = u;
+      });
+    }
   }
   async function removeProfile() {
-    if ($profiles.length <= 1) return showToast("No puedes borrar el único perfil");
-    const name = active.name;
+    if ($profiles.length <= 1) return showToast(tr("settings.toast.cannotDeleteOnlyProfile"));
+    const name = profileNameNow(active);
     await deleteProfile(active.id);
-    showToast(`Perfil "${name}" eliminado`);
+    showToast(tr("settings.toast.profileDeleted", { name }));
+  }
+  function exportProfileCss() {
+    showToast(tr("settings.toast.exportComingSoon"));
   }
 </script>
 
 <section class="settings">
-  <h1>Ajustes · Apariencia</h1>
+  <h1>{$t("settings.title")} · {$t("settings.sections.appearance")}</h1>
 
-  <h2>Perfiles</h2>
-  <div class="chips">
-    {#each $profiles as p, i (p.id)}
-      <button
-        class="chip"
-        class:sel={p.id === $activeProfileId}
-        data-focusable
-        data-focus-default={i === 0 ? "" : undefined}
-        tabindex="-1"
-        on:click={() => setActive(p.id)}
-      >
-        {p.name}
-      </button>
-    {/each}
-    <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>+ Nuevo</button>
+  <h2>{$t("settings.appearance.profile.title")}</h2>
+  <div class="profile-block">
+    <Select
+      value={$activeProfileId}
+      options={$profiles.map((p) => ({ value: p.id, label: $names.profile(p) }))}
+      onChange={setActive}
+    />
+    <div class="profile-actions">
+      <button class="chip add" data-focusable tabindex="-1" on:click={newProfile}>{$t("settings.appearance.profile.new")}</button>
+      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>{$t("settings.appearance.profile.delete")}</button>
+    </div>
   </div>
 
   {#if active}
-    <h2>Tema base del perfil «{active.name}»</h2>
-    <div class="chips">
-      {#each themes as t}
-        <button
-          class="chip"
-          class:sel={active.baseTheme === t.id}
-          data-focusable
-          tabindex="-1"
-          on:click={() => pickTheme(t.id)}
-        >
-          {t.name}
-        </button>
-      {/each}
-    </div>
+    <h2>{$t("settings.appearance.profile.baseTheme", { name: $names.profile(active) })}</h2>
+    <Select
+      value={active.baseTheme}
+      options={themes.map((th) => ({ value: th.id, label: th.name + (th.kind === "light" ? $t("settings.appearance.theme.lightSuffix") : "") }))}
+      onChange={pickTheme}
+    />
 
-    <h2>Color de acento</h2>
-    <div class="swatches">
-      {#each ACCENTS as c}
-        <button
-          class="swatch"
-          style="background: {c}"
-          class:sel={active.tokenOverrides?.["--gm-accent"] === c}
-          data-focusable
-          tabindex="-1"
-          aria-label={c}
-          on:click={() => pickAccent(c)}
-        ></button>
-      {/each}
-    </div>
+    <h2>{$t("settings.appearance.accentColor.title")}</h2>
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openAccentPicker}>
+      <span class="swatch-sm" style="background: {accentColor}"></span>
+      <span class="cf-val">{accentColor.toUpperCase()}</span>
+      <span class="cf-cta">{$t("common.customize")}</span>
+    </button>
 
-    <h2>CSS externo (perfil)</h2>
+    <h2>{$t("settings.appearance.textColor.title")}</h2>
     <p class="dim">
-      Prueba de carga de CSS en runtime. En la app real cargarías un archivo .css;
-      aquí se aplica un ejemplo que redefine tokens --gm-*.
+      {$t("settings.appearance.textColor.desc")}
+    </p>
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openTextPicker}>
+      <span class="swatch-sm" style="background: {textColor}"></span>
+      <span class="cf-val">{textColor.toUpperCase()}</span>
+      <span class="cf-cta">{$t("common.customize")}</span>
+    </button>
+
+    <h2>{$t("settings.appearance.font.title")}</h2>
+    <Select
+      value={fontValue}
+      options={FONT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))}
+      onChange={pickFont}
+    />
+
+    <h2>{$t("settings.appearance.uiScale.title")}</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min={UI_SCALE_MIN}
+        max={UI_SCALE_MAX}
+        step={UI_SCALE_STEP}
+        value={$uiScale}
+        on:input={(e) => setUiScale(e.target.value)}
+      />
+      <span class="sizeval">{$uiScale.toFixed(2)}x</span>
+    </div>
+
+    <h2>{$t("settings.appearance.cardSize.title")}</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min="130"
+        max="260"
+        step="10"
+        value={cardW}
+        on:input={pickCardSize}
+      />
+      <span class="sizeval">{cardW}px</span>
+    </div>
+
+    <h2>{$t("settings.appearance.cardSizeHome.title")}</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min="130"
+        max="260"
+        step="10"
+        value={cardWHome}
+        on:input={pickCardSizeHome}
+      />
+      <span class="sizeval">{cardWHome}px</span>
+    </div>
+
+    <h2>{$t("settings.appearance.interface.title")}</h2>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">{$t("settings.appearance.interface.hideCardText")}</span>
+        <button
+          class="toggle"
+          class:on={$hideCardText}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHideCardText(!$hideCardText)}
+        >
+          {$hideCardText ? $t("common.on") : $t("common.off")}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">{$t("settings.appearance.interface.hideLibraryButton")}</span>
+        <button
+          class="toggle"
+          class:on={$hideLibraryButton}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHideLibraryButton(!$hideLibraryButton)}
+        >
+          {$hideLibraryButton ? $t("common.on") : $t("common.off")}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">{$t("settings.appearance.interface.hideFooter")}</span>
+        <button
+          class="toggle"
+          class:on={$hideFooter}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setHideFooter(!$hideFooter)}
+        >
+          {$hideFooter ? $t("common.on") : $t("common.off")}
+        </button>
+      </div>
+    </div>
+
+    <h2>{$t("settings.appearance.gameView.title")}</h2>
+    <p class="dim">{$t("settings.appearance.gameView.desc")}</p>
+    <div class="rows">
+      {#each GAME_VIEW_FIELDS as f (f.key)}
+        <div class="row">
+          <span class="rlabel">{$t(f.labelKey)}</span>
+          <button
+            class="toggle"
+            class:on={$gameView[f.key]}
+            data-focusable
+            tabindex="-1"
+            on:click={() => setGameViewField(f.key, !$gameView[f.key])}
+          >
+            {$gameView[f.key] ? $t("common.on") : $t("common.off")}
+          </button>
+        </div>
+      {/each}
+    </div>
+
+    <h2>{$t("settings.appearance.metaBg.title")}</h2>
+    <p class="dim">
+      {$t("settings.appearance.metaBg.desc")}
+    </p>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">{$t("common.visible")}</span>
+        <button
+          class="toggle"
+          class:on={$metaBgVisible}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setMetaBgVisible(!$metaBgVisible)}
+        >
+          {$metaBgVisible ? $t("common.on") : $t("common.off")}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">{$t("common.opacity")}</span>
+        <div class="sizerow">
+          <input
+            type="range"
+            class="size-slider"
+            data-focusable
+            tabindex="-1"
+            min={META_BG_OPACITY_MIN}
+            max={META_BG_OPACITY_MAX}
+            step="5"
+            value={$metaBgOpacity}
+            on:input={(e) => setMetaBgOpacity(e.target.value)}
+          />
+          <span class="sizeval">{$metaBgOpacity}%</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>{$t("settings.appearance.homeBgFade.title")}</h2>
+    <p class="dim">
+      {$t("settings.appearance.homeBgFade.desc")}
+    </p>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">{$t("settings.appearance.homeBgFade.label")}</span>
+        <div class="sizerow">
+          <input
+            type="range"
+            class="size-slider"
+            data-focusable
+            tabindex="-1"
+            min={HOME_BG_FADE_MIN}
+            max={HOME_BG_FADE_MAX}
+            step="5"
+            value={$homeBgFade}
+            on:input={(e) => setHomeBgFade(e.target.value)}
+          />
+          <span class="sizeval">{$homeBgFade}%</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>{$t("settings.appearance.wallpaper.title")}</h2>
+    <p class="dim">
+      {$t("settings.appearance.wallpaper.desc")}
+    </p>
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">{$t("common.image")}</span>
+        <div class="wallpaper-actions">
+          {#if wallpaperPreview}
+            <img class="wallpaper-preview" src={wallpaperPreview} alt="" />
+          {/if}
+          <button class="chip" data-focusable tabindex="-1" on:click={pickHomeWallpaper}>
+            {$homeWallpaperPath ? $t("settings.appearance.wallpaper.change") : $t("settings.appearance.wallpaper.choose")}
+          </button>
+          {#if $homeWallpaperPath}
+            <button class="chip danger" data-focusable tabindex="-1" on:click={removeHomeWallpaper}>
+              {$t("common.remove")}
+            </button>
+          {/if}
+        </div>
+      </div>
+    </div>
+
+    <h2>{$t("settings.appearance.complete.title")}</h2>
+    <p class="dim">
+      {$t("settings.appearance.complete.desc")}
+    </p>
+    <button class="colorfield" data-focusable tabindex="-1" on:click={openCompletePicker}>
+      <span class="swatch-sm" style="background: {completeColor}"></span>
+      <span class="cf-val">{completeColor.toUpperCase()}</span>
+      <span class="cf-cta">{$t("common.customize")}</span>
+    </button>
+    <div class="rows spaced">
+      <div class="row">
+        <span class="rlabel">{$t("settings.appearance.complete.badgeLabel")}</span>
+        <button
+          class="toggle"
+          class:on={$completedBadgeEnabled}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setCompletedBadgeEnabled(!$completedBadgeEnabled)}
+        >
+          {$completedBadgeEnabled ? $t("common.on") : $t("common.off")}
+        </button>
+      </div>
+      <div class="row">
+        <span class="rlabel">{$t("common.glow")}</span>
+        <button
+          class="toggle"
+          class:on={$completedGlowEnabled}
+          data-focusable
+          tabindex="-1"
+          on:click={() => setCompletedGlowEnabled(!$completedGlowEnabled)}
+        >
+          {$completedGlowEnabled ? $t("common.on") : $t("common.off")}
+        </button>
+      </div>
+    </div>
+
+    <h2>{$t("settings.appearance.home.title")}</h2>
+    <p class="dim">
+      {$t("settings.appearance.home.desc")}
+    </p>
+    <div class="rows">
+      {#each HOME_TEXT_FIELDS as f (f.key)}
+        <div class="row">
+          <span class="rlabel">{$t(f.labelKey)}</span>
+          <button
+            class="chip"
+            data-focusable
+            tabindex="-1"
+            on:click={() =>
+              setHomeTextMode(f.key, $homeTexts[f.key]?.mode === "focus" ? "custom" : "focus")}
+          >
+            {$t(
+              $homeTexts[f.key]?.mode === "focus"
+                ? "settings.home.mode.focus"
+                : "settings.home.mode.custom"
+            )}
+          </button>
+          {#if $homeTexts[f.key]?.mode !== "focus"}
+            <button class="chip" data-focusable tabindex="-1" on:click={() => editHomeText(f)}>
+              {$t("settings.appearance.home.editText")}
+            </button>
+          {/if}
+          <button
+            class="toggle"
+            class:on={!$homeTexts[f.key]?.hidden}
+            data-focusable
+            tabindex="-1"
+            on:click={() => setHomeTextHidden(f.key, !$homeTexts[f.key]?.hidden)}
+          >
+            {$homeTexts[f.key]?.hidden ? $t("common.off") : $t("common.on")}
+          </button>
+        </div>
+      {/each}
+    </div>
+
+    <h2>{$t("settings.appearance.home.cardCount")}</h2>
+    <div class="sizerow">
+      <input
+        type="range"
+        class="size-slider"
+        data-focusable
+        tabindex="-1"
+        min={HOME_CARD_COUNT_MIN}
+        max={HOME_CARD_COUNT_MAX}
+        step="1"
+        value={$homeCardCount}
+        on:input={pickHomeCardCount}
+      />
+      <span class="sizeval">{$homeCardCount}</span>
+    </div>
+
+    <h2>{$t("settings.appearance.home.orientation")}</h2>
+    <Select
+      value={$homeOrientation}
+      options={HOME_ORIENTATION_OPTIONS}
+      onChange={setHomeOrientation}
+    />
+
+    <h2>{$t("settings.appearance.home.scrollMode")}</h2>
+    <Select
+      value={$homeScrollMode}
+      options={HOME_SCROLL_MODE_OPTIONS}
+      onChange={setHomeScrollMode}
+    />
+
+    <h2>{$t("settings.appearance.home.reading")}</h2>
+    <Select
+      value={$homeReading}
+      options={HOME_READING_OPTIONS}
+      onChange={setHomeReading}
+    />
+
+    <h2>{$t("settings.appearance.home.position")}</h2>
+    <Select
+      value={$homePosition}
+      options={homePositionOptions($homeOrientation)}
+      onChange={setHomePosition}
+    />
+
+    <h2>{$t("settings.appearance.home.cardAlign")}</h2>
+    <Select
+      value={$homeCardAlign}
+      options={homePositionOptions($homeOrientation)}
+      onChange={setHomeCardAlign}
+    />
+
+    <h2>{$t("settings.appearance.tabsAlign")}</h2>
+    <Select
+      value={$tabsAlign}
+      options={TABS_ALIGN_OPTIONS}
+      onChange={setTabsAlign}
+    />
+
+    <h2>{$t("settings.appearance.clockPosition")}</h2>
+    <Select
+      value={$clockPosition}
+      options={CLOCK_POSITION_OPTIONS}
+      onChange={setClockPosition}
+    />
+
+    <h2>{$t("settings.appearance.advanced.title")}</h2>
+    <p class="dim">
+      {$t("settings.appearance.advanced.desc")}
     </p>
     <div class="chips">
       <button class="chip" data-focusable tabindex="-1" on:click={loadExternalCss}>
-        Aplicar CSS de ejemplo
+        {$t("settings.appearance.advanced.applyExample")}
       </button>
       <button class="chip" data-focusable tabindex="-1" on:click={clearCss}>
-        Limpiar personalización
+        {$t("settings.appearance.advanced.clear")}
       </button>
-      <button class="chip danger" data-focusable tabindex="-1" on:click={removeProfile}>
-        Borrar perfil
+      <button class="chip" data-focusable tabindex="-1" on:click={exportProfileCss}>
+        {$t("settings.appearance.advanced.exportCss")}
       </button>
     </div>
   {/if}
@@ -124,6 +622,7 @@
     padding: var(--gm-pad);
     overflow-y: auto;
     height: 100%;
+    max-width: 640px;
   }
   h1 {
     font-size: 2rem;
@@ -151,10 +650,6 @@
     color: var(--gm-text-dim);
     font-weight: 700;
   }
-  .chip.sel {
-    background: var(--gm-accent);
-    color: #06101f;
-  }
   .chip.add {
     background: var(--gm-surface-2);
     color: var(--gm-text);
@@ -165,22 +660,140 @@
   .chip:focus {
     box-shadow: var(--gm-focus-ring);
   }
-  .swatches {
+  /* Mismo criterio que .sizerow (abajo): width:100% para que el contenedor
+     ocupe casi toda la fila. Pero eso solo alinea el CONTENEDOR — la
+     navegación por geometría usa el rectángulo del botón enfocable en sí, y
+     con justify-content por defecto (flex-start) los botones quedaban
+     agrupados pegados a la izquierda, lejos del centro del slider vecino
+     (su <input> sí ocupa casi todo el ancho, flex:1) — ese desalineamiento
+     horizontal seguía haciendo que "arriba"/"abajo" saltara la fila.
+     flex-end los pega al borde derecho, igual que .sizeval/.toggle/
+     .colorfield en las filas de alrededor, consistente entre todas. */
+  .wallpaper-actions {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    width: 100%;
   }
-  .swatch {
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
+  .wallpaper-preview {
+    width: 120px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface);
+    flex-shrink: 0;
+  }
+  .sizerow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    /* Ancho completo del panel (alineado con los Select) para que la navegación
+       vertical con el mando caiga en el slider y no lo salte. */
+    width: 100%;
+  }
+  .size-slider {
+    flex: 1;
+    accent-color: var(--gm-accent);
     cursor: pointer;
-    border: 3px solid transparent;
   }
-  .swatch.sel {
-    border-color: var(--gm-text);
-  }
-  .swatch:focus {
+  .size-slider:focus {
+    outline: none;
     box-shadow: var(--gm-focus-ring);
-    transform: scale(1.1);
+    border-radius: 999px;
+  }
+  .sizeval {
+    min-width: 52px;
+    text-align: right;
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .profile-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px;
+    /* Aire extra antes del siguiente control: sin esto, "abajo" desde el
+       Select de arriba compite en geometría contra el próximo Select (más
+       lejos pero perfectamente alineado en X) y se salta estos botones. */
+    margin-bottom: 64px;
+  }
+  .profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .colorfield {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--gm-radius);
+    background: var(--gm-surface-2);
+    color: var(--gm-text);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  /* Separación de un control (colorfield, slider) inmediatamente arriba —
+     sin esto quedan pegados (visualmente y para la navegación por foco). */
+  .rows.spaced {
+    margin-top: 10px;
+  }
+  .colorfield:focus {
+    box-shadow: var(--gm-focus-ring);
+  }
+  .swatch-sm {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
+  }
+  .cf-val {
+    flex: 1;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  .cf-cta {
+    color: var(--gm-text-dim);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--gm-surface);
+    border-radius: var(--gm-radius);
+    padding: 12px 16px;
+  }
+  .rlabel {
+    flex: 1;
+    font-weight: 600;
+  }
+  .toggle {
+    cursor: pointer;
+    min-width: 66px;
+    padding: 10px 0;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-weight: 800;
+  }
+  .toggle.on {
+    background: var(--gm-success);
+    color: #04140d;
+  }
+  .toggle:focus {
+    box-shadow: var(--gm-focus-ring);
   }
 </style>

@@ -23,12 +23,12 @@ function ensureStyle(id) {
 }
 
 export function themeOptions() {
-  return Object.entries(BUILTIN_THEMES).map(([id, t]) => ({ id, name: t.name }));
+  return Object.entries(BUILTIN_THEMES).map(([id, t]) => ({ id, name: t.name, kind: t.kind || "dark" }));
 }
 
 export function applyProfile(profile) {
   if (!profile) return;
-  const base = BUILTIN_THEMES[profile.baseTheme] || BUILTIN_THEMES.midnight;
+  const base = BUILTIN_THEMES[profile.baseTheme] || BUILTIN_THEMES.velum;
 
   // 1. Tokens: base del tema + overrides del perfil + wallpaper explícito.
   const tokens = { ...base.tokens, ...(profile.tokenOverrides || {}) };

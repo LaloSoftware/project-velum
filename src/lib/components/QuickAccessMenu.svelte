@@ -1,226 +1,106 @@
 <script>
-  import { onMount } from "svelte";
-  import {
-    systemGetState,
-    systemSetVolume,
-    systemSetOutputDevice,
-    systemSetWifi,
-    systemSetBluetooth,
-  } from "../ipc/index.js";
+  import { tick } from "svelte";
+  import QamSystemSection from "./QamSystemSection.svelte";
+  import QamShortcutsSection from "./QamShortcutsSection.svelte";
+  import QamUtilitiesSection from "./QamUtilitiesSection.svelte";
+  import QamMusicSection from "./QamMusicSection.svelte";
+  import { focusFirstIn } from "../input/navigation.js";
+  import { steamAccount } from "../stores/steamAccount.js";
+  import { t } from "../i18n/index.js";
 
-  let s = null;
+  const BASE_SECTIONS = [
+    { id: "system", icon: "⚙️", labelKey: "qam.section.system" },
+    { id: "music", icon: "🎵", labelKey: "multimedia.section.music" },
+    { id: "shortcuts", icon: "⌨️", labelKey: "qam.section.shortcuts" },
+  ];
+  // "Utilidades" (accesos directos de Steam/GOG) solo con cuenta de Steam
+  // vinculada — hoy es la única fuente de accesos útiles ahí.
+  $: SECTIONS = $steamAccount
+    ? [...BASE_SECTIONS, { id: "utilities", icon: "🧰", labelKey: "qam.section.utilities" }]
+    : BASE_SECTIONS;
+  let section = "system";
+  let contentEl;
 
-  onMount(async () => {
-    s = await systemGetState();
-  });
-
-  async function toggleWifi() {
-    await systemSetWifi(!s.wifiEnabled);
-    s = { ...s, wifiEnabled: !s.wifiEnabled };
-  }
-  async function toggleBt() {
-    await systemSetBluetooth(!s.bluetoothEnabled);
-    s = { ...s, bluetoothEnabled: !s.bluetoothEnabled };
-  }
-  async function setVol(delta) {
-    const v = Math.max(0, Math.min(100, s.volume + delta));
-    await systemSetVolume(v);
-    s = { ...s, volume: v };
-  }
-  async function pickOutput(id) {
-    await systemSetOutputDevice(id);
-    s = { ...s, currentOutput: id };
+  // Mismo criterio que ConfigMenu.svelte: enfocar una sección (arriba/abajo) la
+  // previsualiza; "entrar" al panel es explícito con Aceptar o Derecha.
+  async function enterSection(id) {
+    section = id;
+    await tick();
+    focusFirstIn(contentEl);
   }
 </script>
 
-<div class="qam">
-  <h2>Sistema</h2>
-  {#if !s}
-    <p class="dim">Cargando…</p>
-  {:else}
-    <!-- Wi-Fi -->
-    <div class="block">
-      <div class="row">
-        <span class="ico">📶</span>
-        <div class="grow">
-          <div class="label">Wi-Fi</div>
-          <div class="sub dim">
-            {s.wifiEnabled ? s.currentNetwork || "Sin conexión" : "Desactivado"}
-          </div>
-        </div>
-        <button class="toggle" class:on={s.wifiEnabled} data-focusable data-focus-default tabindex="-1" on:click={toggleWifi}>
-          {s.wifiEnabled ? "ON" : "OFF"}
-        </button>
-      </div>
-      {#if s.wifiEnabled}
-        <div class="chips">
-          {#each s.networks as n}
-            <button
-              class="chip"
-              class:sel={s.currentNetwork === n}
-              data-focusable
-              tabindex="-1"
-              on:click={() => (s = { ...s, currentNetwork: n })}
-            >
-              {n}
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
+<div class="qam-shell">
+  <aside class="side" data-focus-group="side">
+    {#each SECTIONS as s, i}
+      <button
+        class="sec"
+        class:active={section === s.id}
+        data-focusable
+        data-focus-default={i === 0 ? "" : undefined}
+        tabindex="-1"
+        aria-label={$t(s.labelKey)}
+        on:focus={() => (section = s.id)}
+        on:click={() => enterSection(s.id)}
+      >
+        {s.icon}
+      </button>
+    {/each}
+  </aside>
 
-    <!-- Bluetooth -->
-    <div class="block">
-      <div class="row">
-        <span class="ico">🔵</span>
-        <div class="grow">
-          <div class="label">Bluetooth</div>
-          <div class="sub dim">
-            {s.bluetoothEnabled ? `${s.btDevices.length} dispositivos` : "Desactivado"}
-          </div>
-        </div>
-        <button class="toggle" class:on={s.bluetoothEnabled} data-focusable tabindex="-1" on:click={toggleBt}>
-          {s.bluetoothEnabled ? "ON" : "OFF"}
-        </button>
-      </div>
-    </div>
-
-    <!-- Volumen -->
-    <div class="block">
-      <div class="row">
-        <span class="ico">🔊</span>
-        <div class="grow">
-          <div class="label">Volumen</div>
-          <div class="bar"><div class="fill" style="width: {s.volume}%"></div></div>
-        </div>
-        <button class="step" data-focusable tabindex="-1" on:click={() => setVol(-5)}>–</button>
-        <span class="pct">{s.volume}</span>
-        <button class="step" data-focusable tabindex="-1" on:click={() => setVol(5)}>+</button>
-      </div>
-    </div>
-
-    <!-- Salida de audio -->
-    <div class="block">
-      <div class="row">
-        <span class="ico">🎧</span>
-        <div class="grow"><div class="label">Salida de audio</div></div>
-      </div>
-      <div class="chips">
-        {#each s.outputDevices as d}
-          <button
-            class="chip"
-            class:sel={s.currentOutput === d.id}
-            data-focusable
-            tabindex="-1"
-            on:click={() => pickOutput(d.id)}
-          >
-            {d.name}
-          </button>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <div class="content" data-focus-group="panel" bind:this={contentEl}>
+    {#if section === "system"}
+      <QamSystemSection />
+    {:else if section === "music"}
+      <QamMusicSection />
+    {:else if section === "utilities"}
+      <QamUtilitiesSection />
+    {:else}
+      <QamShortcutsSection />
+    {/if}
+  </div>
 </div>
 
 <style>
-  .qam {
+  .qam-shell {
+    display: flex;
     height: 100%;
-    padding: var(--gm-pad);
-    overflow-y: auto;
+  }
+  .side {
+    width: 68px;
+    flex: 0 0 68px;
+    background: var(--gm-bg-elev);
+    padding: 16px 10px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    align-items: center;
+    gap: 10px;
+    overflow-y: auto;
   }
-  h2 {
-    margin: 0 0 6px;
-    font-size: 1.6rem;
-    font-weight: var(--gm-title-weight);
-  }
-  .dim {
-    color: var(--gm-text-dim);
-  }
-  .block {
-    background: var(--gm-surface);
-    border-radius: var(--gm-radius);
-    padding: 16px;
-  }
-  .row {
+  .sec {
+    cursor: pointer;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
-    gap: 14px;
-  }
-  .ico {
-    font-size: 1.4rem;
-  }
-  .grow {
-    flex: 1;
-  }
-  .label {
-    font-weight: 700;
-  }
-  .sub {
-    font-size: 0.85rem;
-  }
-  .toggle {
-    cursor: pointer;
-    min-width: 62px;
-    padding: 10px 0;
-    border-radius: 999px;
-    background: var(--gm-surface-2);
+    justify-content: center;
+    border-radius: var(--gm-radius);
+    background: none;
+    font-size: 1.3rem;
     color: var(--gm-text-dim);
-    font-weight: 800;
   }
-  .toggle.on {
-    background: var(--gm-success);
-    color: #04140d;
-  }
-  .toggle:focus,
-  .step:focus,
-  .chip:focus {
-    box-shadow: var(--gm-focus-ring);
-  }
-  .step {
-    cursor: pointer;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--gm-surface-2);
+  .sec.active {
+    background: var(--gm-surface);
     color: var(--gm-text);
-    font-size: 1.4rem;
-    font-weight: 800;
   }
-  .pct {
-    min-width: 34px;
-    text-align: center;
-    font-weight: 700;
+  .sec:focus {
+    box-shadow: var(--gm-focus-ring);
+    color: var(--gm-text);
   }
-  .bar {
-    margin-top: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--gm-surface-2);
+  .content {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
-  }
-  .fill {
-    height: 100%;
-    background: var(--gm-accent);
-  }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-  }
-  .chip {
-    cursor: pointer;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: var(--gm-surface-2);
-    color: var(--gm-text-dim);
-    font-weight: 600;
-  }
-  .chip.sel {
-    background: var(--gm-accent);
-    color: #06101f;
+    position: relative;
   }
 </style>

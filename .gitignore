@@ -12,8 +12,24 @@ src-tauri/gen/schemas/
 # Datos locales de la app (perfiles generados en runtime, etc.)
 *.local
 
+# Artefacto de transferencia (se regenera con `npm run bundle`)
+gm.bundle
+
+# Config/estado local de herramientas de desarrollo asistido (Claude Code, impeccable)
+.claude/
+.impeccable/
+
+# Planes de feature locales (no versionar)
+/feature-*.md
+/feature-*
+
+# Notas de investigación de "gaps" (decisiones/contexto para sesiones futuras,
+# no versionadas — mismo criterio que feature-*.md)
+/gap_*.md
+
 # Sistema / editor
 .DS_Store
 .idea/
 .vscode/
 *.log
+.cursor/

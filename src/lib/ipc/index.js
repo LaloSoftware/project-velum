@@ -24,12 +24,23 @@ async function invoke(cmd, args) {
 const NOW = Math.floor(Date.now() / 1000);
 const H = 3600;
 function mockGames() {
+  // Tamaño simulado determinista (solo juegos; las apps no reportan tamaño),
+  // para demostrar el orden por tamaño en dev.
+  const fakeSize = (id) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return (1 + (h % 80)) * 1024 * 1024 * 1024;
+  };
   const g = (id, title, store, kind, last) => ({
     id, title, store, kind,
     coverPath: null,
+    widePath: null,
+    heroPath: null,
+    logoPath: null,
     installDir: `C:/Games/${id}`,
     launchTarget: `mock://launch/${id}`,
     lastPlayed: last,
+    sizeBytes: kind === "game" ? fakeSize(id) : null,
   });
   return [
     g("hades2", "Hades II", "steam", "game", NOW - 1 * H),
@@ -81,19 +92,94 @@ export async function listGames() {
   }
 }
 
-export async function launchGame(id, target) {
+export async function launchGame(id, target, installDir) {
   try {
-    return await invoke("launch_game", { id, target });
+    return await invoke("launch_game", { id, target, installDir: installDir || null });
   } catch {
     console.info(`[mock] launch_game: ${id} (${target})`);
   }
 }
 
-export async function openLauncher(store) {
+export async function steamOpenInstall(appid) {
   try {
-    return await invoke("open_launcher", { store });
+    return await invoke("steam_open_install", { appid });
   } catch {
-    console.info(`[mock] open_launcher: ${store}`);
+    console.info(`[mock] steam_open_install: appid ${appid}`);
+  }
+}
+
+// Abre una URL/URI externa (steam://…, http(s)://…) con el programa asociado
+// del sistema — accesos directos genéricos (QAM → Utilidades).
+export async function openUrl(target) {
+  try {
+    return await invoke("open_url", { target });
+  } catch {
+    console.info(`[mock] open_url: ${target}`);
+  }
+}
+
+// Escanea un álbum de música: pistas sueltas + discos (subcarpetas) — ver
+// media.rs::scan_album. Módulo Multimedia → Música.
+export async function scanAlbum(path) {
+  try {
+    return await invoke("scan_album", { path });
+  } catch {
+    return { tracks: [], discs: [] };
+  }
+}
+
+// Lista las subcarpetas directas de una "carpeta raíz" (ver
+// media.rs::list_subfolders) — cada una se agrega como álbum automáticamente.
+// Genérica: la reusan Música, Imágenes y Videos.
+export async function listSubfolders(path) {
+  try {
+    return await invoke("list_subfolders", { path });
+  } catch {
+    return [];
+  }
+}
+
+// Lista los archivos de imagen/video de una carpeta (un solo nivel — ver
+// media.rs::list_image_files/list_video_files). Módulo Multimedia.
+export async function listImageFiles(path) {
+  try {
+    return await invoke("list_image_files", { path });
+  } catch {
+    return [];
+  }
+}
+export async function listVideoFiles(path) {
+  try {
+    return await invoke("list_video_files", { path });
+  } catch {
+    return [];
+  }
+}
+
+// Concede al protocolo asset acceso a una carpeta de video (ver
+// media.rs::allow_video_folder) — necesario antes de poder reproducir algo
+// de ahí con videoUrl()/convertFileSrc.
+export async function allowVideoFolder(path) {
+  try {
+    return await invoke("allow_video_folder", { path });
+  } catch {
+    console.info(`[mock] allow_video_folder: ${path}`);
+  }
+}
+
+export async function focusGame() {
+  try {
+    return await invoke("focus_game");
+  } catch {
+    console.info("[mock] focus_game");
+  }
+}
+
+export async function uninstallGame(id, target) {
+  try {
+    return await invoke("uninstall_game", { id, target });
+  } catch {
+    console.info(`[mock] uninstall_game: ${id} (${target})`);
   }
 }
 
@@ -121,6 +207,14 @@ export async function systemSetOutputDevice(id) {
   }
 }
 
+export async function systemSetMuted(muted) {
+  try {
+    return await invoke("system_set_muted", { muted });
+  } catch {
+    _mockSystem.muted = muted;
+  }
+}
+
 export async function systemSetWifi(enabled) {
   try {
     return await invoke("system_set_wifi", { enabled });
@@ -134,6 +228,23 @@ export async function systemSetBluetooth(enabled) {
     return await invoke("system_set_bluetooth", { enabled });
   } catch {
     _mockSystem.bluetoothEnabled = enabled;
+  }
+}
+
+export async function systemShutdown() {
+  try {
+    return await invoke("system_shutdown");
+  } catch {
+    console.info("[mock] system_shutdown");
+  }
+}
+
+// Ejecuta un atajo de teclado a nivel de sistema operativo (ver stores/customShortcuts.js).
+export async function runShortcut(modifiers, code) {
+  try {
+    return await invoke("run_shortcut", { modifiers, code });
+  } catch {
+    console.info(`[mock] run_shortcut: ${modifiers.join("+")}+${code}`);
   }
 }
 
@@ -153,4 +264,40 @@ export async function saveConfig(data) {
   } catch {
     localStorage.setItem("gm-config", JSON.stringify(data));
   }
+}
+
+// ------- Cuenta de Steam vinculada (Fase 9) -------
+// Sin equivalente mock: vincular cuenta/sincronizar habla con la Steam Web API
+// real y con el keyring del SO, así que no tiene sentido en modo navegador.
+// Cada wrapper deja pasar el error tal cual (la UI lo muestra con reportError).
+export async function steamLinkAccount(profileInput, apiKey) {
+  return invoke("steam_link_account", { profileInput, apiKey });
+}
+export async function steamUnlinkAccount(steamid) {
+  return invoke("steam_unlink_account", { steamid });
+}
+export async function steamHasKey(steamid) {
+  try {
+    return await invoke("steam_has_key", { steamid });
+  } catch {
+    return false;
+  }
+}
+export async function steamSyncLibrary(steamid, includePlayedFreeGames, lang) {
+  return invoke("steam_sync_library", { steamid, includePlayedFreeGames, lang });
+}
+export async function steamLibraryCache(steamid) {
+  return invoke("steam_library", { steamid });
+}
+export async function steamSyncAchievements(steamid, appids, force = false, lang) {
+  return invoke("steam_sync_achievements", { steamid, appids, force, lang });
+}
+export async function steamAchievements(steamid, appid) {
+  return invoke("steam_achievements", { steamid, appid });
+}
+export async function steamGlobalAchievementPercentages(appid, maxAgeSecs) {
+  return invoke("steam_global_achievement_percentages", { appid, maxAgeSecs });
+}
+export async function steamAchievementsSummary(steamid) {
+  return invoke("steam_achievements_summary", { steamid });
 }

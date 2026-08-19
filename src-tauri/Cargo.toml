@@ -9,11 +9,63 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = [
+  # Streaming de video local (Multimedia → Videos): protocolo asset con scope
+  # concedido en runtime (allow_directory) sobre la carpeta que el usuario
+  # agrega, en vez de cargarlo entero a memoria como el resto de assets
+  # (read_image/read_audio) — ver media.rs::allow_video_folder.
+  "protocol-asset",
+] }
 tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+# Autoarranque con Windows (Configuración → Inicio) — usa el crate
+# `auto-launch` por debajo, escribe la entrada en HKCU\...\Run en vez de
+# reinventar eso a mano.
+tauri-plugin-autostart = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 gilrs = "0.11"
+# Vigilar el proceso lanzado (fin del juego) para restaurar el launcher.
+sysinfo = "0.32"
+# Servir imágenes locales (carátulas) a la WebView como data URI.
+base64 = "0.22"
+# Cliente HTTP para la Steam Web API (bloqueante: los comandos Tauri no-async
+# ya corren en su propio hilo, no hace falta sumar un runtime async).
+ureq = { version = "2", features = ["json"] }
+# Guardar la API key de Steam en el almacén de credenciales del SO (Credential
+# Manager en Windows, Keychain en macOS) en vez de en config.json en texto plano.
+# IMPORTANTE: sin features explícitas, `keyring` v3 no trae ningún backend real
+# — cae en su "mock" interno (in-memory, SIN persistencia entre `Entry::new()`,
+# ver keyring-3.x/src/mock.rs), que acepta `set_password` sin error pero
+# `get_password` de una entry nueva siempre da NoEntry. Esto es justo el bug
+# reportado ("vincular" parece funcionar porque usa el `info` en memoria, pero
+# cualquier lectura posterior del keyring falla con "no matching entry").
+# `apple-native`/`windows-native` activan los backends reales; cada uno solo
+# compila su dependencia (`security-framework`/`windows-sys`) en su propio SO
+# vía `[target.cfg(...)]` en el Cargo.toml de la crate, así que declarar ambos
+# aquí es seguro tanto en dev (macOS) como en producción (Windows).
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
+# Caché local de biblioteca/logros de Steam (Fase 9b/9c). Multiplataforma (no
+# solo Windows como cuando era exclusivo de leer la BD de GOG Galaxy) porque el
+# caché en sí no depende del SO.
+rusqlite = { version = "0.32", features = ["bundled"] }
+tauri-plugin-clipboard-manager = "2.3.2"
+
+# Solo Windows: leer la ruta de Steam (registro) y la BD de GOG Galaxy (SQLite),
+# traer al frente la ventana del juego en marcha (Win32), y simular atajos de
+# teclado del sistema (ver src/shortcuts.rs).
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52"
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Input_KeyboardAndMouse",
+] }
+# Poll de XInput suplementario (fix/control-input): `gilrs` en Windows usa WGI
+# por defecto, que no entrega input de mandos XInput-class (Xbox, mandos en
+# modo PC) sin foco real de ventana — GM corre a pantalla completa. `XInputGetState`
+# directo no tiene ese requisito. Ver src/input.rs::start_xinput_poll_thread.
+rusty-xinput = "1.3"
 
 [profile.release]
 opt-level = "s"
