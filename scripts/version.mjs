@@ -10,6 +10,7 @@
 // No commitea ni crea el tag: los pushes a `release` van con permiso explícito
 // (ver docs/development.md).
 
+import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, run } from "./ensure.mjs";
@@ -51,6 +52,19 @@ writeFileSync(cargoPath, cargo.replace(/^version\s*=\s*"[^"]*"/m, `version = "${
 
 // 3) package-lock.json (solo el número, sin tocar node_modules)
 run("npm install --package-lock-only");
+
+// 4) Cargo.lock — lleva su propia copia de la versión del paquete `gm`. Se
+// regenera con `cargo metadata` (resuelve el grafo, no compila). Si no hay
+// cargo a mano solo se avisa: el build lo actualiza igual, pero el lock
+// commiteado quedaría desfasado y ensuciaría el siguiente diff.
+const meta = spawnSync(
+  "cargo metadata --format-version 1 --manifest-path src-tauri/Cargo.toml",
+  { shell: true, cwd: ROOT, stdio: ["ignore", "ignore", "pipe"] },
+);
+if (meta.status !== 0) {
+  console.warn("\n⚠ No se pudo actualizar src-tauri/Cargo.lock (¿falta cargo?).");
+  console.warn("   Corre `cargo metadata --manifest-path src-tauri/Cargo.toml` antes de commitear.");
+}
 
 const tag = `v${version}`;
 const canal = version.includes("-") ? "beta" : "estable";
