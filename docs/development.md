@@ -101,6 +101,61 @@ git tag -a v0.1.0 -m "<notas del release>"
 > final ya validado; a `dev` solo features terminadas; a `develop` solo lo público (sin los 6
 > archivos internos); a `release` solo bajo indicación explícita, con permiso para el push.
 
+## Publicar una versión
+
+La app se actualiza sola desde **Configuración → Actualizaciones** (backend en
+`src-tauri/src/update.rs`, UI en `src/lib/components/UpdatesSection.svelte`). Publicar
+una versión = pushear un tag `v*` a `release`; de ahí en más lo hace
+`.github/workflows/release.yml`.
+
+### Preparación (una sola vez)
+
+1. Generar el par de claves del updater, en el Mac:
+   ```bash
+   npx tauri signer generate -w ~/.tauri/velum.key
+   ```
+   **Ponle passphrase.** Genera `velum.key` (privada) y `velum.key.pub` (pública).
+2. **Guardar la privada** en el gestor de contraseñas y en una copia offline. Si se
+   pierde, ninguna instalación existente podrá volver a actualizarse nunca: habría que
+   repartir el instalador a mano. Es el riesgo número uno de todo esto.
+3. Pegar el contenido de `velum.key.pub` en `src-tauri/tauri.conf.json` →
+   `plugins.updater.pubkey` (va commiteada: es pública por definición). Mientras esté
+   vacío, la app responde `errors.update.builder_failed` al buscar.
+4. En GitHub → *Settings → Secrets and variables → Actions*, crear:
+   - `TAURI_SIGNING_PRIVATE_KEY` — el contenido íntegro de `~/.tauri/velum.key`
+   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — su passphrase
+5. Tras el primer workflow verde (que ya habrá creado el release `channels`), sembrar el
+   canal estable para que responda "estás al día" en vez de fallar:
+   ```bash
+   echo '{"version":"0.0.0","notes":"","pub_date":"2026-01-01T00:00:00Z","platforms":{}}' > latest.json
+   gh release upload channels latest.json --clobber
+   ```
+
+### Cada versión
+
+```bash
+npm run version:set -- 0.2.0-beta.1   # package.json + Cargo.toml + lock
+npm run i18n:check                    # si tocaste texto
+git add -A && git commit -m "chore: version 0.2.0-beta.1"
+# dev -> develop -> release (ver "Estrategia de ramas"), y con permiso explícito:
+git tag -a v0.2.0-beta.1 -m "<notas>" && git push origin release --tags
+```
+
+El tag decide el canal: **con guion** (`v0.2.0-beta.1`) sale como prerelease y su
+manifiesto se publica como `channels/beta.json`; **sin guion** (`v0.2.0`) sale como
+release estable y va a `channels/latest.json`.
+
+Notas sueltas:
+
+- La versión sale solo de `package.json`: `tauri.conf.json` la lee de ahí
+  (`"version": "../package.json"`).
+- Nada de build metadata semver (`0.2.0+abc`): el bundler lo rechaza. `version:set` ya
+  aborta si lo intentas.
+- Las "Novedades" que muestra la app son las notas del release **en el momento del
+  build**; editarlas después no cambia el manifiesto ya publicado.
+- El release con tag `channels` es solo un puntero de manifiestos. No se descarga la app
+  desde ahí.
+
 ## Notas
 
 - El frontend compila con avisos de a11y silenciados a propósito en las capas cuya

@@ -55,6 +55,7 @@ npm run setup     # deja la máquina lista: verifica Node/Rust + descarga TODAS 
 npm run web       # solo la UI en el navegador (datos mock JS) y la abre
 npm run dist      # compila el ejecutable/instalador (src-tauri/target/release/)
 npm run bundle    # empaqueta el repo en gm.bundle para llevarlo a Windows
+npm run version:set -- 0.2.0-beta.1   # sube la versión (package.json + Cargo.toml)
 npm run clean     # limpia el build (cargo clean + dist) si se corrompe
 npm run rebuild   # clean + go (recompila desde cero)
 ```
@@ -105,6 +106,7 @@ src-tauri/           Backend Rust (Tauri)
   src/input.rs        Hilo gilrs → eventos de mando al frontend
   src/launch.rs       Lanzar juego (stub) + abrir launchers
   src/config.rs       Persistencia de perfiles (JSON)
+  src/update.rs       Auto-actualización (updater envuelto en comandos propios)
 docs/                Documentación detallada por tema
 ```
 
@@ -112,6 +114,21 @@ docs/                Documentación detallada por tema
 
 Todo el estilo son tokens `--gm-*`. Un **perfil** = tema base + overrides de tokens +
 CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md`.
+
+## Actualizaciones
+
+La app se actualiza sola desde **Configuración → Actualizaciones** (canal estable/beta,
+botón manual y toggle opcional de búsqueda al iniciar). El updater
+(`tauri-plugin-updater`) va **envuelto en comandos Rust propios**
+(`src-tauri/src/update.rs`) y no se usa desde JS: el `check()` de la API JS no acepta
+`endpoints`, así que el selector de canal solo es posible desde Rust. Los endpoints
+apuntan a un release-puntero con tag `channels` (`latest.json` / `beta.json`) porque
+`releases/latest` de GitHub ignora los prerelease, que es como se publican las betas.
+
+Publicar = `npm run version:set -- <ver>` + tag `v*` en `release`; el resto lo hace
+`.github/workflows/release.yml`. Un tag con guion (`v0.2.0-beta.1`) va al canal beta;
+sin guion, al estable. Requiere las claves de firma minisign — pasos en
+`docs/development.md` → "Publicar una versión".
 
 ## Git / ramas
 

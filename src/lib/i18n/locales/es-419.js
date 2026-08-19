@@ -42,6 +42,7 @@ export default {
   "settings.sections.system-actions": "Acciones del sistema",
   "settings.sections.accounts": "Cuentas",
   "settings.sections.notifications": "Notificaciones",
+  "settings.sections.updates": "Actualizaciones",
 
   // --- Configuración → Idioma ---
   "settings.language.title": "Idioma",
@@ -731,6 +732,42 @@ export default {
   // --- F4: atajo personalizado sin nombre (fallback defensivo) ---
   "shortcuts.custom.defaultName": "Atajo",
 
+  // --- Actualizaciones de la app (Configuración → Actualizaciones) ---
+  "updates.current": "Versión instalada: v{version}",
+  "updates.channel.title": "Canal",
+  "updates.channel.desc":
+    "El canal beta trae lo nuevo antes, con más riesgo de fallas. Al cambiar de canal, la actualización aparece recién cuando ese canal publique una versión mayor a la instalada.",
+  "updates.channel.options.stable": "Estable",
+  "updates.channel.options.beta": "Beta",
+  "updates.channel.stableEmpty":
+    "Todavía no hay versiones estables publicadas: por ahora las novedades salen solo en el canal beta.",
+  "updates.checkOnStart.title": "Buscar al iniciar",
+  "updates.checkOnStart.desc":
+    "Revisa si hay una versión nueva cada vez que abres VELUM. La instalación siempre la confirmas tú.",
+  "updates.status.title": "Estado",
+  "updates.status.idle": "Sin buscar todavía.",
+  "updates.status.checking": "Buscando actualizaciones…",
+  "updates.status.uptodate": "Estás al día.",
+  "updates.status.ready": "Actualización lista para instalar.",
+  "updates.status.installing": "Instalando…",
+  "updates.available.title": "Hay una versión nueva: v{version}",
+  "updates.published": "Publicada el {date}",
+  "updates.notes.title": "Novedades",
+  "updates.progress": "Descargando… {pct}%",
+  "updates.progress.unknown": "Descargando…",
+  "updates.aria.progress": "Progreso de la descarga",
+  "updates.restartHint": "VELUM se cerrará y volverá a abrirse para terminar.",
+  "updates.installHint": "La app se cerrará sola: no apagues el equipo.",
+  "updates.check.action": "Buscar actualizaciones",
+  "updates.check.checking": "Buscando…",
+  "updates.download.action": "Descargar",
+  "updates.install.action": "Instalar y reiniciar",
+  "updates.later.action": "Después",
+  "updates.retry.action": "Reintentar",
+  "updates.webOnly":
+    "En el navegador esto es una simulación: las actualizaciones reales solo funcionan en la app instalada.",
+  "updates.toast.found": "Hay una versión nueva: v{version}",
+
   // --- F4: errores de Rust (códigos "codigo" o "codigo|detalle", ver i18n/errors.js) ---
   "errors.steam.key_read_failed":
     "No se pudo leer la API key guardada: {detail} — vincúlala de nuevo si el problema persiste",
@@ -746,4 +783,13 @@ export default {
   "errors.shortcuts.unsupported_key": "Tecla no soportada: {detail}",
   "errors.shortcuts.send_input_failed": "SendInput no pudo enviar todos los eventos",
   "errors.config.dir_resolve_failed": "No se pudo resolver el directorio de configuración: {detail}",
+  "errors.update.unknown_channel": "Canal de actualizaciones desconocido: {detail}",
+  "errors.update.endpoint_invalid": "La dirección del canal de actualizaciones no es válida: {detail}",
+  "errors.update.builder_failed":
+    "No se pudo preparar la búsqueda de actualizaciones: {detail} — puede faltar la clave pública de firma",
+  "errors.update.check_failed": "No se pudo buscar actualizaciones: {detail}",
+  "errors.update.no_pending": "No hay ninguna actualización pendiente: busca de nuevo",
+  "errors.update.download_failed": "Falló la descarga de la actualización: {detail}",
+  "errors.update.install_failed": "Falló la instalación de la actualización: {detail}",
+  "errors.update.relaunch_failed": "No se pudo reiniciar la app: {detail}",
 };

@@ -36,6 +36,7 @@
   import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
+  import { initUpdates, maybeCheckOnStart } from "./lib/stores/updates.js";
   import { initPrompts } from "./lib/stores/prompts.js";
   import { initLanguage } from "./lib/stores/language.js";
   import { fmt, t } from "./lib/i18n/index.js";
@@ -732,6 +733,7 @@
       initRadialMenu(),
       initVkBindings(),
       initSteamAccount(),
+      initUpdates(),
     ]);
     // Primer arranque (sin config previa): configuración inicial — una sola
     // vez, ver stores/ui.js::setupModal/completeSetup.
@@ -740,6 +742,10 @@
     // Sync silenciosa de fondo al abrir (sin `await`: no debe demorar el
     // primer pintado; syncNow() ya atrapa sus propios errores).
     syncNow({ silent: true });
+    // Búsqueda de actualizaciones al arrancar (solo si está activada en
+    // Configuración → Actualizaciones). Sin `await` por lo mismo: no debe
+    // demorar el primer pintado, y ya atrapa sus propios errores.
+    maybeCheckOnStart();
     await applyStartup();
     playStartupSound();
     initSoundtrackPlayer();

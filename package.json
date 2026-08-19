@@ -11,6 +11,7 @@
     "web": "vite --open",
     "dist": "tauri build",
     "bundle": "node scripts/bundle.mjs",
+    "version:set": "node scripts/version.mjs",
     "clean": "node scripts/clean.mjs",
     "i18n:check": "node scripts/i18n-check.mjs",
     "rebuild": "node scripts/clean.mjs && npm run go",

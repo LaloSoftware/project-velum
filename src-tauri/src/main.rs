@@ -10,6 +10,7 @@ mod media;
 mod shortcuts;
 mod steam_api;
 mod system;
+mod update;
 
 use std::sync::Mutex;
 
@@ -29,12 +30,18 @@ fn main() {
         // (Ctrl+V) — más confiable que la Clipboard API del navegador, que en
         // WebView2/WKWebView necesita un permiso que no siempre se resuelve.
         .plugin(tauri_plugin_clipboard_manager::init())
+        // Auto-actualización (Configuración → Actualizaciones). Se usa solo
+        // desde Rust (src/update.rs); la WebView no recibe permisos updater:*.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Controles de sistema (mock en dev; WindowsSystemControls en el futuro).
         .manage(system::SystemHandle(Mutex::new(Box::new(
             system::mock::MockSystemControls::new(),
         ))))
         // Sesión de juego activa (ciclo lanzar/suspender/restaurar).
         .manage(launch::PlayState::default())
+        // Actualización encontrada + instalador descargado, a la espera de
+        // que la persona confirme.
+        .manage(update::PendingUpdate::default())
         .setup(|app| {
             // Hilo de lectura de mando(s) que emite eventos al frontend.
             input::start_gamepad_thread(app.handle().clone());
@@ -77,6 +84,11 @@ fn main() {
             steam_api::achievements::steam_achievements,
             steam_api::achievements::steam_achievements_summary,
             steam_api::global_achievements::steam_global_achievement_percentages,
+            update::update_check,
+            update::update_download,
+            update::update_install,
+            update::update_relaunch,
+            update::update_discard,
         ])
         .run(tauri::generate_context!())
         .expect("error al arrancar la aplicación Tauri");
