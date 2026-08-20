@@ -227,7 +227,7 @@ export default {
 
   // --- F2: error banner ---
   "error.label": "Error",
-  "error.close": "Close (B)",
+  "error.close": "Close",
 
   // --- F3: game detail ---
   "detail.playtime.none": "No hours logged",

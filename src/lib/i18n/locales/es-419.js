@@ -242,7 +242,7 @@ export default {
 
   // --- F2: banner de error ---
   "error.label": "Error",
-  "error.close": "Cerrar (B)",
+  "error.close": "Cerrar",
 
   // --- F3: Detalle de juego ---
   "detail.playtime.none": "Sin horas registradas",
