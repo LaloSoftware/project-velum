@@ -826,6 +826,10 @@ export default {
   "errors.system.audio.com_failed": "No se pudo acceder al audio del sistema: {detail}",
   "errors.system.audio.device_not_found": "Ese dispositivo de audio ya no está disponible",
   "errors.system.audio.set_default_failed": "No se pudo cambiar el dispositivo predeterminado",
+  "errors.system.wifi.access_denied":
+    "Windows no permitió buscar redes. Suele pasar si los permisos de ubicación están desactivados (Configuración → Privacidad → Ubicación) o si el servicio de Wi-Fi está deshabilitado.",
+  "errors.system.wifi.service_stopped":
+    "El servicio de Wi-Fi de Windows (WlanSvc) no está en marcha. Actívalo en Servicios (services.msc), donde aparece como «Configuración automática de WLAN».",
   "errors.system.wifi.unavailable": "El Wi-Fi no está disponible o está apagado",
   "errors.system.wifi.scan_failed": "No se pudieron buscar redes: {detail}",
   "errors.system.wifi.profile_failed": "No se pudo guardar el perfil de la red: {detail}",

@@ -811,6 +811,10 @@ export default {
   "errors.system.audio.com_failed": "Couldn't reach the system audio: {detail}",
   "errors.system.audio.device_not_found": "That audio device is no longer available",
   "errors.system.audio.set_default_failed": "Couldn't change the default device",
+  "errors.system.wifi.access_denied":
+    "Windows didn't allow searching for networks. This usually means location permissions are off (Settings → Privacy → Location) or the Wi-Fi service is disabled.",
+  "errors.system.wifi.service_stopped":
+    "The Windows Wi-Fi service (WlanSvc) isn't running. Start it from Services (services.msc), where it appears as “WLAN AutoConfig”.",
   "errors.system.wifi.unavailable": "Wi-Fi isn't available or is turned off",
   "errors.system.wifi.scan_failed": "Couldn't search for networks: {detail}",
   "errors.system.wifi.profile_failed": "Couldn't save the network profile: {detail}",

@@ -342,6 +342,43 @@ pub fn profile_xml(ssid: &str, password: Option<&str>, secured: bool) -> String 
     )
 }
 
+/// Por qué falló una llamada a `netsh`, como código de error del contrato.
+///
+/// Existe porque el fallo más importante de esta fase **no se parece a un
+/// fallo**: si Windows deniega la consulta, `netsh` imprime el motivo y no
+/// devuelve ninguna red, así que sin clasificarlo la UI acabaría diciendo "No
+/// se encontraron redes" — una respuesta falsa y sin salida, en vez de explicar
+/// que hay que revisar un servicio o un permiso.
+///
+/// Es habitual en equipos con la telemetría y los servicios recortados a mano:
+/// `WlanSvc` (Configuración automática de WLAN) deshabilitado, o los permisos
+/// de ubicación cerrados — desde Windows 10 1803 el escaneo los exige.
+///
+/// El token `wlansvc` no se traduce, así que sirve de ancla en cualquier
+/// idioma; para la denegación hay que mirar varias formas.
+pub fn classify_netsh_error(txt: &str, ok: bool) -> Option<String> {
+    let low = txt.to_lowercase();
+
+    // El servicio parado se nombra siempre por su id, sin traducir.
+    if low.contains("wlansvc") {
+        return Some("system.wifi.service_stopped".to_string());
+    }
+    if low.contains("denied")
+        || low.contains("denegado")
+        || low.contains("denegada")
+        || low.contains("access is denied")
+    {
+        return Some("system.wifi.access_denied".to_string());
+    }
+    if ok {
+        return None;
+    }
+    // Falló pero no sabemos por qué: se pasa el texto como detalle en vez de
+    // tragárselo.
+    let detail: String = txt.trim().lines().take(3).collect::<Vec<_>>().join(" ");
+    Some(format!("system.wifi.scan_failed|{}", detail.trim()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -598,6 +635,45 @@ Habilitado     Conectado      Dedicado         Wi-Fi
         // Y no puede quedar ningún & suelto que invalide el documento.
         assert!(!xml.replace("&amp;", "").replace("&lt;", "").replace("&gt;", "")
             .replace("&quot;", "").replace("&apos;", "").contains('&'));
+    }
+
+    // --- clasificación de fallos de netsh ---
+
+    #[test]
+    fn el_servicio_wlan_parado_se_reconoce_por_su_id() {
+        // El id `wlansvc` no se traduce: sirve de ancla en cualquier idioma.
+        let es = "El servicio de configuración automática de WLAN (wlansvc) no se está ejecutando.";
+        let en = "The Wireless AutoConfig Service (wlansvc) is not running.";
+        for txt in [es, en] {
+            assert_eq!(
+                classify_netsh_error(txt, false).as_deref(),
+                Some("system.wifi.service_stopped")
+            );
+        }
+    }
+
+    #[test]
+    fn el_acceso_denegado_se_reconoce_en_ambos_idiomas() {
+        for txt in ["Access is denied.", "Acceso denegado."] {
+            assert_eq!(
+                classify_netsh_error(txt, false).as_deref(),
+                Some("system.wifi.access_denied")
+            );
+        }
+    }
+
+    #[test]
+    fn una_salida_correcta_sin_redes_no_es_un_error() {
+        // Cero redes visibles es un resultado legítimo, no un fallo.
+        let txt = "Interface name : Wi-Fi\nThere are 0 networks currently visible.";
+        assert_eq!(classify_netsh_error(txt, true), None);
+    }
+
+    #[test]
+    fn un_fallo_desconocido_conserva_el_texto_como_detalle() {
+        let code = classify_netsh_error("Algo raro pasó", false).unwrap();
+        assert!(code.starts_with("system.wifi.scan_failed|"));
+        assert!(code.contains("Algo raro"));
     }
 
     #[test]

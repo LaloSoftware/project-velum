@@ -28,7 +28,11 @@ pub fn hidden(exe: &str) -> Command {
 ///
 /// Los argumentos se pasan por separado y nunca se interpolan en la línea de
 /// `cmd`, para que un SSID con `&` o `|` no pueda ejecutar nada.
-pub fn netsh(args: &[&str]) -> Result<String, String> {
+/// Devuelve `(salida, ok)`. El `ok` hace falta para distinguir "cero redes
+/// visibles" (resultado legítimo) de "Windows rechazó la consulta" — ver
+/// `netsh_parse::classify_netsh_error`. Sin eso, una denegación se muestra
+/// como "No se encontraron redes", que es sencillamente falso.
+pub fn netsh(args: &[&str]) -> Result<(String, bool), String> {
     // `chcp` cambia la code page de ESTA consola; por eso tiene que ir en el
     // mismo `cmd` que el netsh, no en una invocación aparte.
     let mut cmd = hidden("cmd");
@@ -38,5 +42,12 @@ pub fn netsh(args: &[&str]) -> Result<String, String> {
     let out: Output = cmd
         .output()
         .map_err(|e| format!("system.wifi.scan_failed|netsh: {e}"))?;
-    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+    // netsh escribe los motivos de fallo en stdout, no en stderr.
+    let mut text = String::from_utf8_lossy(&out.stdout).to_string();
+    let err = String::from_utf8_lossy(&out.stderr);
+    if !err.trim().is_empty() {
+        text.push('\n');
+        text.push_str(&err);
+    }
+    Ok((text, out.status.success()))
 }

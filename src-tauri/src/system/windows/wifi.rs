@@ -28,7 +28,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use super::super::netsh_parse::{
-    self, parse_ethernet, parse_interfaces, parse_networks, parse_profiles, profile_xml,
+    self, classify_netsh_error, parse_ethernet, parse_interfaces, parse_networks, parse_profiles,
+    profile_xml,
 };
 use super::super::WifiNet;
 use super::proc::{hidden, netsh};
@@ -56,18 +57,18 @@ pub struct WifiSnapshot {
 pub fn current_ssid() -> Option<String> {
     netsh(&["wlan", "show", "interfaces"])
         .ok()
-        .and_then(|t| parse_interfaces(&t).ssid)
+        .and_then(|(t, _)| parse_interfaces(&t).ssid)
 }
 
 /// Estado de la interfaz + Ethernet. Barato comparado con escanear, pero son
 /// dos procesos: no conviene llamarlo en un bucle cerrado.
 pub fn status() -> WifiSnapshot {
     let iface = netsh(&["wlan", "show", "interfaces"])
-        .map(|t| parse_interfaces(&t))
+        .map(|(t, _)| parse_interfaces(&t))
         .unwrap_or_default();
     let ethernet = netsh(&["interface", "show", "interface"])
         .ok()
-        .and_then(|t| parse_ethernet(&t));
+        .and_then(|(t, _)| parse_ethernet(&t));
 
     WifiSnapshot {
         present: iface.present,
@@ -81,7 +82,7 @@ pub fn status() -> WifiSnapshot {
 /// Perfiles guardados: es lo que decide si conectar pide contraseña o no.
 pub fn known_profiles() -> Vec<String> {
     netsh(&["wlan", "show", "profiles"])
-        .map(|t| parse_profiles(&t))
+        .map(|(t, _)| parse_profiles(&t))
         .unwrap_or_default()
 }
 
@@ -94,7 +95,15 @@ pub fn known_profiles() -> Vec<String> {
 pub fn scan() -> Result<Vec<WifiNet>, String> {
     let _ = netsh(&["wlan", "show", "networks", "mode=bssid"]);
     std::thread::sleep(Duration::from_millis(1200));
-    let txt = netsh(&["wlan", "show", "networks", "mode=bssid"])?;
+    let (txt, ok) = netsh(&["wlan", "show", "networks", "mode=bssid"])?;
+
+    // Si Windows rechazó la consulta hay que decirlo. Devolver una lista vacía
+    // haría que la UI dijera "No se encontraron redes", que es falso y no deja
+    // a nadie con nada que hacer. Pasa en equipos con los servicios recortados
+    // a mano (WlanSvc parado) o con los permisos de ubicación cerrados.
+    if let Some(code) = classify_netsh_error(&txt, ok) {
+        return Err(code);
+    }
 
     let known = known_profiles();
     let current = current_ssid();

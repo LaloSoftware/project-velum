@@ -12,7 +12,7 @@ implementaciones: `MockSystemControls` (dev, cualquier SO) y —en fases posteri
 | Área | Contrato + mock + UI | Backend real de Windows |
 |---|---|---|
 | Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ✅ validado en hardware |
-| Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ✅ fase 4 (sin validar en hardware) |
+| Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ⚠️ fase 4 — ver "Escaneo denegado" |
 | Bluetooth (radio, listar, emparejar, conectar) | ✅ | ⏳ fases 5-7 |
 
 Las fases 0-2 (modelo, mock y frontend) están cerradas y se verifican al 100% en macOS.
@@ -277,6 +277,34 @@ versiones de Windows **devolviendo vacío en vez de un error**.
 `system.radio.access_denied`, que sí se puede explicar en pantalla. `IAsyncOperation::get()`
 bloquea, lo cual es correcto en el MTA (`CoIncrementMTAUsage`) y llamándolo solo desde
 `spawn_blocking` — desde el hilo principal, que Tauri mantiene en STA, sería un deadlock.
+
+### Limitación abierta: el escaneo puede venir denegado
+
+**Estado: sin resolver, pendiente de datos de usuarios reales.**
+
+En el primer PC de prueba, `netsh wlan show networks` respondió **acceso denegado**. Ese
+equipo tenía la telemetría y varios servicios de Windows recortados a mano, así que no se
+sabe todavía si es consecuencia de eso o algo más general.
+
+Causas conocidas de que el escaneo no devuelva redes, ninguna descartada aún:
+
+1. **Permisos de ubicación desactivados.** Desde Windows 10 1803, enumerar redes Wi-Fi los
+   exige — es una restricción de privacidad, no del adaptador. Con ellos cerrados, `netsh`
+   suele devolver cero redes sin más.
+2. **`WlanSvc` (Configuración automática de WLAN) detenido o deshabilitado.** Es de los
+   servicios que se tocan al recortar Windows.
+3. **Directiva de grupo** que restrinja la configuración de red.
+
+Lo que sí está resuelto es **no mentir sobre ello**: `classify_netsh_error` distingue "cero
+redes visibles" (resultado legítimo) de "Windows rechazó la consulta", y en el segundo caso
+la UI muestra un error que dice qué revisar, en vez de un "No se encontraron redes" que es
+falso y no deja a nadie con nada que hacer. `wlansvc` se reconoce por su id, que no se
+traduce; la denegación, por varias formas en ambos idiomas. Hay tests.
+
+Si con más equipos resulta que la denegación es común en instalaciones normales, la
+alternativa es la WLAN API nativa (`WlanGetAvailableNetworkList`) — que tiene el **mismo**
+requisito de ubicación, así que probablemente no cambie nada, pero al menos devuelve un
+código de error concreto en vez de texto.
 
 ### Coste del poll
 
