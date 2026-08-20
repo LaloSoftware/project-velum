@@ -11,11 +11,13 @@ implementaciones: `MockSystemControls` (dev, cualquier SO) y —en fases posteri
 
 | Área | Contrato + mock + UI | Backend real de Windows |
 |---|---|---|
-| Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ⏳ fase 3 |
+| Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ✅ fase 3 (sin validar en hardware) |
 | Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ⏳ fase 4 |
 | Bluetooth (radio, listar, emparejar, conectar) | ✅ | ⏳ fases 5-7 |
 
 Las fases 0-2 (modelo, mock y frontend) están cerradas y se verifican al 100% en macOS.
+La fase 3 (audio de Windows) está escrita y **type-checkeada** contra la API real con
+`npm run win:check`, pero su comportamiento solo se puede confirmar en un PC Windows.
 El plan detallado de las fases de Windows vive en `feature-system-controls.md` (raíz,
 gitignored).
 
@@ -163,15 +165,55 @@ El espejo en JS (`ipc/index.js`) reproduce las mismas latencias y códigos para 
 "Mostrar" (`stores/keyboard.js`, `VirtualKeyboard.svelte`). Obligatorio para claves de
 Wi-Fi: la pantalla está en la sala, a la vista de todos.
 
+## `npm run win:check` — comprobar el código de Windows desde Mac
+
+`src-tauri/src/system/windows/` solo compila con `#[cfg(windows)]`, así que en Mac se
+escribe a ciegas y el primer error de tipos aparecería en el PC de la sala, con el ciclo de
+prueba más lento posible.
+
+`cargo check --target x86_64-pc-windows-msvc` sobre el proyecto entero no sirve: `ring` (vía
+el updater) y `rusqlite` compilan C y necesitan la toolchain de MSVC. Pero el crate
+`windows` es Rust puro, así que `scripts/win-check.mjs` monta un crate desechable con solo
+ese crate y los archivos reales incluidos por `#[path]`, y comprueba ése.
+
+Los tipos del contrato se **extraen de `system/mod.rs`** en cada ejecución en vez de
+copiarse: si el contrato cambia y el módulo de Windows se queda atrás, el check falla.
+
+Requiere una vez: `rustup target add x86_64-pc-windows-msvc`.
+
+Lo que **no** valida: nada de comportamiento. Que `IPolicyConfig` tenga la vtable correcta,
+que un micrófono acepte `SetMute` o que `netsh` parsee bien solo se sabe en el PC.
+
+## Fase 3: audio (implementada)
+
+`system/windows/audio.rs` + `policy_config.rs`.
+
+- **Hilo residente** `gm-audio` con `CoInitializeEx(COINIT_MULTITHREADED)`, dueño de todos
+  los objetos COM, con un canal de comandos. Los comandos de Tauri corren en hilos del pool
+  sin COM inicializado y windows-rs marca las interfaces como `Send`/`Sync`, así que el
+  compilador no protege del cruce de apartments: el hilo propio elimina el problema de raíz.
+- **`IAudioEndpointVolume` cacheado** por canal. Los mutadores usan `endpoint_fast()`, que
+  no le pregunta a Windows cuál es el endpoint por defecto: mover el slider dispara una
+  ráfaga de `set_volume` y verificar en cada uno añadiría dos llamadas COM por pulsación.
+  El snapshot (poll de 2 s) sí verifica y reabre si el default cambió por fuera.
+- `set_volume`/`set_muted` **no** republican el estado entero (eso enumera dispositivos);
+  solo retocan el número cacheado. `set_device` sí, porque cambia el snapshot completo.
+- Se usa la escala **Scalar** (0.0-1.0, la perceptual del mezclador), nunca la de dB.
+- `CoInitializeEx` se tolera con `S_OK`, `S_FALSE` y `RPC_E_CHANGED_MODE`; solo se llama
+  `CoUninitialize` si este hilo fue quien inicializó.
+- **`IPolicyConfig`** (cambiar el dispositivo por defecto) **no es API pública** ni está en
+  las bindings: se declara a mano. Los diez métodos previos a `SetDefaultEndpoint` están
+  declarados aunque no se usen — COM llama por posición en la vtable, y si falta uno la
+  llamada cae en el método anterior: eso no da error, da un crash. Se aplica a los **tres
+  roles** (`eConsole`, `eMultimedia`, `eCommunications`); cambiar solo el primero deja el
+  chat de voz en el dispositivo viejo.
+- Si algo de esto falla al arrancar, `build_system_controls()` degrada al mock en vez de
+  reventar el arranque.
+
 ## Qué falta (backend de Windows)
 
 Resumen de lo que traerán las fases 3-7, con sus límites ya conocidos:
 
-- **Audio**: Core Audio nativo con el crate `windows`, en un **hilo residente** con
-  `CoInitializeEx(COINIT_MULTITHREADED)` y el `IAudioEndpointVolume` del endpoint por
-  defecto cacheado, para que subir el volumen sea una sola llamada. Cambiar el dispositivo
-  por defecto necesita `IPolicyConfig`, que **no es API pública** y hay que declarar a mano
-  con la vtable exacta.
 - **Wi-Fi**: `netsh` (con `chcp 65001` por los SSID con acentos, y parseo anclado en tokens
   no traducidos), verificando el resultado por sondeo porque `netsh wlan connect` reporta
   éxito aunque la clave sea mala. A futuro, la WLAN API nativa distingue *clave incorrecta*

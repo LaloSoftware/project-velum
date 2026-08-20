@@ -65,7 +65,18 @@ windows = { version = "0.58", features = [
   "Win32_Foundation",
   "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Input_KeyboardAndMouse",
+  # Audio del QAM (system/windows/audio.rs): Core Audio / WASAPI.
+  # `Win32_UI_Shell_PropertiesSystem` es para IPropertyStore (el nombre del
+  # dispositivo) y `Win32_Devices_FunctionDiscovery` para PKEY_Device_FriendlyName.
+  "Win32_Media_Audio",
+  "Win32_Media_Audio_Endpoints",
+  "Win32_System_Com",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_Devices_FunctionDiscovery",
 ] }
+# Necesaria por su nombre real: el macro `#[interface]` (IPolicyConfig, ver
+# system/windows/policy_config.rs) genera rutas `::windows_core::…`.
+windows-core = "0.58"
 # Poll de XInput suplementario (fix/control-input): `gilrs` en Windows usa WGI
 # por defecto, que no entrega input de mandos XInput-class (Xbox, mandos en
 # modo PC) sin foco real de ventana — GM corre a pantalla completa. `XInputGetState`

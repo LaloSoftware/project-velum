@@ -15,6 +15,8 @@
 //!    + el evento `gm://system-state`. Una sola vía de verdad para el frontend.
 
 pub mod mock;
+#[cfg(windows)]
+pub mod windows;
 
 use std::sync::Arc;
 
@@ -321,6 +323,15 @@ pub fn system_shutdown() -> Result<(), String> {
 /// motor real no arranca), degrada al mock. Mismo criterio best-effort que
 /// `library::active_sources`.
 pub fn build_system_controls() -> Arc<dyn SystemControls> {
-    // #[cfg(windows)] { … WindowsSystemControls::new() … }  (fases 3-7)
+    #[cfg(windows)]
+    {
+        match windows::WindowsSystemControls::new() {
+            Ok(c) => return Arc::new(c),
+            // Best-effort: si Core Audio no arranca (COM caído, sesión sin
+            // audio), el QAM sigue abriendo con datos simulados en vez de
+            // reventar el arranque de la app.
+            Err(e) => eprintln!("[system] controles reales no disponibles ({e}); usando mock"),
+        }
+    }
     Arc::new(mock::MockSystemControls::new())
 }

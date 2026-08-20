@@ -56,6 +56,7 @@ npm run web       # solo la UI en el navegador (datos mock JS) y la abre
 npm run dist      # compila el ejecutable/instalador (src-tauri/target/release/)
 npm run bundle    # empaqueta el repo en gm.bundle para llevarlo a Windows
 npm run version:set -- 0.2.0-beta.1   # sube la versión (package.json + Cargo.toml)
+npm run win:check # type-check de system/windows/ (código Windows) desde Mac
 npm run clean     # limpia el build (cargo clean + dist) si se corrompe
 npm run rebuild   # clean + go (recompila desde cero)
 ```
@@ -119,7 +120,9 @@ CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md
 
 Red, Bluetooth y audio de **salida y entrada** desde el QAM. El contrato Rust↔JS, el mock
 (con latencia y errores simulados) y toda la UI están cerrados y se verifican en macOS; el
-backend real de Windows (Core Audio / `netsh` / WinRT) va por fases independientes. Dos
+backend real de Windows va por fases: el **audio** (Core Audio) ya está escrito y se
+type-checkea desde Mac con `npm run win:check`; Wi-Fi (`netsh`) y Bluetooth (WinRT) siguen
+pendientes. Dos
 invariantes que no hay que deshacer: el trait es `&self` + `Arc` (nunca un mutex global, o
 un escaneo Wi-Fi bloquearía el volumen) y el mock JS se elige por `isTauri`, **nunca** por
 `catch` (tragarse el error dejaría un toggle mintiendo). Detalle en
