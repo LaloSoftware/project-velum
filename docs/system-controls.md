@@ -20,8 +20,8 @@ Las fases 0-2 (modelo, mock y frontend) están cerradas y se verifican al 100% e
 La fase 3 (audio) está confirmada funcionando en un PC real. La fase 4 (Wi-Fi) está escrita,
 **type-checkeada** con `npm run win:check` y con el parseo cubierto por tests que corren en
 Mac, pero su comportamiento contra hardware sigue sin confirmar.
-El plan detallado de las fases de Windows vive en `feature-system-controls.md` (raíz,
-gitignored).
+El detalle de cada fase de Windows —qué API se eligió y por qué, y qué hay que probar en
+el PC— está en las cabeceras de los módulos de `src-tauri/src/system/windows/`.
 
 ## El trait
 
