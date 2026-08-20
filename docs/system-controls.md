@@ -1,41 +1,183 @@
 # Controles de sistema (QAM: Wi-Fi / Bluetooth / audio)
 
-El menú de acceso rápido (QAM) permite gestionar red y audio sin volver a Windows.
-Se abstrae tras el trait `SystemControls` (`src-tauri/src/system/mod.rs`):
+El menú de acceso rápido (QAM → "Sistema") permite gestionar red, Bluetooth y audio sin
+volver a Windows. Cuatro categorías: **Red · Bluetooth · Salida · Entrada**.
+
+Todo se abstrae tras el trait `SystemControls` (`src-tauri/src/system/mod.rs`), con dos
+implementaciones: `MockSystemControls` (dev, cualquier SO) y —en fases posteriores—
+`WindowsSystemControls`.
+
+## Estado de la implementación
+
+| Área | Contrato + mock + UI | Backend real de Windows |
+|---|---|---|
+| Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ⏳ fase 3 |
+| Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ⏳ fase 4 |
+| Bluetooth (radio, listar, emparejar, conectar) | ✅ | ⏳ fases 5-7 |
+
+Las fases 0-2 (modelo, mock y frontend) están cerradas y se verifican al 100% en macOS.
+El plan detallado de las fases de Windows vive en `feature-system-controls.md` (raíz,
+gitignored).
+
+## El trait
 
 ```rust
 pub trait SystemControls: Send + Sync {
-    fn state(&self) -> SystemState;
-    fn set_volume(&mut self, v: u8);
-    fn set_output(&mut self, id: String);
-    fn set_wifi(&mut self, enabled: bool);
-    fn set_bluetooth(&mut self, enabled: bool);
+    fn state(&self) -> SystemState;                      // barato, de caché
+    fn set_volume(&self, ch: Channel, v: u8) -> Result<(), String>;
+    fn set_muted(&self, ch: Channel, muted: bool) -> Result<(), String>;
+    fn set_device(&self, ch: Channel, id: &str) -> Result<(), String>;
+    fn set_wifi(&self, enabled: bool) -> Result<(), String>;
+    fn set_bluetooth(&self, enabled: bool) -> Result<(), String>;
+    // lentas: siempre desde spawn_blocking; publican en la caché interna
+    fn wifi_scan(&self) -> Result<(), String>;
+    fn wifi_connect(&self, ssid: &str, password: Option<&str>) -> Result<(), String>;
+    fn wifi_forget(&self, ssid: &str) -> Result<(), String>;
+    fn bt_scan(&self, seconds: u8) -> Result<(), String>;
+    fn bt_pair(&self, id: &str) -> Result<(), String>;
+    fn bt_unpair(&self, id: &str) -> Result<(), String>;
+    fn bt_set_connected(&self, id: &str, connected: bool) -> Result<(), String>;
+    fn refresh_fast(&self);
 }
 ```
 
-La implementación se registra como estado gestionado por Tauri
-(`.manage(SystemHandle(Mutex<Box<dyn SystemControls>>))`) y los comandos
-`system_get_state` / `system_set_*` operan sobre ella.
+Dos decisiones de forma que conviene **no** deshacer:
 
-## Hoy: `MockSystemControls`
+1. **`&self` + `SystemHandle(Arc<dyn SystemControls>)`**, no `&mut self` +
+   `Mutex<Box<dyn …>>`. Con un mutex global, un escaneo Wi-Fi de 5 s bloquearía subir el
+   volumen. La mutabilidad va dentro de cada implementación, con locks finos (canal al
+   hilo de audio, `RwLock` para redes/BT, `AtomicBool` para las banderas de escaneo).
+2. **Las operaciones lentas devuelven `()`, no la lista.** El resultado se publica por la
+   caché interna + el evento `gm://system-state`: una sola vía de verdad para el frontend.
 
-`src-tauri/src/system/mock.rs`. Estado en memoria (Wi-Fi/redes, BT, volumen, salidas de
-audio) que persiste durante la sesión. **Activo por defecto en macOS** para probar toda
-la UX del QAM sin Windows.
-
-## Fase posterior: `WindowsSystemControls`
-
-Con el crate `windows`:
-- **Audio**: Core Audio / WASAPI — volumen maestro y **enumerar/cambiar** el dispositivo
-  de salida por defecto.
-- **Wi-Fi**: WLAN API (o `netsh wlan`) — estado, escaneo y conexión.
-- **Bluetooth**: APIs de radio Bluetooth — on/off y dispositivos.
-
-Para añadirla: crear `system/windows.rs`, implementar el trait, y en `main.rs` elegir la
-implementación según plataforma (`#[cfg(windows)]`). El frontend (QAM) no cambia: solo
-habla con los comandos `system_*`.
+La implementación la elige `system::build_system_controls()` (`mod.rs`), copiando el
+criterio best-effort de `library::active_sources`: si el motor real no arranca, degrada al
+mock en vez de dejar el QAM muerto.
 
 ## Modelo `SystemState`
 
-`{ wifiEnabled, currentNetwork, networks[], bluetoothEnabled, btDevices[], volume,
-muted, outputDevices[{id,name}], currentOutput }` (camelCase para el frontend).
+Serializado en camelCase para el frontend:
+
+```
+wifiPresent, wifiEnabled, wifiScanning, currentNetwork, networks[],
+ethernetConnected, ethernetName,
+bluetoothPresent, bluetoothEnabled, btScanning, btDevices[],
+output, input
+```
+
+- `networks[]` → `{ ssid, secured, signal (0-100), known, active }`
+- `btDevices[]` → `{ id, name, paired, connected, canConnect, kind }`
+  (`kind`: `gamepad` | `audio` | `input` | `phone` | `other`, solo para el icono)
+- `output` / `input` → `{ volume, muted, devices[{id,name}], current }`
+- `Channel` es un id del protocolo: `"output"` | `"input"`, **no se traduce ni se
+  renombra** (regla de oro de `docs/i18n.md`).
+
+`wifiScanning` / `btScanning` viajan en el estado y no solo en el frontend, para que
+cerrar y reabrir el QAM a mitad de escaneo reconstruya la UI correcta.
+
+`wifiPresent` / `bluetoothPresent` en `false` hacen que la categoría muestre el aviso y no
+se despliegue: un PC de sobremesa sin Wi-Fi no debe mostrar una lista vacía y un botón que
+falla.
+
+## Comandos
+
+Rápidos y síncronos (devuelven `Result`, emiten el estado al terminar):
+`system_get_state`, `system_set_volume`, `system_set_muted`, `system_set_device`,
+`system_set_wifi`, `system_set_bluetooth`.
+
+Lentos (`async` + `spawn_blocking`, emiten `gm://system-state` al terminar **también si
+fallan**, para que la UI no se quede con el "Conectando…" puesto):
+`system_wifi_scan`, `system_wifi_connect`, `system_wifi_forget`, `system_bt_scan`,
+`system_bt_pair`, `system_bt_unpair`, `system_bt_set_connected`.
+
+Aparte, `system_shutdown` (dispara-y-olvida, sin estado, con `CREATE_NO_WINDOW` para que
+no parpadee una consola encima del juego).
+
+Ojo al implementar comandos lentos nuevos: hay que sacar el `Arc` del `State` **antes** del
+`await` (`State` no es `Send`). El helper `slow()` de `mod.rs` ya encapsula ese patrón.
+
+## Refresco: híbrido
+
+Caché en Rust + comandos explícitos para lo lento + evento push `gm://system-state` +
+**poll ligero de 2 s solo mientras la sección del QAM está montada**
+(`startSystemWatch()` en `src/lib/stores/system.js` devuelve el `stop()`).
+
+Solo polling no sirve: si `state()` escaneara, cada tick lanzaría un escaneo de 5 s; y si
+no escanea, la lista nunca cambiaría. Solo push tampoco: no cubre los cambios externos
+baratos (teclas de volumen, auriculares enchufados, cable Ethernet) sin registrar callbacks
+COM. El híbrido funciona porque `state()` solo lee caché y valores baratos.
+
+Reglas para cualquier implementación: nunca un lock global; `state()` clona bajo lectura y
+suelta; jamás sostener un lock durante un `emit` o una llamada al SO; reentrada de escaneo
+protegida con `compare_exchange`; escaneo Wi-Fi al montar la sección (no en cada tick) y
+escaneo BT solo bajo demanda.
+
+El store descarta el volumen entrante durante ~600 ms tras el último ajuste local, para que
+el poll no pelee con la persona moviendo el slider.
+
+## Frontera con el frontend
+
+`src/lib/ipc/index.js` — **el mock JS se elige por `isTauri`, nunca por `catch`**. Tragarse
+el error de un `system_set_wifi` que falla por permisos dejaría la UI mostrando "ON" con la
+radio apagada: es el fallo más peligroso de esta frontera. Todos los mutadores propagan, y
+`src/lib/stores/system.js` los envuelve con `reportError` + `refreshSystem()`.
+
+`onSystemState(cb)` escucha `gm://system-state` (mismo contrato que `onUpdateProgress`).
+
+## Errores
+
+Códigos estables (`"codigo"` o `"codigo|detalle"`, ver `src/lib/i18n/errors.js`), con una
+entrada `errors.system.*` por código en los tres idiomas:
+
+```
+system.task_failed · system.unsupported · system.shutdown_failed
+system.audio.com_failed · system.audio.device_not_found · system.audio.set_default_failed
+system.wifi.unavailable · system.wifi.scan_failed · system.wifi.profile_failed
+system.wifi.connect_failed · system.wifi.wrong_password · system.wifi.timeout
+system.radio.unavailable · system.radio.access_denied · system.radio.set_failed
+system.bt.unavailable · system.bt.scan_failed · system.bt.device_not_found
+system.bt.pair_failed · system.bt.pair_rejected · system.bt.pin_required
+system.bt.unpair_failed · system.bt.connect_failed · system.bt.connect_unsupported
+```
+
+`system.wifi.wrong_password` no es solo un mensaje: el store lo trata como flujo y vuelve a
+pedir la clave en el teclado virtual en vez de perder lo tecleado.
+
+## Mock (`system/mock.rs` y su espejo JS)
+
+No es un stub: imita la **concurrencia** y la **latencia** del backend real, que es justo lo
+que hay que poder diseñar sin un PC Windows delante.
+
+- Escaneo Wi-Fi 1,5 s (cada escaneo destapa una red más) · conectar 2 s · escaneo BT 3 s
+  (añade 2 dispositivos sin emparejar) · emparejar 2,5 s.
+- Conectar a una red protegida **nueva** falla con `system.wifi.wrong_password` si la clave
+  no es `1234`.
+- Apagar la radio BT desconecta todo y descarta lo no emparejado, como hace Windows.
+
+El espejo en JS (`ipc/index.js`) reproduce las mismas latencias y códigos para que
+`npm run web` se comporte igual que la app.
+
+## Teclado virtual: `mask`
+
+`openKeyboard(inicial, título, { mask: true })` pinta el valor con puntos y añade un botón
+"Mostrar" (`stores/keyboard.js`, `VirtualKeyboard.svelte`). Obligatorio para claves de
+Wi-Fi: la pantalla está en la sala, a la vista de todos.
+
+## Qué falta (backend de Windows)
+
+Resumen de lo que traerán las fases 3-7, con sus límites ya conocidos:
+
+- **Audio**: Core Audio nativo con el crate `windows`, en un **hilo residente** con
+  `CoInitializeEx(COINIT_MULTITHREADED)` y el `IAudioEndpointVolume` del endpoint por
+  defecto cacheado, para que subir el volumen sea una sola llamada. Cambiar el dispositivo
+  por defecto necesita `IPolicyConfig`, que **no es API pública** y hay que declarar a mano
+  con la vtable exacta.
+- **Wi-Fi**: `netsh` (con `chcp 65001` por los SSID con acentos, y parseo anclado en tokens
+  no traducidos), verificando el resultado por sondeo porque `netsh wlan connect` reporta
+  éxito aunque la clave sea mala. A futuro, la WLAN API nativa distingue *clave incorrecta*
+  de *fuera de alcance*.
+- **Bluetooth**: WinRT desde Rust (nunca PowerShell), en un hilo MTA dedicado.
+  `DeviceWatcher` para descubrir lo no emparejado. **Conectar/desconectar es parcial**: no
+  existe API pública equivalente al botón de Configuración de Windows para BR/EDR; por eso
+  `canConnect` puede venir en `false` y la UI oculta ese botón. Emparejar con PIN queda
+  fuera (`system.bt.pin_required` sugiere hacerlo esa vez desde Windows).

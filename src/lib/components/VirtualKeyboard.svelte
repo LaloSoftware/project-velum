@@ -1,5 +1,5 @@
 <script>
-  import { vk, vkType, vkBackspace, vkToggleShift, vkDone } from "../stores/keyboard.js";
+  import { vk, vkType, vkBackspace, vkToggleShift, vkToggleReveal, vkDone } from "../stores/keyboard.js";
   import { t } from "../i18n/index.js";
   import ButtonPrompt from "./ButtonPrompt.svelte";
 
@@ -26,13 +26,23 @@
   function toggleSymbols() {
     symbols = !symbols;
   }
+
+  // Con `mask` el valor se pinta con puntos (claves de Wi-Fi en una tele de sala).
+  $: shown = $vk.mask && !$vk.reveal ? "•".repeat($vk.value.length) : $vk.value;
 </script>
 
 <div class="vk">
   <div class="panel">
     <div class="title">{$vk.title}</div>
-    <div class="value">
-      {$vk.value || " "}<span class="caret">|</span>
+    <div class="valuerow">
+      <div class="value">
+        {shown || " "}<span class="caret">|</span>
+      </div>
+      {#if $vk.mask}
+        <button class="reveal" data-focusable tabindex="-1" on:click={vkToggleReveal}>
+          {$vk.reveal ? $t("vk.hidePassword") : $t("vk.showPassword")}
+        </button>
+      {/if}
     </div>
 
     <div class="kb-main">
@@ -112,7 +122,29 @@
     color: var(--gm-text-dim);
     font-size: 0.9rem;
   }
+  .valuerow {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+  .reveal {
+    cursor: pointer;
+    flex: 0 0 auto;
+    margin-bottom: 14px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--gm-surface-2);
+    color: var(--gm-text-dim);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .reveal:focus {
+    box-shadow: var(--gm-focus-ring);
+    color: var(--gm-text);
+  }
   .value {
+    flex: 1;
+    min-width: 0;
     font-size: 1.6rem;
     font-weight: 700;
     padding: 10px 4px 16px;

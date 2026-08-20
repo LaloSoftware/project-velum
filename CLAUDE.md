@@ -102,7 +102,7 @@ src/                 Frontend Svelte
   lib/ipc/            Frontera con el backend (con fallback mock en web)
 src-tauri/           Backend Rust (Tauri)
   src/library/        LibrarySource + MockSource (juegos)
-  src/system/         SystemControls + Mock (Wi-Fi/BT/audio del QAM)
+  src/system/         SystemControls + Mock (Wi-Fi/BT/audio in-out del QAM)
   src/input.rs        Hilo gilrs → eventos de mando al frontend
   src/launch.rs       Lanzar juego (stub) + abrir launchers
   src/config.rs       Persistencia de perfiles (JSON)
@@ -114,6 +114,16 @@ docs/                Documentación detallada por tema
 
 Todo el estilo son tokens `--gm-*`. Un **perfil** = tema base + overrides de tokens +
 CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md`.
+
+## Controles de sistema (QAM)
+
+Red, Bluetooth y audio de **salida y entrada** desde el QAM. El contrato Rust↔JS, el mock
+(con latencia y errores simulados) y toda la UI están cerrados y se verifican en macOS; el
+backend real de Windows (Core Audio / `netsh` / WinRT) va por fases independientes. Dos
+invariantes que no hay que deshacer: el trait es `&self` + `Arc` (nunca un mutex global, o
+un escaneo Wi-Fi bloquearía el volumen) y el mock JS se elige por `isTauri`, **nunca** por
+`catch` (tragarse el error dejaría un toggle mintiendo). Detalle en
+`docs/system-controls.md`.
 
 ## Actualizaciones
 

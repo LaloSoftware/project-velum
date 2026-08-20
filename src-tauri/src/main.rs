@@ -12,8 +12,6 @@ mod steam_api;
 mod system;
 mod update;
 
-use std::sync::Mutex;
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -33,10 +31,10 @@ fn main() {
         // Auto-actualización (Configuración → Actualizaciones). Se usa solo
         // desde Rust (src/update.rs); la WebView no recibe permisos updater:*.
         .plugin(tauri_plugin_updater::Builder::new().build())
-        // Controles de sistema (mock en dev; WindowsSystemControls en el futuro).
-        .manage(system::SystemHandle(Mutex::new(Box::new(
-            system::mock::MockSystemControls::new(),
-        ))))
+        // Controles de sistema del QAM (mock en dev; reales en Windows —
+        // ver system::build_system_controls). Arc y no Mutex: un escaneo Wi-Fi
+        // de 5 s no puede bloquear subir el volumen.
+        .manage(system::SystemHandle(system::build_system_controls()))
         // Sesión de juego activa (ciclo lanzar/suspender/restaurar).
         .manage(launch::PlayState::default())
         // Actualización encontrada + instalador descargado, a la espera de
@@ -56,9 +54,16 @@ fn main() {
             system::system_get_state,
             system::system_set_volume,
             system::system_set_muted,
-            system::system_set_output_device,
+            system::system_set_device,
             system::system_set_wifi,
             system::system_set_bluetooth,
+            system::system_wifi_scan,
+            system::system_wifi_connect,
+            system::system_wifi_forget,
+            system::system_bt_scan,
+            system::system_bt_pair,
+            system::system_bt_unpair,
+            system::system_bt_set_connected,
             system::system_shutdown,
             launch::launch_game,
             launch::focus_game,
