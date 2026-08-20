@@ -73,6 +73,12 @@ windows = { version = "0.58", features = [
   "Win32_System_Com",
   "Win32_UI_Shell_PropertiesSystem",
   "Win32_Devices_FunctionDiscovery",
+  # Interruptor de radio Wi-Fi/Bluetooth (system/windows/radios.rs). Se usa la
+  # API WinRT `Radio` y no `netsh interface set interface` porque esa exige
+  # privilegios de administrador y GM corre como app normal.
+  "Devices_Radios",
+  "Foundation",
+  "Foundation_Collections",
 ] }
 # Necesaria por su nombre real: el macro `#[interface]` (IPolicyConfig, ver
 # system/windows/policy_config.rs) genera rutas `::windows_core::…`.

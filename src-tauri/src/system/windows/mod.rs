@@ -3,35 +3,121 @@
 //! Se construye por fases, y cada una es independiente porque solo se puede
 //! compilar y depurar en un PC Windows (no hay cross-compile en el repo):
 //!
-//! - **Fase 3 (esta)**: audio nativo por Core Audio — volumen, silencio y
-//!   dispositivo por defecto, de salida y de entrada.
-//! - Fase 4: Wi-Fi por `netsh`.
+//! - **Fase 3**: audio nativo por Core Audio — volumen, silencio y dispositivo
+//!   por defecto, de salida y de entrada.
+//! - **Fase 4 (esta)**: Wi-Fi por `netsh` (escanear, conectar, olvidar) y el
+//!   interruptor de radio por WinRT.
 //! - Fases 5-7: Bluetooth por WinRT.
 //!
-//! Mientras Wi-Fi y Bluetooth no estén, se reportan como **ausentes**
-//! (`wifi_present: false`) y sus operaciones devuelven `system.unsupported`. La
-//! UI entonces muestra el aviso y no despliega la categoría. Es deliberado:
+//! Mientras Bluetooth no esté, se reporta como **ausente**
+//! (`bluetooth_present: false`) y sus operaciones devuelven error. La UI
+//! entonces muestra el aviso y no despliega la categoría. Es deliberado:
 //! preferible eso a una lista vacía con botones que fallan al pulsarlos.
+//!
+//! # Locks
+//!
+//! Nunca uno global (ver `system/mod.rs`). El audio va por su hilo, el Wi-Fi
+//! por un `RwLock` propio y las banderas de escaneo por `AtomicBool`, para que
+//! un escaneo de varios segundos no bloquee subir el volumen.
 
 mod audio;
 mod policy_config;
+mod proc;
+mod radios;
+mod wifi;
 
-use std::sync::RwLock;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, RwLock};
+use std::time::{Duration, Instant};
 
 use super::{AudioChannel, BtDevice, Channel, SystemControls, SystemState, WifiNet};
+
+/// Lo que se sabe del Wi-Fi ahora mismo. Se rellena desde `refresh_fast`
+/// (barato: estado del enlace) y desde `wifi_scan` (caro: la lista de redes).
+/// Cada cuánto puede el poll releer el estado del Wi-Fi.
+///
+/// El QAM sondea cada 2 s, pero leerlo cuesta dos procesos `netsh` más una
+/// llamada WinRT (~300 ms de un hilo del pool). Lo que ese poll tiene que
+/// detectar —cable enchufado, radio apagada desde Windows, red cambiada— no
+/// necesita esa resolución. Las acciones del usuario (conectar, olvidar,
+/// encender la radio) refrescan sin esperar.
+const WIFI_TTL: Duration = Duration::from_secs(6);
+
+#[derive(Default)]
+struct WifiCache {
+    present: bool,
+    enabled: bool,
+    current: Option<String>,
+    networks: Vec<WifiNet>,
+    ethernet: Option<String>,
+}
 
 pub struct WindowsSystemControls {
     audio: audio::AudioEngine,
     /// Último snapshot de audio. `state()` lo clona y suelta el lock: es lo que
     /// permite que el poll de 2 s del QAM sea gratis.
     cached: RwLock<audio::Snapshot>,
+    wifi: RwLock<WifiCache>,
+    wifi_scanning: AtomicBool,
+    /// Cuándo se leyó el estado del Wi-Fi por última vez (para el TTL).
+    wifi_read_at: Mutex<Option<Instant>>,
 }
 
 impl WindowsSystemControls {
     pub fn new() -> Result<Self, String> {
+        // El audio es el único que puede impedir arrancar: si Core Audio no
+        // responde, mejor degradar al mock entero. Un Wi-Fi que falle se ve
+        // como "sin adaptador", que es recuperable.
         let audio = audio::AudioEngine::start()?;
         let cached = RwLock::new(audio.snapshot());
-        Ok(WindowsSystemControls { audio, cached })
+        let ctl = WindowsSystemControls {
+            audio,
+            cached,
+            wifi: RwLock::new(WifiCache::default()),
+            wifi_scanning: AtomicBool::new(false),
+            wifi_read_at: Mutex::new(None),
+        };
+        ctl.refresh_wifi_status();
+        Ok(ctl)
+    }
+
+    /// Como `refresh_wifi_status`, pero no hace nada si se leyó hace poco.
+    /// Es la que usa el poll.
+    fn refresh_wifi_status_throttled(&self) {
+        if let Ok(mut at) = self.wifi_read_at.lock() {
+            if let Some(last) = *at {
+                if last.elapsed() < WIFI_TTL {
+                    return;
+                }
+            }
+            *at = Some(Instant::now());
+        }
+        self.refresh_wifi_status();
+    }
+
+    /// Relee el estado del enlace (no la lista de redes: eso es el escaneo).
+    /// Dos procesos `netsh` más una llamada WinRT: no va en bucles.
+    fn refresh_wifi_status(&self) {
+        if let Ok(mut at) = self.wifi_read_at.lock() {
+            *at = Some(Instant::now());
+        }
+        let snap = wifi::status();
+        // La radio la sabe WinRT con más precisión que netsh; si no contesta,
+        // vale lo que diga netsh.
+        let enabled = radios::state(radios::Kind::Wifi).unwrap_or(snap.enabled);
+        if let Ok(mut w) = self.wifi.write() {
+            w.present = snap.present;
+            w.enabled = enabled;
+            w.current = snap.current.clone();
+            w.ethernet = snap.ethernet;
+            // Mantener `active` al día sin volver a escanear.
+            for n in w.networks.iter_mut() {
+                n.active = snap.current.as_deref() == Some(n.ssid.as_str());
+            }
+            if !enabled {
+                w.networks.clear();
+            }
+        }
     }
 
     /// Relee el audio entero y publica en la caché. Enumera dispositivos, así
@@ -40,6 +126,19 @@ impl WindowsSystemControls {
         let snap = self.audio.snapshot();
         if let Ok(mut c) = self.cached.write() {
             *c = snap;
+        }
+    }
+
+    /// Reetiqueta qué redes de la lista están guardadas, releyendo los
+    /// perfiles. Es barato (no escanea) y hace falta tras conectar u olvidar:
+    /// si no, la fila seguiría diciendo "Guardada" para una red que se acaba
+    /// de olvidar.
+    fn refresh_known_flags(&self) {
+        let known = wifi::known_profiles();
+        if let Ok(mut w) = self.wifi.write() {
+            for n in w.networks.iter_mut() {
+                n.known = known.iter().any(|k| k == &n.ssid);
+            }
         }
     }
 
@@ -61,15 +160,25 @@ impl SystemControls for WindowsSystemControls {
             .read()
             .map(|c| c.clone())
             .unwrap_or_default();
+        let w = self.wifi.read();
+        let (present, enabled, current, networks, ethernet) = match w {
+            Ok(w) => (
+                w.present,
+                w.enabled,
+                w.current.clone(),
+                w.networks.clone(),
+                w.ethernet.clone(),
+            ),
+            Err(_) => (false, false, None, Vec::new(), None),
+        };
         SystemState {
-            // --- pendiente de la fase 4 ---
-            wifi_present: false,
-            wifi_enabled: false,
-            wifi_scanning: false,
-            current_network: None,
-            networks: Vec::<WifiNet>::new(),
-            ethernet_connected: false,
-            ethernet_name: None,
+            wifi_present: present,
+            wifi_enabled: enabled,
+            wifi_scanning: self.wifi_scanning.load(Ordering::Acquire),
+            current_network: current,
+            networks,
+            ethernet_connected: ethernet.is_some(),
+            ethernet_name: ethernet,
             // --- pendiente de las fases 5-7 ---
             bluetooth_present: false,
             bluetooth_enabled: false,
@@ -106,8 +215,10 @@ impl SystemControls for WindowsSystemControls {
         r
     }
 
-    fn set_wifi(&self, _enabled: bool) -> Result<(), String> {
-        Err("system.unsupported".to_string())
+    fn set_wifi(&self, enabled: bool) -> Result<(), String> {
+        radios::set_state(radios::Kind::Wifi, enabled)?;
+        self.refresh_wifi_status();
+        Ok(())
     }
 
     fn set_bluetooth(&self, _enabled: bool) -> Result<(), String> {
@@ -115,15 +226,49 @@ impl SystemControls for WindowsSystemControls {
     }
 
     fn wifi_scan(&self) -> Result<(), String> {
-        Err("system.wifi.unavailable".to_string())
+        // `compare_exchange` contra la reentrada: dos escaneos a la vez dejan
+        // el driver peleando consigo mismo y la bandera descuadrada.
+        if self
+            .wifi_scanning
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return Ok(()); // ya hay uno en curso
+        }
+        let result = wifi::scan();
+        // La bandera se baja pase lo que pase: si se queda puesta, el botón
+        // "Buscar redes" se queda girando para siempre.
+        self.wifi_scanning.store(false, Ordering::Release);
+
+        let nets = result?;
+        if let Ok(mut w) = self.wifi.write() {
+            w.networks = nets;
+        }
+        Ok(())
     }
 
-    fn wifi_connect(&self, _ssid: &str, _password: Option<&str>) -> Result<(), String> {
-        Err("system.wifi.unavailable".to_string())
+    fn wifi_connect(&self, ssid: &str, password: Option<&str>) -> Result<(), String> {
+        // Si la red no está en la última lista, se asume protegida (mismo
+        // criterio conservador que el parseo).
+        let secured = self
+            .wifi
+            .read()
+            .ok()
+            .and_then(|w| w.networks.iter().find(|n| n.ssid == ssid).map(|n| n.secured))
+            .unwrap_or(true);
+
+        let r = wifi::connect(ssid, password, secured);
+        self.refresh_wifi_status();
+        // Conectar cambia qué red está activa y cuáles quedan guardadas.
+        self.refresh_known_flags();
+        r
     }
 
-    fn wifi_forget(&self, _ssid: &str) -> Result<(), String> {
-        Err("system.wifi.unavailable".to_string())
+    fn wifi_forget(&self, ssid: &str) -> Result<(), String> {
+        let r = wifi::forget(ssid);
+        self.refresh_wifi_status();
+        self.refresh_known_flags();
+        r
     }
 
     fn bt_scan(&self, _seconds: u8) -> Result<(), String> {
@@ -144,5 +289,6 @@ impl SystemControls for WindowsSystemControls {
 
     fn refresh_fast(&self) {
         self.republish();
+        self.refresh_wifi_status_throttled();
     }
 }

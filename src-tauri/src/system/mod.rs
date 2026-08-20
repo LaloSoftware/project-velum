@@ -15,6 +15,9 @@
 //!    + el evento `gm://system-state`. Una sola vía de verdad para el frontend.
 
 pub mod mock;
+/// Parseo de la salida de netsh. Multiplataforma a propósito: sus tests corren
+/// en el Mac de desarrollo, y es la parte más frágil del Wi-Fi de Windows.
+pub mod netsh_parse;
 #[cfg(windows)]
 pub mod windows;
 

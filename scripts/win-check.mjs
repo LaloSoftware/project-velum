@@ -33,6 +33,8 @@ import { spawnSync } from "node:child_process";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TARGET = "x86_64-pc-windows-msvc";
 const SYSTEM_MOD = join(ROOT, "src-tauri/src/system/mod.rs");
+// Módulos de `system/` que NO llevan cfg(windows) pero que usa el de Windows.
+const SHARED_MODS = ["netsh_parse"];
 const WINDOWS_MOD = join(ROOT, "src-tauri/src/system/windows/mod.rs");
 const OUT = join(ROOT, "src-tauri/target/wincheck");
 
@@ -98,6 +100,13 @@ writeFileSync(
 
 pub mod system {
 ${contract}
+
+${SHARED_MODS.map(
+  (m) =>
+    `    #[path = ${JSON.stringify(
+      resolve(join(ROOT, "src-tauri/src/system", `${m}.rs`)),
+    )}]\n    pub mod ${m};`,
+).join("\n")}
 
     #[path = ${JSON.stringify(resolve(WINDOWS_MOD))}]
     pub mod windows;

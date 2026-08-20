@@ -11,13 +11,14 @@ implementaciones: `MockSystemControls` (dev, cualquier SO) y —en fases posteri
 
 | Área | Contrato + mock + UI | Backend real de Windows |
 |---|---|---|
-| Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ✅ fase 3 (sin validar en hardware) |
-| Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ⏳ fase 4 |
+| Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ✅ validado en hardware |
+| Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ✅ fase 4 (sin validar en hardware) |
 | Bluetooth (radio, listar, emparejar, conectar) | ✅ | ⏳ fases 5-7 |
 
 Las fases 0-2 (modelo, mock y frontend) están cerradas y se verifican al 100% en macOS.
-La fase 3 (audio de Windows) está escrita y **type-checkeada** contra la API real con
-`npm run win:check`, pero su comportamiento solo se puede confirmar en un PC Windows.
+La fase 3 (audio) está confirmada funcionando en un PC real. La fase 4 (Wi-Fi) está escrita,
+**type-checkeada** con `npm run win:check` y con el parseo cubierto por tests que corren en
+Mac, pero su comportamiento contra hardware sigue sin confirmar.
 El plan detallado de las fases de Windows vive en `feature-system-controls.md` (raíz,
 gitignored).
 
@@ -210,14 +211,84 @@ que un micrófono acepte `SetMute` o que `netsh` parsee bien solo se sabe en el 
 - Si algo de esto falla al arrancar, `build_system_controls()` degrada al mock en vez de
   reventar el arranque.
 
+## Fase 4: Wi-Fi (implementada)
+
+`system/windows/{wifi,proc,radios}.rs` + `system/netsh_parse.rs`.
+
+### El parseo va aparte, y con tests
+
+`netsh_parse.rs` **se compila en todos los sistemas a propósito**: son funciones puras de
+`&str` a datos, así que sus tests corren en el Mac de desarrollo. El parseo de texto
+localizado es lo más frágil de toda esta fase, y era justo lo que se quedaría sin pruebas
+hasta llegar al PC. Ya pilló un bug real: el estado de radio ocupa **dos líneas** y la
+segunda no tiene `:`, así que mirando solo la primera una radio apagada por software pasaba
+por encendida.
+
+**Regla de oro: anclar en lo que no se traduce.** `netsh` imprime en el idioma de Windows y
+las etiquetas se traducen ("Signal" → "Señal"). Lo que no cambia: los identificadores
+`SSID`/`BSSID`/`GUID`, los valores técnicos (`WPA2-Personal`, `Open`) y el `%`. Por eso la
+autenticación se detecta por el **valor** de la línea y no por su etiqueta. Ante la duda se
+asume red protegida: pedir una contraseña de más es mejor que fallar sin explicación.
+
+Ojo con `parse_ethernet`: "desconectado" **contiene** "conectado", así que se compara el
+token entero y no con `contains`. Hay un test para eso.
+
+### Dos formas de llamar a netsh
+
+- **Lecturas** (`show networks`, `show interfaces`, `show profiles`): por
+  `cmd /c chcp 65001 && netsh`, porque netsh escribe en la code page de consola y un SSID
+  con eñe saldría roto — y como el SSID es la clave con la que se conecta, no es cosmético.
+  Sus argumentos son constantes: no hay datos de nadie en esa línea.
+- **Escrituras** (`connect`, `add profile`, `delete profile`): a netsh **directamente, sin
+  `cmd`**, porque llevan el SSID dentro y en una línea de shell un SSID con `&` podría
+  ejecutar otra cosa. Solo se mira el código de salida, así que la code page da igual.
+
+### Conectar verifica de verdad
+
+`netsh wlan connect` responde con éxito en cuanto **acepta** la petición: con una contraseña
+incorrecta también dice que sí. Por eso se sondea `show interfaces` cada 500 ms hasta 12 s,
+y si no conecta se **borra el perfil recién creado** — si se queda, Windows reintenta con la
+clave mala indefinidamente y la red aparece como "guardada" en la lista.
+
+El sondeo usa `current_ssid()` (un solo proceso) y no `status()` (dos): con `status()` serían
+casi cien procesos por intento de conexión.
+
+El perfil XML se escribe en un temporal con nombre irrepetible y **se borra en cuanto netsh
+lo lee**, también si falla: contiene la contraseña en claro. El SSID y la clave se escapan
+como XML (un SSID puede llevar `&` perfectamente). `</authEncryption>` **cierra antes de**
+`<sharedKey>`; con los dos anidados al revés el perfil no valida y netsh falla sin explicar
+por qué — era el bug del prototipo, y ahora hay un test que lo fija.
+
+Limitación conocida: `netsh` no distingue *contraseña incorrecta* de *fuera de alcance*.
+Como el caso abrumadoramente más común al crear un perfil nuevo es la clave, se devuelve
+`system.wifi.wrong_password` y el store vuelve a pedirla. Distinguirlos requiere la WLAN API
+nativa (`WlanRegisterNotification` da un `WLAN_REASON_CODE`), ~250 líneas de FFI; `wifi.rs`
+está encapsulado para poder cambiarlo por dentro.
+
+### El interruptor va por WinRT, no por netsh
+
+`netsh interface set interface` **exige administrador** y GM corre como app normal: por esa
+vía el interruptor fallaría siempre. `radios.rs` usa `Windows.Devices.Radios.Radio`, la
+misma API del panel de Configuración, que funciona sin elevación. Desde Rust y no desde
+PowerShell porque sacar el resultado de un `IAsyncOperation` por reflexión se rompe entre
+versiones de Windows **devolviendo vacío en vez de un error**.
+
+`RequestAccessAsync` puede responder `DeniedByUser`/`DeniedBySystem`; se traduce a
+`system.radio.access_denied`, que sí se puede explicar en pantalla. `IAsyncOperation::get()`
+bloquea, lo cual es correcto en el MTA (`CoIncrementMTAUsage`) y llamándolo solo desde
+`spawn_blocking` — desde el hilo principal, que Tauri mantiene en STA, sería un deadlock.
+
+### Coste del poll
+
+`refresh_fast()` lo llama el poll cada 2 s, pero leer el estado del Wi-Fi cuesta dos procesos
+`netsh` más una llamada WinRT (~300 ms de un hilo del pool). Por eso lleva un **TTL de 6 s**:
+lo que ese poll debe detectar (cable enchufado, radio apagada desde Windows, red cambiada) no
+necesita más resolución. Las acciones del usuario refrescan sin esperar al TTL.
+
 ## Qué falta (backend de Windows)
 
 Resumen de lo que traerán las fases 3-7, con sus límites ya conocidos:
 
-- **Wi-Fi**: `netsh` (con `chcp 65001` por los SSID con acentos, y parseo anclado en tokens
-  no traducidos), verificando el resultado por sondeo porque `netsh wlan connect` reporta
-  éxito aunque la clave sea mala. A futuro, la WLAN API nativa distingue *clave incorrecta*
-  de *fuera de alcance*.
 - **Bluetooth**: WinRT desde Rust (nunca PowerShell), en un hilo MTA dedicado.
   `DeviceWatcher` para descubrir lo no emparejado. **Conectar/desconectar es parcial**: no
   existe API pública equivalente al botón de Configuración de Windows para BR/EDR; por eso
