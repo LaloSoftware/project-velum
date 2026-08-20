@@ -526,8 +526,9 @@
     height: 14px;
   }
   .bars i {
+    /* Marca gráfica de 3px de ancho, no una superficie: la escala de radios
+       (14/22px) la convertiría en una píldora. Sin redondeo. */
     width: 3px;
-    border-radius: 1px;
     background: var(--gm-text-dim);
     opacity: 0.25;
   }
