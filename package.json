@@ -1,6 +1,6 @@
 {
   "name": "gm",
-  "version": "0.1.1-beta.1",
+  "version": "0.1.2-beta.1",
   "description": "GM - launcher de sala tipo consola para PC (Tauri + Svelte)",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
@@ -14,6 +14,7 @@
     "version:set": "node scripts/version.mjs",
     "clean": "node scripts/clean.mjs",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "win:check": "node scripts/win-check.mjs",
     "rebuild": "node scripts/clean.mjs && npm run go",
     "dev": "vite",
     "build": "vite build",
