@@ -66,21 +66,75 @@ function mockGames() {
   ];
 }
 
-let _mockSystem = {
+/*
+ * Mock de los controles de sistema (espejo de src-tauri/src/system/mock.rs).
+ *
+ * Imita también la LATENCIA y los códigos de error del backend: sin eso no se
+ * puede diseñar ni verificar la UX de los estados intermedios ("Buscando…",
+ * "Conectando…", clave incorrecta) en `npm run web`.
+ */
+const _mockSystem = {
+  wifiPresent: true,
   wifiEnabled: true,
+  wifiScanning: false,
   currentNetwork: "SalaWiFi_5G",
-  networks: ["SalaWiFi_5G", "SalaWiFi_2G", "Vecino_303", "AndroidAP"],
-  bluetoothEnabled: false,
-  btDevices: ["Mando Xbox", "Auriculares BT", "DualSense"],
-  volume: 45,
-  muted: false,
-  outputDevices: [
-    { id: "tv", name: "TV (HDMI)" },
-    { id: "speakers", name: "Altavoces 5.1" },
-    { id: "headset", name: "Auriculares USB" },
+  networks: [
+    { ssid: "SalaWiFi_5G", secured: true, signal: 92, known: true, active: true },
+    { ssid: "SalaWiFi_2G", secured: true, signal: 74, known: true, active: false },
+    { ssid: "Vecino_303", secured: true, signal: 41, known: false, active: false },
+    { ssid: "Cafe_Invitados", secured: false, signal: 33, known: false, active: false },
   ],
-  currentOutput: "tv",
+  ethernetConnected: false,
+  ethernetName: null,
+  bluetoothPresent: true,
+  bluetoothEnabled: false,
+  btScanning: false,
+  btDevices: [
+    { id: "bt:xbox", name: "Mando Xbox", paired: true, connected: true, canConnect: true, kind: "gamepad" },
+    { id: "bt:dualsense", name: "DualSense", paired: true, connected: false, canConnect: true, kind: "gamepad" },
+    { id: "bt:soundcore", name: "Auriculares BT", paired: true, connected: false, canConnect: true, kind: "audio" },
+  ],
+  output: {
+    volume: 45,
+    muted: false,
+    devices: [
+      { id: "tv", name: "TV (HDMI)" },
+      { id: "speakers", name: "Altavoces 5.1" },
+      { id: "headset", name: "Auriculares USB" },
+    ],
+    current: "tv",
+  },
+  input: {
+    volume: 70,
+    muted: false,
+    devices: [
+      { id: "mic-usb", name: "Micrófono USB" },
+      { id: "mic-headset", name: "Micrófono de auriculares" },
+      { id: "mic-cam", name: "Webcam" },
+    ],
+    current: "mic-usb",
+  },
 };
+
+// Clave "correcta" de las redes protegidas simuladas (igual que mock.rs).
+const MOCK_WIFI_PASSWORD = "1234";
+// Redes / dispositivos que cada escaneo va destapando.
+const _mockHiddenNets = [
+  { ssid: "TP-LINK_9F2C", secured: true, signal: 22, known: false, active: false },
+  { ssid: "AndroidAP", secured: true, signal: 58, known: false, active: false },
+];
+const _mockUndiscoveredBt = [
+  { id: "bt:teclado", name: "Teclado K380", paired: false, connected: false, canConnect: true, kind: "input" },
+  { id: "bt:pixel", name: "Pixel 8", paired: false, connected: false, canConnect: true, kind: "phone" },
+];
+
+const _systemStateSubs = new Set();
+const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function _emitSystemState() {
+  const snapshot = structuredClone(_mockSystem);
+  _systemStateSubs.forEach((cb) => cb(snapshot));
+}
 
 // ---------------------------- API pública ----------------------------
 
@@ -183,60 +237,193 @@ export async function uninstallGame(id, target) {
   }
 }
 
+// ------------------------- Controles de sistema (QAM) -------------------------
+//
+// OJO: acá el mock se elige por `isTauri`, NUNCA por `catch`. Con backend real,
+// tragarse el error de un `system_set_wifi` que falla por permisos dejaría la
+// UI mostrando "ON" con la radio apagada — el fallo más peligroso de esta
+// frontera. Todos los mutadores propagan.
+
 export async function systemGetState() {
-  try {
-    return await invoke("system_get_state");
-  } catch {
-    return structuredClone(_mockSystem);
-  }
+  if (!isTauri) return structuredClone(_mockSystem);
+  return invoke("system_get_state");
 }
 
-export async function systemSetVolume(volume) {
-  try {
-    return await invoke("system_set_volume", { volume });
-  } catch {
-    _mockSystem.volume = volume;
+// `channel` es un id del protocolo: "output" | "input" (no se traduce).
+export async function systemSetVolume(channel, volume) {
+  if (!isTauri) {
+    _mockSystem[channel].volume = volume;
+    _emitSystemState();
+    return;
   }
+  return invoke("system_set_volume", { channel, volume });
 }
 
-export async function systemSetOutputDevice(id) {
-  try {
-    return await invoke("system_set_output_device", { id });
-  } catch {
-    _mockSystem.currentOutput = id;
+export async function systemSetMuted(channel, muted) {
+  if (!isTauri) {
+    _mockSystem[channel].muted = muted;
+    _emitSystemState();
+    return;
   }
+  return invoke("system_set_muted", { channel, muted });
 }
 
-export async function systemSetMuted(muted) {
-  try {
-    return await invoke("system_set_muted", { muted });
-  } catch {
-    _mockSystem.muted = muted;
+export async function systemSetDevice(channel, id) {
+  if (!isTauri) {
+    if (!_mockSystem[channel].devices.some((d) => d.id === id))
+      throw new Error("system.audio.device_not_found");
+    _mockSystem[channel].current = id;
+    _emitSystemState();
+    return;
   }
+  return invoke("system_set_device", { channel, id });
 }
 
 export async function systemSetWifi(enabled) {
-  try {
-    return await invoke("system_set_wifi", { enabled });
-  } catch {
+  if (!isTauri) {
     _mockSystem.wifiEnabled = enabled;
+    _emitSystemState();
+    return;
   }
+  return invoke("system_set_wifi", { enabled });
 }
 
 export async function systemSetBluetooth(enabled) {
-  try {
-    return await invoke("system_set_bluetooth", { enabled });
-  } catch {
+  if (!isTauri) {
     _mockSystem.bluetoothEnabled = enabled;
+    if (!enabled) {
+      _mockSystem.btDevices = _mockSystem.btDevices
+        .filter((d) => d.paired)
+        .map((d) => ({ ...d, connected: false }));
+    }
+    _emitSystemState();
+    return;
   }
+  return invoke("system_set_bluetooth", { enabled });
+}
+
+export async function systemWifiScan() {
+  if (!isTauri) {
+    if (!_mockSystem.wifiEnabled) throw new Error("system.wifi.unavailable");
+    if (_mockSystem.wifiScanning) return;
+    _mockSystem.wifiScanning = true;
+    _emitSystemState();
+    await _sleep(1500);
+    const found = _mockHiddenNets.pop();
+    if (found) _mockSystem.networks.push(found);
+    _mockSystem.wifiScanning = false;
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_wifi_scan");
+}
+
+export async function systemWifiConnect(ssid, password) {
+  if (!isTauri) {
+    const net = _mockSystem.networks.find((n) => n.ssid === ssid);
+    if (!net) throw new Error(`system.wifi.connect_failed|${ssid}`);
+    await _sleep(2000);
+    if (net.secured && !net.known && password !== MOCK_WIFI_PASSWORD)
+      throw new Error("system.wifi.wrong_password");
+    for (const n of _mockSystem.networks) {
+      n.active = n.ssid === ssid;
+      if (n.active) n.known = true;
+    }
+    _mockSystem.currentNetwork = ssid;
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_wifi_connect", { ssid, password: password ?? null });
+}
+
+export async function systemWifiForget(ssid) {
+  if (!isTauri) {
+    const net = _mockSystem.networks.find((n) => n.ssid === ssid);
+    if (!net) throw new Error(`system.wifi.profile_failed|${ssid}`);
+    net.known = false;
+    if (net.active) {
+      net.active = false;
+      _mockSystem.currentNetwork = null;
+    }
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_wifi_forget", { ssid });
+}
+
+export async function systemBtScan(seconds = 6) {
+  if (!isTauri) {
+    if (!_mockSystem.bluetoothEnabled) throw new Error("system.bt.unavailable");
+    if (_mockSystem.btScanning) return;
+    _mockSystem.btScanning = true;
+    _emitSystemState();
+    await _sleep(3000);
+    for (const d of _mockUndiscoveredBt.splice(0)) {
+      if (!_mockSystem.btDevices.some((x) => x.id === d.id)) _mockSystem.btDevices.push(d);
+    }
+    _mockSystem.btScanning = false;
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_bt_scan", { seconds });
+}
+
+export async function systemBtPair(id) {
+  if (!isTauri) {
+    if (!_mockSystem.bluetoothEnabled) throw new Error("system.bt.unavailable");
+    const d = _mockSystem.btDevices.find((x) => x.id === id);
+    if (!d) throw new Error("system.bt.device_not_found");
+    await _sleep(2500);
+    d.paired = true;
+    d.connected = d.canConnect;
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_bt_pair", { id });
+}
+
+export async function systemBtUnpair(id) {
+  if (!isTauri) {
+    if (!_mockSystem.btDevices.some((x) => x.id === id))
+      throw new Error("system.bt.device_not_found");
+    _mockSystem.btDevices = _mockSystem.btDevices.filter((x) => x.id !== id);
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_bt_unpair", { id });
+}
+
+export async function systemBtSetConnected(id, connected) {
+  if (!isTauri) {
+    const d = _mockSystem.btDevices.find((x) => x.id === id);
+    if (!d) throw new Error("system.bt.device_not_found");
+    if (!d.canConnect) throw new Error("system.bt.connect_unsupported");
+    await _sleep(1200);
+    d.connected = connected;
+    _emitSystemState();
+    return;
+  }
+  return invoke("system_bt_set_connected", { id, connected });
+}
+
+// Estado completo tras cada cambio (lo emite Rust en cada mutador y al terminar
+// cada operación lenta). Devuelve la función para dejar de escuchar, igual que
+// `listen` y que `onUpdateProgress`.
+export async function onSystemState(cb) {
+  if (!isTauri) {
+    _systemStateSubs.add(cb);
+    return () => _systemStateSubs.delete(cb);
+  }
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen("gm://system-state", (event) => cb(event.payload));
 }
 
 export async function systemShutdown() {
-  try {
-    return await invoke("system_shutdown");
-  } catch {
+  if (!isTauri) {
     console.info("[mock] system_shutdown");
+    return;
   }
+  return invoke("system_shutdown");
 }
 
 // Ejecuta un atajo de teclado a nivel de sistema operativo (ver stores/customShortcuts.js).
