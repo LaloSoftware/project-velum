@@ -34,6 +34,18 @@ typography:
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
     fontSize: "0.85rem"
     fontWeight: 700
+  badge:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+    fontSize: "0.66rem"
+    fontWeight: 700
+  glyph-category:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+    fontSize: "1.4rem"
+    fontWeight: 400
+  glyph-control:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+    fontSize: "1.1rem"
+    fontWeight: 400
 rounded:
   md: "14px"
   lg: "22px"
@@ -184,13 +196,31 @@ los títulos y las cifras tabulares.
   en curso del teclado. Peso controlado por `--gm-title-weight` (900 en el tema Sunset).
 - **Title** (700, `1.05rem`): pestañas de navegación; etiquetas de categoría del QAM.
 - **Body** (400–600, `1rem`): texto general, nombres en listas.
-- **Label** (700, `0.85rem` y menor): sub-textos atenuados, metadatos, badges de tienda
-  (`0.66rem`), pistas de botón. El reloj y los porcentajes usan `font-variant-numeric:
+- **Label** (700, `0.85rem`): sub-textos atenuados, metadatos, pistas de botón.
+- **Badge** (700, `0.66rem`): etiquetas dentro de una píldora — tienda en la portada,
+  "Guardada"/"Conectado" en las filas del QAM. El reloj y los porcentajes usan `font-variant-numeric:
   tabular-nums`.
+
+### Icon glyphs (escala aparte)
+Los iconos son **emoji del sistema**, no texto, así que no van en la rampa de arriba: se
+dimensionan por el peso visual que deben tener como marca gráfica, y forzarlos a un escalón
+tipográfico los deja pequeños al lado de su etiqueta.
+
+- **Category glyph** (token `glyph-category`, `1.4rem`): el emoji que abre cada categoría del QAM (📶 🔵 🔊 🎤) y
+  otros iconos de encabezado de fila.
+- **Control glyph** (token `glyph-control`, `1.1rem`): el emoji dentro de un control pulsable, como el botón de
+  silencio del QAM. Un paso por debajo del de categoría, porque compite con el fondo del
+  botón.
+- Los emoji embebidos en una línea de texto (una etiqueta de dispositivo, por ejemplo)
+  heredan el tamaño del texto y **no** usan esta escala.
 
 ### Named Rules
 **The Weight-Not-Face Rule.** La jerarquía se expresa con peso (400/700/800) y tamaño sobre
 una sola familia del sistema; no se introducen fuentes decorativas en la base.
+
+**The Glyphs-Are-Not-Type Rule.** Un emoji dimensionado a `1.4rem` no crea un escalón
+tipográfico nuevo: es una marca gráfica y se mide como tal. Solo el texto se ciñe a la rampa
+Display/Title/Body/Label.
 
 ## Layout
 
