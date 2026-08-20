@@ -120,10 +120,12 @@ CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md
 
 Red, Bluetooth y audio de **salida y entrada** desde el QAM. El contrato Rust↔JS, el mock
 (con latencia y errores simulados) y toda la UI están cerrados y se verifican en macOS; el
-backend real de Windows va por fases: **audio** (Core Audio, validado en hardware) y
-**Wi-Fi** (`netsh` + radio por WinRT) ya están; Bluetooth sigue pendiente. El código de
-Windows se type-checkea desde Mac con `npm run win:check`, y el parseo de `netsh` vive en
-`system/netsh_parse.rs` —multiplataforma a propósito— para poder tener tests aquí. Dos
+backend real de Windows está completo en lo esencial: **audio** (Core Audio, validado en
+hardware), **Wi-Fi** (`netsh` + radio por WinRT) y **Bluetooth** (WinRT: listar, descubrir,
+emparejar, olvidar). Conectar/desconectar BT a mano y el emparejado con PIN quedan fuera a
+propósito — ver `docs/system-controls.md`. El código de Windows se type-checkea desde Mac
+con `npm run win:check`, y el parseo de `netsh` vive en `system/netsh_parse.rs`
+—multiplataforma a propósito— para poder tener tests aquí. Dos
 invariantes que no hay que deshacer: el trait es `&self` + `Arc` (nunca un mutex global, o
 un escaneo Wi-Fi bloquearía el volumen) y el mock JS se elige por `isTauri`, **nunca** por
 `catch` (tragarse el error dejaría un toggle mintiendo). Detalle en

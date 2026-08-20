@@ -53,7 +53,7 @@ impl Kind {
 /// Registra este proceso en el apartment MTA. Idempotente: WinRT lleva la
 /// cuenta, y el `Cookie` se deja vivir a propósito durante toda la vida del
 /// proceso (soltarlo cerraría el MTA mientras otras llamadas lo usan).
-fn ensure_mta() -> Result<(), String> {
+pub(super) fn ensure_mta() -> Result<(), String> {
     unsafe {
         CoIncrementMTAUsage().map_err(|e| format!("system.radio.set_failed|MTA: {e}"))?;
     }

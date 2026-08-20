@@ -7,12 +7,9 @@
 //!   por defecto, de salida y de entrada.
 //! - **Fase 4 (esta)**: Wi-Fi por `netsh` (escanear, conectar, olvidar) y el
 //!   interruptor de radio por WinRT.
-//! - Fases 5-7: Bluetooth por WinRT.
-//!
-//! Mientras Bluetooth no esté, se reporta como **ausente**
-//! (`bluetooth_present: false`) y sus operaciones devuelven error. La UI
-//! entonces muestra el aviso y no despliega la categoría. Es deliberado:
-//! preferible eso a una lista vacía con botones que fallan al pulsarlos.
+//! - **Fases 5 y 7a (esta)**: Bluetooth por WinRT — listar, descubrir,
+//!   emparejar y olvidar. **No** hay conectar/desconectar a mano: ver la nota
+//!   de alcance en `bluetooth.rs`.
 //!
 //! # Locks
 //!
@@ -21,6 +18,7 @@
 //! un escaneo de varios segundos no bloquee subir el volumen.
 
 mod audio;
+mod bluetooth;
 mod policy_config;
 mod proc;
 mod radios;
@@ -43,6 +41,11 @@ use super::{AudioChannel, BtDevice, Channel, SystemControls, SystemState, WifiNe
 /// encender la radio) refrescan sin esperar.
 const WIFI_TTL: Duration = Duration::from_secs(6);
 
+/// Ídem para Bluetooth. Enumerar emparejados implica una llamada por aparato,
+/// así que tampoco puede ir a ritmo de poll. 4 s es suficiente para que
+/// encender un mando se vea "al momento" desde el sofá.
+const BT_TTL: Duration = Duration::from_secs(4);
+
 #[derive(Default)]
 struct WifiCache {
     present: bool,
@@ -52,6 +55,15 @@ struct WifiCache {
     ethernet: Option<String>,
 }
 
+/// Igual para Bluetooth: lo barato (la radio) se relee seguido; la lista de
+/// dispositivos solo cuando hace falta, porque enumerar cuesta.
+#[derive(Default)]
+struct BtCache {
+    present: bool,
+    enabled: bool,
+    devices: Vec<BtDevice>,
+}
+
 pub struct WindowsSystemControls {
     audio: audio::AudioEngine,
     /// Último snapshot de audio. `state()` lo clona y suelta el lock: es lo que
@@ -59,8 +71,11 @@ pub struct WindowsSystemControls {
     cached: RwLock<audio::Snapshot>,
     wifi: RwLock<WifiCache>,
     wifi_scanning: AtomicBool,
+    bt: RwLock<BtCache>,
+    bt_scanning: AtomicBool,
     /// Cuándo se leyó el estado del Wi-Fi por última vez (para el TTL).
     wifi_read_at: Mutex<Option<Instant>>,
+    bt_read_at: Mutex<Option<Instant>>,
 }
 
 impl WindowsSystemControls {
@@ -75,9 +90,13 @@ impl WindowsSystemControls {
             cached,
             wifi: RwLock::new(WifiCache::default()),
             wifi_scanning: AtomicBool::new(false),
+            bt: RwLock::new(BtCache::default()),
+            bt_scanning: AtomicBool::new(false),
             wifi_read_at: Mutex::new(None),
+            bt_read_at: Mutex::new(None),
         };
         ctl.refresh_wifi_status();
+        ctl.refresh_bt_status();
         Ok(ctl)
     }
 
@@ -129,6 +148,55 @@ impl WindowsSystemControls {
         }
     }
 
+    /// Como `refresh_bt_status`, pero respetando el TTL. Es la que usa el poll.
+    fn refresh_bt_status_throttled(&self) {
+        if let Ok(mut at) = self.bt_read_at.lock() {
+            if let Some(last) = *at {
+                if last.elapsed() < BT_TTL {
+                    return;
+                }
+            }
+            *at = Some(Instant::now());
+        }
+        self.refresh_bt_status();
+    }
+
+    /// Relee si hay radio Bluetooth y si está encendida, y la lista de
+    /// emparejados. Los emparejados son pocos y la enumeración es local: se
+    /// puede hacer junto al estado sin que duela.
+    fn refresh_bt_status(&self) {
+        if let Ok(mut at) = self.bt_read_at.lock() {
+            *at = Some(Instant::now());
+        }
+        let enabled = radios::state(radios::Kind::Bluetooth);
+        let present = enabled.is_some();
+        let enabled = enabled.unwrap_or(false);
+
+        // Con la radio apagada no hay nada que enumerar, y preguntarlo tarda.
+        let devices = if enabled {
+            bluetooth::paired().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        if let Ok(mut b) = self.bt.write() {
+            b.present = present;
+            b.enabled = enabled;
+            // Se conservan los descubiertos sin emparejar de la última búsqueda
+            // para que la lista no se vacíe sola entre pulsaciones.
+            let discovered: Vec<BtDevice> = b
+                .devices
+                .iter()
+                .filter(|d| !d.paired && !devices.iter().any(|p| p.id == d.id))
+                .cloned()
+                .collect();
+            b.devices = devices;
+            if enabled {
+                b.devices.extend(discovered);
+            }
+        }
+    }
+
     /// Reetiqueta qué redes de la lista están guardadas, releyendo los
     /// perfiles. Es barato (no escanea) y hace falta tras conectar u olvidar:
     /// si no, la fila seguiría diciendo "Guardada" para una red que se acaba
@@ -171,6 +239,10 @@ impl SystemControls for WindowsSystemControls {
             ),
             Err(_) => (false, false, None, Vec::new(), None),
         };
+        let (bt_present, bt_enabled, bt_devices) = match self.bt.read() {
+            Ok(b) => (b.present, b.enabled, b.devices.clone()),
+            Err(_) => (false, false, Vec::new()),
+        };
         SystemState {
             wifi_present: present,
             wifi_enabled: enabled,
@@ -179,11 +251,10 @@ impl SystemControls for WindowsSystemControls {
             networks,
             ethernet_connected: ethernet.is_some(),
             ethernet_name: ethernet,
-            // --- pendiente de las fases 5-7 ---
-            bluetooth_present: false,
-            bluetooth_enabled: false,
-            bt_scanning: false,
-            bt_devices: Vec::<BtDevice>::new(),
+            bluetooth_present: bt_present,
+            bluetooth_enabled: bt_enabled,
+            bt_scanning: self.bt_scanning.load(Ordering::Acquire),
+            bt_devices,
             // --- fase 3: real ---
             output: AudioChannel::from(snap.output),
             input: AudioChannel::from(snap.input),
@@ -221,8 +292,10 @@ impl SystemControls for WindowsSystemControls {
         Ok(())
     }
 
-    fn set_bluetooth(&self, _enabled: bool) -> Result<(), String> {
-        Err("system.unsupported".to_string())
+    fn set_bluetooth(&self, enabled: bool) -> Result<(), String> {
+        radios::set_state(radios::Kind::Bluetooth, enabled)?;
+        self.refresh_bt_status();
+        Ok(())
     }
 
     fn wifi_scan(&self) -> Result<(), String> {
@@ -271,24 +344,56 @@ impl SystemControls for WindowsSystemControls {
         r
     }
 
-    fn bt_scan(&self, _seconds: u8) -> Result<(), String> {
-        Err("system.bt.unavailable".to_string())
+    fn bt_scan(&self, seconds: u8) -> Result<(), String> {
+        if !self.bt.read().map(|b| b.enabled).unwrap_or(false) {
+            return Err("system.bt.unavailable".to_string());
+        }
+        if self
+            .bt_scanning
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return Ok(()); // ya hay una búsqueda en curso
+        }
+        let result = bluetooth::discover(seconds);
+        // Igual que en Wi-Fi: la bandera baja pase lo que pase, o el botón se
+        // queda girando para siempre.
+        self.bt_scanning.store(false, Ordering::Release);
+
+        let found = result?;
+        if let Ok(mut b) = self.bt.write() {
+            for d in found {
+                if !b.devices.iter().any(|x| x.id == d.id) {
+                    b.devices.push(d);
+                }
+            }
+        }
+        Ok(())
     }
 
-    fn bt_pair(&self, _id: &str) -> Result<(), String> {
-        Err("system.bt.unavailable".to_string())
+    fn bt_pair(&self, id: &str) -> Result<(), String> {
+        let r = bluetooth::pair(id);
+        self.refresh_bt_status();
+        r
     }
 
-    fn bt_unpair(&self, _id: &str) -> Result<(), String> {
-        Err("system.bt.unavailable".to_string())
+    fn bt_unpair(&self, id: &str) -> Result<(), String> {
+        let r = bluetooth::unpair(id);
+        self.refresh_bt_status();
+        r
     }
 
+    /// Sin implementar a propósito: no hay una vía pública fiable de conectar o
+    /// desconectar a mano (ver la nota de alcance de `bluetooth.rs`). La UI no
+    /// muestra el botón porque `can_connect` viaja en `false`; esto cubre el
+    /// caso de que alguien llegue por otro camino.
     fn bt_set_connected(&self, _id: &str, _connected: bool) -> Result<(), String> {
-        Err("system.bt.unavailable".to_string())
+        Err("system.bt.connect_unsupported".to_string())
     }
 
     fn refresh_fast(&self) {
         self.republish();
         self.refresh_wifi_status_throttled();
+        self.refresh_bt_status_throttled();
     }
 }

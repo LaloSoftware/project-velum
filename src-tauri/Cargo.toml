@@ -79,6 +79,10 @@ windows = { version = "0.58", features = [
   "Devices_Radios",
   "Foundation",
   "Foundation_Collections",
+  # Bluetooth del QAM (system/windows/bluetooth.rs): enumerar, descubrir con
+  # DeviceWatcher, emparejar y olvidar.
+  "Devices_Bluetooth",
+  "Devices_Enumeration",
 ] }
 # Necesaria por su nombre real: el macro `#[interface]` (IPolicyConfig, ver
 # system/windows/policy_config.rs) genera rutas `::windows_core::…`.

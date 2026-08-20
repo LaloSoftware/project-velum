@@ -13,7 +13,8 @@ implementaciones: `MockSystemControls` (dev, cualquier SO) y —en fases posteri
 |---|---|---|
 | Audio salida/entrada (volumen, mute, dispositivo) | ✅ | ✅ validado en hardware |
 | Wi-Fi (escanear, conectar, olvidar, radio) | ✅ | ⚠️ fase 4 — ver "Escaneo denegado" |
-| Bluetooth (radio, listar, emparejar, conectar) | ✅ | ⏳ fases 5-7 |
+| Bluetooth (radio, listar, emparejar, olvidar) | ✅ | ✅ fases 5 y 7a (sin validar en hardware) |
+| Bluetooth: conectar/desconectar a mano | ✅ | ❌ no se implementa — ver abajo |
 
 Las fases 0-2 (modelo, mock y frontend) están cerradas y se verifican al 100% en macOS.
 La fase 3 (audio) está confirmada funcionando en un PC real. La fase 4 (Wi-Fi) está escrita,
@@ -313,12 +314,57 @@ código de error concreto en vez de texto.
 lo que ese poll debe detectar (cable enchufado, radio apagada desde Windows, red cambiada) no
 necesita más resolución. Las acciones del usuario refrescan sin esperar al TTL.
 
+## Fases 5 y 7a: Bluetooth (implementadas)
+
+`system/windows/bluetooth.rs`. Listar emparejados, descubrir nuevos, emparejar y olvidar.
+El interruptor de radio lo comparte con el Wi-Fi (`radios.rs`).
+
+### Lo que no se implementa, y por qué
+
+**Conectar/desconectar a mano no existe.** No hay API pública equivalente al botón
+"Conectar" de Configuración de Windows para BR/EDR; lo más cercano es
+`BluetoothSetServiceState`, que va razonable con HID y errático con auriculares A2DP/HFP.
+Antes que ofrecer un botón que a veces no hace nada, `can_connect` viaja en `false` y la UI
+no lo muestra (ese campo existe justo para esto).
+
+No duele tanto como parece: emparejado un mando o unos auriculares, **Windows los reconecta
+solo al encenderlos** — que es exactamente como se comporta una consola. Lo que sí hacía
+falta, emparejar de cero desde el sofá y sin teclado, está cubierto.
+
+**Emparejar con PIN tampoco.** `PairAsync()` usa la ceremonia por defecto (`ConfirmOnly`),
+que cubre mandos, auriculares y casi todo periférico de sala. Un teclado Bluetooth que pida
+teclear un código devuelve `RequiredHandlerNotRegistered`, que se traduce a
+`system.bt.pin_required` sugiriendo hacerlo esa vez desde Windows. Implementarlo es un
+puente asíncrono Rust↔JS **dentro** de un callback de WinRT, con timeout y cancelación:
+desproporcionado frente a su público real.
+
+### Detalles que importan
+
+- **Se enumeran los dos mundos por separado.** Un mando de Xbox Series es BLE, uno de Xbox
+  One es clásico y unos auriculares son clásicos: mirar solo un selector deja fuera media
+  sala. Un mismo aparato puede salir en las dos listas, y se deduplica por id.
+- **Descubrir necesita `DeviceWatcher`.** Para lo no emparejado, `FindAllAsync` devuelve la
+  caché del sistema, que casi siempre está vacía. El watcher es el que provoca la búsqueda.
+- **El callback `Added` no hace I/O.** Solo id y nombre. Llamar ahí a
+  `BluetoothDevice::FromIdAsync().get()` bloquearía el hilo de eventos de WinRT desde su
+  propio handler — descubrimiento lento o colgado. Y para un aparato sin emparejar no
+  aporta: `connected` es false por definición.
+- **El icono es aproximado.** Para Bluetooth clásico sale de la Class of Device
+  (`MajorClass`/`MinorClass`), que es fiable. BLE no expone CoD, así que ahí se deduce del
+  nombre; si no se reconoce, icono genérico. Solo afecta al icono.
+- **TTL de 4 s** en el refresco: enumerar emparejados implica una llamada por aparato, así
+  que no puede ir al ritmo del poll de 2 s. Suficiente para que encender un mando se vea
+  "al momento".
+
 ## Qué falta (backend de Windows)
 
 Resumen de lo que traerán las fases 3-7, con sus límites ya conocidos:
 
-- **Bluetooth**: WinRT desde Rust (nunca PowerShell), en un hilo MTA dedicado.
-  `DeviceWatcher` para descubrir lo no emparejado. **Conectar/desconectar es parcial**: no
-  existe API pública equivalente al botón de Configuración de Windows para BR/EDR; por eso
-  `canConnect` puede venir en `false` y la UI oculta ese botón. Emparejar con PIN queda
-  fuera (`system.bt.pin_required` sugiere hacerlo esa vez desde Windows).
+Con las fases 3, 4, 5 y 7a hechas, lo que queda del plan original es opcional:
+
+- **Fase 4-bis**: sustituir `netsh` por la WLAN API nativa. Elimina el parseo de texto y
+  distingue *clave incorrecta* de *fuera de alcance*. ~250 líneas de FFI.
+- **Fase 6**: conectar/desconectar Bluetooth a mano, si aparece una vía fiable.
+- **Fase 7b**: emparejamiento con PIN.
+- **Pulido**: registrar `IMMNotificationClient` y `IAudioEndpointVolumeCallback` para emitir
+  `gm://system-state` en vez de sondear el audio.
