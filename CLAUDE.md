@@ -56,6 +56,7 @@ npm run web       # solo la UI en el navegador (datos mock JS) y la abre
 npm run dist      # compila el ejecutable/instalador (src-tauri/target/release/)
 npm run bundle    # empaqueta el repo en gm.bundle para llevarlo a Windows
 npm run version:set -- 0.2.0-beta.1   # sube la versión (package.json + Cargo.toml)
+npm run win:check # type-check de system/windows/ (código Windows) desde Mac
 npm run clean     # limpia el build (cargo clean + dist) si se corrompe
 npm run rebuild   # clean + go (recompila desde cero)
 ```
@@ -102,7 +103,7 @@ src/                 Frontend Svelte
   lib/ipc/            Frontera con el backend (con fallback mock en web)
 src-tauri/           Backend Rust (Tauri)
   src/library/        LibrarySource + MockSource (juegos)
-  src/system/         SystemControls + Mock (Wi-Fi/BT/audio del QAM)
+  src/system/         SystemControls + Mock (Wi-Fi/BT/audio in-out del QAM)
   src/input.rs        Hilo gilrs → eventos de mando al frontend
   src/launch.rs       Lanzar juego (stub) + abrir launchers
   src/config.rs       Persistencia de perfiles (JSON)
@@ -114,6 +115,21 @@ docs/                Documentación detallada por tema
 
 Todo el estilo son tokens `--gm-*`. Un **perfil** = tema base + overrides de tokens +
 CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md`.
+
+## Controles de sistema (QAM)
+
+Red, Bluetooth y audio de **salida y entrada** desde el QAM. El contrato Rust↔JS, el mock
+(con latencia y errores simulados) y toda la UI están cerrados y se verifican en macOS; el
+backend real de Windows está completo en lo esencial: **audio** (Core Audio, validado en
+hardware), **Wi-Fi** (`netsh` + radio por WinRT) y **Bluetooth** (WinRT: listar, descubrir,
+emparejar, olvidar). Conectar/desconectar BT a mano y el emparejado con PIN quedan fuera a
+propósito — ver `docs/system-controls.md`. El código de Windows se type-checkea desde Mac
+con `npm run win:check`, y el parseo de `netsh` vive en `system/netsh_parse.rs`
+—multiplataforma a propósito— para poder tener tests aquí. Dos
+invariantes que no hay que deshacer: el trait es `&self` + `Arc` (nunca un mutex global, o
+un escaneo Wi-Fi bloquearía el volumen) y el mock JS se elige por `isTauri`, **nunca** por
+`catch` (tragarse el error dejaría un toggle mintiendo). Detalle en
+`docs/system-controls.md`.
 
 ## Actualizaciones
 

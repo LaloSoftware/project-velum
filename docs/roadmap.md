@@ -29,9 +29,14 @@ macOS; estas fases añaden la integración real y capacidades extra.
   de minimizar), detección de cierre para apps `.lnk` sin `installDir`.
 
 ## F4 — Controles de sistema reales + integración de sala
-`WindowsSystemControls` (Wi-Fi/BT/volumen/salida) para el QAM (ver
-`docs/system-controls.md`), autoarranque con Windows (shell replacement o inicio) y
-salir/apagar/suspender el PC desde la UI.
+`WindowsSystemControls` para el QAM (ver `docs/system-controls.md`), autoarranque con
+Windows (shell replacement o inicio) y salir/apagar/suspender el PC desde la UI.
+
+Hecho: el contrato (`SystemControls` con audio de salida **y entrada**, Wi-Fi con
+conectar/olvidar, Bluetooth con emparejar/conectar), el mock con latencia y la UI del QAM
+completa — todo verificable en macOS. Falta el backend real de Windows: audio por Core
+Audio, Wi-Fi por `netsh` y Bluetooth por WinRT, cada uno como fase independiente porque
+solo se depura en un PC Windows.
 
 ## F5 — Metadatos / carátulas
 Descarga de portadas y metadatos con caché local; editor visual de temas.
