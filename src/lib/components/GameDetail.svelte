@@ -14,7 +14,8 @@
   import { openKeyboard } from "../stores/keyboard.js";
   import { groups, createGroup, toggleGameInGroup } from "../stores/groups.js";
   import { imageUrl } from "../util/asset.js";
-  import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import { overrides, effectiveArt, bustedArt } from "../stores/artoverrides.js";
+  import { artBust, refreshGameArt } from "../stores/artRefresh.js";
   import {
     gameView,
     GAME_VIEW_FIELDS,
@@ -34,6 +35,7 @@
     steamSyncSummary,
     loadAchievements,
     syncGameNow,
+    syncGameMetadata,
   } from "../stores/steamAccount.js";
   import { steamLibraryCache } from "../ipc/index.js";
 
@@ -127,15 +129,16 @@
 
   // Secciones del menú paginado: "logros" se antepone a las fijas cuando
   // corresponde mostrarla (ver showAchievementsSection); "sync" se agrega al
-  // final si hay cuenta de Steam vinculada y el juego es de Steam (ver
-  // canSyncAchievements, más abajo). Se expone vía store (DETAIL_SECTIONS)
-  // porque App.svelte necesita el conteo para saber cuándo "abajo" debe pasar
-  // a la siguiente sección (detailDown()).
+  // final si el juego es de Steam (ver canSyncSteamSection, más abajo) — el
+  // botón de logros adentro sigue condicionado a tener cuenta vinculada, pero
+  // el de carátulas/metadatos no la necesita. Se expone vía store
+  // (DETAIL_SECTIONS) porque App.svelte necesita el conteo para saber cuándo
+  // "abajo" debe pasar a la siguiente sección (detailDown()).
   const BASE_SECTIONS = ["grupos", "imagenes", "soundtrack", "vista"];
   $: sections = [
     ...(showAchievementsSection ? ["logros"] : []),
     ...BASE_SECTIONS,
-    ...(canSyncAchievements ? ["sync"] : []),
+    ...(canSyncSteamSection ? ["sync"] : []),
   ];
   $: setDetailSections(sections);
 
@@ -168,7 +171,7 @@
   // Fondo = hero efectivo (override manual o el de la tienda).
   let heroUrl = null;
   let heroFor = null;
-  $: heroSrc = effectiveArt(game, $overrides).hero;
+  $: heroSrc = bustedArt(game, $overrides, $artBust).hero;
   $: if (heroSrc !== heroFor) {
     heroFor = heroSrc;
     heroUrl = null;
@@ -180,7 +183,7 @@
   // Carátula expandida (wide) para el lado derecho del menú, si está disponible.
   let wideUrl = null;
   let wideFor = null;
-  $: wideSrc = effectiveArt(game, $overrides).wide;
+  $: wideSrc = bustedArt(game, $overrides, $artBust).wide;
   $: if (wideSrc !== wideFor) {
     wideFor = wideSrc;
     wideUrl = null;
@@ -193,7 +196,7 @@
   // Logo sobre el hero (posición por preset 3×3, ver ArtEditor).
   let logoUrl = null;
   let logoFor = null;
-  $: logoSrc = effectiveArt(game, $overrides).logo;
+  $: logoSrc = bustedArt(game, $overrides, $artBust).logo;
   $: logoPos = effectiveArt(game, $overrides).logoPos;
   $: if (logoSrc !== logoFor) {
     logoFor = logoSrc;
@@ -240,13 +243,44 @@
   // botón "Jugar" desactivado, uno que abre Steam en la página de este juego
   // para instalarlo (steam://install/<appid>, ver launch.rs).
   $: canDownloadFromSteam = notInstalled && game?.store === "steam" && !!$steamAccount;
-  // Sección "Steam" del menú (sincronizar logros de este juego puntual):
-  // mismo criterio que canDownloadFromSteam, sin depender de si está instalado.
+  // Botón de logros de la sección "Steam" (sincronizar logros de este juego
+  // puntual): necesita cuenta vinculada, la Web API es quien trae los logros.
   $: canSyncAchievements = steamAppid && !!$steamAccount;
+  // La sección "Steam" en sí se muestra para cualquier juego de Steam, CON o
+  // SIN cuenta vinculada — el botón de carátulas/metadatos no depende de la
+  // cuenta (el arte sale del CDN por appid, ver stores/games.js::steamCdnArt);
+  // solo el botón de logros queda condicionado a canSyncAchievements.
+  $: canSyncSteamSection = !!steamAppid;
 
   async function syncThisGame() {
     await syncGameNow(steamAppid);
     steamAchievementsList = await loadAchievements(steamAppid);
+  }
+
+  // Botón "Sincronizar carátulas y metadatos" (feature-imagenes.md, Fase 1):
+  // reimporta el arte de ESTE juego (bust puntual, ver stores/artRefresh.js) y,
+  // si hay cuenta vinculada, también sus metadatos de Steam (horas jugadas,
+  // última vez jugado). No usa `steamSyncing` como lock — es un guard
+  // independiente, así el botón de arte sigue funcionando sin cuenta vinculada
+  // mientras el de logros (que sí depende de `steamSyncing`) esté disponible.
+  let artSyncing = false;
+  async function syncThisGameArt() {
+    if (artSyncing) return;
+    artSyncing = true;
+    try {
+      await refreshGameArt(game.id);
+      if ($steamAccount) {
+        await syncGameMetadata();
+        // Invalida la guarda del bloque reactivo de arriba para que vuelva a
+        // pedir steamLibraryCache — sin esto, syncGameMetadata ya actualizó el
+        // caché en el backend pero los campos locales (horas jugadas, última
+        // vez jugado) seguirían mostrando el valor viejo hasta reabrir el Detalle.
+        steamStatsFor = null;
+      }
+      showToast(tr("art.toast.refreshed"));
+    } finally {
+      artSyncing = false;
+    }
   }
 
   async function play() {
@@ -461,14 +495,28 @@
                    próximo movimiento direccional — mismo bug que el botón
                    "Sincronizar ahora" de Cuentas. syncGameNow ya se guarda
                    contra reentradas por su cuenta. -->
+              {#if canSyncAchievements}
+                <button
+                  class="chip"
+                  class:syncing={$steamSyncing}
+                  data-focusable
+                  tabindex="-1"
+                  on:click={syncThisGame}
+                >
+                  {$steamSyncing ? $t("detail.sync.syncing") : `🔄 ${$t("detail.sync.action")}`}
+                </button>
+              {/if}
+              <!-- No necesita cuenta vinculada: el arte sale del CDN por appid
+                   (ver stores/games.js::steamCdnArt). Mismo criterio de foco
+                   que el botón de arriba, guard propio (artSyncing). -->
               <button
                 class="chip"
-                class:syncing={$steamSyncing}
+                class:syncing={artSyncing}
                 data-focusable
                 tabindex="-1"
-                on:click={syncThisGame}
+                on:click={syncThisGameArt}
               >
-                {$steamSyncing ? $t("detail.sync.syncing") : `🔄 ${$t("detail.sync.action")}`}
+                {artSyncing ? $t("detail.artSync.syncing") : `🖼 ${$t("detail.artSync.action")}`}
               </button>
             </section>
           {:else}

@@ -116,6 +116,22 @@ docs/                Documentación detallada por tema
 Todo el estilo son tokens `--gm-*`. Un **perfil** = tema base + overrides de tokens +
 CSS extra. Se editan desde **Ajustes** dentro de la app. Guía: `docs/theming.md`.
 
+### Carátulas y arte de juegos
+
+El arte de Steam (carátula/hero/logo) se reimporta solo automáticamente una
+vez por semana (más un botón manual por juego en el Detalle), porque Steam lo
+actualiza con el tiempo y hay dos cachés de por medio que si no quedarían
+sirviendo copias viejas para siempre — ver "Refresco de carátulas" en
+`docs/stores.md` y "Sincronizar carátulas y metadatos" en `docs/accounts.md`.
+Las imágenes personalizadas por el usuario (`ArtEditor`) se copian a un
+almacén propio (`<app_config_dir>/art/`, `src-tauri/src/artstore.rs`) en vez
+de guardar la ruta prestada al archivo original — borrar el original ya no
+deja un override "fantasma" apuntando a la nada. Detalle en `docs/stores.md`.
+Un tercer botón por slot (`🔎 SteamGridDB`) abre un buscador de carátulas/
+heroes/logos de [SteamGridDB](https://www.steamgriddb.com/) (API key propia,
+en el keyring del SO, Configuración → Cuentas) — descarga por el mismo camino
+del almacén propio de arriba. Detalle completo en `docs/steamgriddb.md`.
+
 ## Controles de sistema (QAM)
 
 Red, Bluetooth y audio de **salida y entrada** desde el QAM. El contrato Rust↔JS, el mock

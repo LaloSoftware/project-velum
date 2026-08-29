@@ -39,7 +39,12 @@ Audio, Wi-Fi por `netsh` y Bluetooth por WinRT, cada uno como fase independiente
 solo se depura en un PC Windows.
 
 ## F5 — Metadatos / carátulas
-Descarga de portadas y metadatos con caché local; editor visual de temas.
+- **Hecho** (`feature-imagenes.md`): refresco automático semanal + manual del arte
+  de Steam, invalidando las dos cachés que lo dejaban sirviendo copias viejas
+  (`docs/stores.md`); almacén propio para imágenes personalizadas —dejan de ser
+  una ruta prestada al archivo original, `src-tauri/src/artstore.rs`—; integración
+  con SteamGridDB para elegir carátulas/heroes/logos a mano (`docs/steamgriddb.md`).
+- **Pendiente**: editor visual de temas.
 
 ## F6 — Selección de pantalla de salida (multi-monitor / TV)
 Con varios monitores + TV conectados, poder **elegir en qué pantalla arranca** el

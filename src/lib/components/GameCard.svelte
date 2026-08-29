@@ -2,7 +2,8 @@
   import { openDetail, openContext, contextMenu, reportError, showToast } from "../stores/ui.js";
   import { startPlay } from "../stores/playsession.js";
   import { imageUrl } from "../util/asset.js";
-  import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import { overrides, bustedArt } from "../stores/artoverrides.js";
+  import { artBust } from "../stores/artRefresh.js";
   import { hideCardText } from "../stores/uiprefs.js";
   import { steamAchievementSummaries } from "../stores/steamAccount.js";
   import { completedBadgeEnabled, completedGlowEnabled } from "../stores/uiprefs.js";
@@ -29,7 +30,7 @@
   $: notInstalled = game?.installed === false;
   $: title = game?.title || "";
   $: storeLabel = STORE_LABEL[game?.store] || game?.store;
-  $: art = effectiveArt(game, $overrides);
+  $: art = bustedArt(game, $overrides, $artBust);
 
   // Juego con logros 100% completados (Steam) — marca discreta en la tarjeta,
   // sin abrir el Detalle (ver stores/steamAccount.js::steamAchievementSummaries,

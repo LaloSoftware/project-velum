@@ -1,8 +1,10 @@
 // Evita abrir una consola extra en Windows en modo release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod artstore;
 mod assets;
 mod config;
+mod griddb;
 mod input;
 mod launch;
 mod library;
@@ -72,6 +74,16 @@ fn main() {
             launch::open_url,
             assets::read_image,
             assets::read_audio,
+            artstore::art_import,
+            artstore::art_remove,
+            artstore::art_prune,
+            artstore::art_import_url,
+            griddb::griddb_set_key,
+            griddb::griddb_has_key,
+            griddb::griddb_clear_key,
+            griddb::griddb_game_by_platform,
+            griddb::griddb_search,
+            griddb::griddb_images,
             media::scan_album,
             media::list_subfolders,
             media::list_image_files,
