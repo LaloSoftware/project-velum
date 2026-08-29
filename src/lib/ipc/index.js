@@ -489,6 +489,52 @@ export async function steamAchievementsSummary(steamid) {
   return invoke("steam_achievements_summary", { steamid });
 }
 
+// ------- Almacén propio de arte personalizado (Fase 2, feature-imagenes.md) -------
+// Igual criterio que Steam: escriben ficheros reales en el almacén de la app
+// (artstore.rs), sin equivalente mock, el error se propaga tal cual para que
+// reportError() lo traduzca (errors.art.* en i18n/errors.js).
+export async function artImport(gameId, kind, source) {
+  return invoke("art_import", { gameId, kind, source });
+}
+export async function artRemove(gameId, kind) {
+  return invoke("art_remove", { gameId, kind });
+}
+export async function artPrune(keep) {
+  return invoke("art_prune", { keep });
+}
+export async function artImportUrl(gameId, kind, url) {
+  return invoke("art_import_url", { gameId, kind, url });
+}
+
+// ------- SteamGridDB (Fase 3, feature-imagenes.md) -------
+// Mismo criterio que Steam: sin mock (hablan con una API externa real y el
+// keyring del SO), el error se propaga tal cual para que reportError() lo
+// traduzca (errors.griddb.* en i18n/errors.js). Única excepción,
+// `griddbHasKey`, mismo motivo que `steamHasKey`: no tiene sentido que una
+// consulta de "¿hay key?" tire una excepción.
+export async function griddbSetKey(key) {
+  return invoke("griddb_set_key", { key });
+}
+export async function griddbHasKey() {
+  try {
+    return await invoke("griddb_has_key");
+  } catch {
+    return false;
+  }
+}
+export async function griddbClearKey() {
+  return invoke("griddb_clear_key");
+}
+export async function griddbGameByPlatform(platform, platformId) {
+  return invoke("griddb_game_by_platform", { platform, platformId });
+}
+export async function griddbSearch(term) {
+  return invoke("griddb_search", { term });
+}
+export async function griddbImages(kind, gameId, filters, page) {
+  return invoke("griddb_images", { kind, gameId, filters, page });
+}
+
 // ------- Actualizaciones de la app (Configuración → Actualizaciones) -------
 // Igual criterio que los wrappers de Steam: dentro de Tauri el error se
 // propaga tal cual (un fallo de red tiene que llegar a reportError, no

@@ -310,6 +310,31 @@ export async function syncGameNow(appid) {
   }
 }
 
+// Metadatos de Steam de UN juego (sección "Steam" del Detalle, botón de
+// carátulas/metadatos — ver feature-imagenes.md Fase 1): nombre, horas
+// jugadas, horas de las últimas 2 semanas y última vez jugado según Steam,
+// todo de GetOwnedGames. GetOwnedGames no filtra por appid, así que es una
+// sola llamada que de paso refresca el caché de TODA la biblioteca — mismo
+// costo que ya paga syncNow() para la parte de biblioteca, sin la de logros.
+// Sale sin hacer nada si no hay cuenta vinculada (el refresco de arte en sí
+// no la necesita, solo esta parte de metadatos).
+export async function syncGameMetadata() {
+  const acc = get(steamAccount);
+  if (!acc || get(steamSyncing)) return;
+  steamSyncing.set(true);
+  try {
+    const { includePlayedFreeGames } = get(steamSyncOptions);
+    const lang = get(effectiveSteamLang);
+    await steamSyncLibrary(acc.steamid, includePlayedFreeGames, lang);
+    const entries = await steamLibraryCache(acc.steamid);
+    mergeSteamGhosts(entries);
+  } catch (e) {
+    reportError(e, "steamAccount:syncGameMetadata");
+  } finally {
+    steamSyncing.set(false);
+  }
+}
+
 // Logros cacheados de un juego (ya con nombre/descripción/ícono resueltos por
 // el backend) — los consume GameDetail.svelte.
 export async function loadAchievements(appid) {

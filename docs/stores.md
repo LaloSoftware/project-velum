@@ -69,6 +69,88 @@ protocolo `asset://` en vez de base64 IPC — descartado a propósito desde ante
 (ver cabecera de `src-tauri/src/assets.rs`): fallaba en Windows con arte
 personalizado fuera del scope. No se tocó.
 
+### Refresco de carátulas (Fase 9, `feature-imagenes.md`)
+
+El arte de Steam se resuelve una sola vez y de ahí en más nunca se vuelve a
+mirar, aunque Steam actualice el arte detrás de la misma ruta/URL — hay DOS
+cachés de por medio: el `Map` de `imageUrl()` (sin TTL, vive mientras dure el
+proceso) y la caché HTTP de la WebView para las URLs deterministas del CDN
+(`stores/games.js::steamCdnArt`). `bustPath()` (`util/asset.js`) invalida
+ambas colando un número de versión en la ruta justo antes de resolverla —
+`?gmv=<n>` para URLs `http(s):` (fuerza a la WebView a revalidar de verdad; un
+`#fragmento` no lo lograría, el navegador lo ignora para cachear) y `#gmv=<n>`
+para rutas de fichero locales (se recorta antes de invocar `read_image`, así
+que el backend nunca ve el sufijo).
+
+`stores/artRefresh.js` decide CUÁNDO subir ese número y lo persiste en
+`config.json` (slice `artRefresh`: `{ lastCheckAt, all, byGame }`) — si no
+sobreviviera al reinicio, la URL volvería a su forma sin bust y la WebView
+serviría otra vez la copia vieja. `all` es un refresco global (biblioteca
+completa); `byGame[id]` es puntual (un solo juego, botón "Sincronizar
+carátulas y metadatos" del Detalle). El bust EFECTIVO de un juego es el más
+reciente entre los dos (`stores/artoverrides.js::bustedArt()`, la variante de
+`effectiveArt()` que aplica el bust a las 3 rutas de imagen).
+
+Una revisión automática y silenciosa corre cada semana (`maybeRefreshArt()`,
+llamada al arrancar y reintentada cada 6h con `startArtRefreshTimer()` para
+cubrir un PC de sala que nunca se reinicia) y se salta mientras hay una
+partida en curso. No descarga nada por sí misma: solo invalida el bust y
+recarga la lista de juegos (`loadGames()`) — las imágenes se vuelven a pedir
+de forma perezosa, solo cuando un componente visible las necesita, así que no
+penaliza el arranque. Este refresco **no pisa** `artOverrides`: `bustedArt()`
+parte de `effectiveArt()`, que resuelve el override manual primero — solo
+cambia la ruta de la capa de abajo (tienda/CDN).
+
+### Almacén propio de arte personalizado (Fase 2, `feature-imagenes.md`)
+
+Antes, elegir una imagen personalizada (`ArtEditor.svelte`) guardaba en
+`artOverrides` la ruta absoluta al archivo ORIGINAL, sin copiar nada — si el
+usuario la borraba o movía después, el override quedaba "activo" apuntando a
+la nada (`imageUrl()` fallaba en silencio, la UI caía al degradado, y no
+había forma de notarlo salvo "Quitar" a mano). Ahora la app se queda con su
+**propia copia** en `<app_config_dir>/art/<id escapado>/<slot>-<timestamp>.<ext>`
+(`src-tauri/src/artstore.rs`, comandos `art_import`/`art_remove`/`art_prune`),
+y es esa copia la que se persiste — borrar el original deja de tener efecto.
+El nombre lleva el timestamp de la importación (no solo el slot), así cada
+import produce una ruta NUEVA y el repintado es inmediato sin depender del
+bust de la sección anterior.
+
+**Escape del id de juego → nombre de carpeta**: los ids (`steam:570`,
+`gog:1234`, o la ruta completa de un `.lnk` para `app:`) traen caracteres no
+válidos en un nombre de fichero de Windows (`:`, espacios…). `safe_id()`
+escapa cada byte fuera de `[A-Za-z0-9.-]` como `_XX` (hex) — **incluido `_`**,
+que si pasara sin escapar colisionaría con su propio prefijo de escape (un
+`replace(":", "_")` ingenuo dejaría que `a:b` y `a_b` compartan carpeta, y por
+lo tanto arte). Los ids largos de `app:` se truncan con un hash corto del id
+completo para no acercarse al límite de ruta de Windows. Probado con tests
+unitarios en `artstore.rs` (carpeta temporal, sin `AppHandle`).
+
+`art_import` es **idempotente**: si la ruta que se le pasa ya vive dentro de
+la carpeta del propio juego, la devuelve sin tocar nada (no la borra ni la
+recopia) — necesario porque `initArtOverrides()` reimporta TODOS los
+overrides existentes al arrancar (ver abajo), incluidos los que ya pasaron
+por este almacén en un arranque anterior.
+
+**Barrido de adopción y saneo** (`stores/artoverrides.js::sweepArtOverrides`,
+sin `await` en `initArtOverrides()`, mismo criterio que
+`updates.js::maybeCheckOnStart`): por cada override existente al arrancar,
+intenta `artImport()`. Si la ruta era externa (instalación previa a esta
+fase), la adopta y reescribe el override con la copia nueva. Si el archivo ya
+no existe (`art.source_missing`), **elimina ese override** — es exactamente
+el bug que motivó esta fase. Cualquier otro error (permisos, disco lleno) NO
+borra la personalización del usuario, solo queda sin adoptar por esta vez y
+se reintenta en el próximo arranque. Termina con un `artPrune()` que borra
+las carpetas de `art/` que ya no corresponden a ningún override vigente —
+recibe las claves de `artOverrides`, **no** la lista de juegos instalados,
+para que desinstalar un juego temporalmente no se lleve por delante el arte
+elegido a mano.
+
+**Fase 3 — SteamGridDB** (`docs/steamgriddb.md`): el tercer botón de cada slot en
+`ArtEditor.svelte` (`🔎 SteamGridDB`) descarga la imagen elegida al mismo almacén
+por el mismo camino, vía `art_import_url` (variante de `import_into` que descarga
+en vez de copiar un fichero local) — el resultado es indistinguible de un import
+manual, mismo nombrado/reemplazo de slot/pertenencia a la carpeta del juego.
+
 ## Cómo lee cada fuente
 
 - **Steam** (`library/steam.rs`): base de Steam por registro

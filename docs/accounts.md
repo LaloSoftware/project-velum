@@ -9,6 +9,11 @@ Este documento es el flujo general (vinculación, caché, sincronización, UI).
 Para el detalle campo-por-campo de cada endpoint de la Steam Web API (qué se
 captura, qué se deja fuera y por qué) ver `docs/steam-metadata.md`.
 
+**No confundir con SteamGridDB** (Fase 3, `docs/steamgriddb.md`): comparte la
+sección Configuración → Cuentas y el mismo criterio de key-en-el-keyring, pero es
+una API/cuenta completamente aparte (arte de juegos, no biblioteca/logros) — su
+key es global, no está ligada a la cuenta de Steam de esta página.
+
 ## Por qué cada persona usa su propia API key
 
 La Steam Web API (`GetOwnedGames`/`GetPlayerAchievements`) **no devuelve datos
@@ -115,6 +120,39 @@ iguales siempre):
   después de `mergeCachedSteamGhosts()`) — sin `await`, no demora el primer
   pintado.
 
+**Un tercer disparador, independiente de tener cuenta vinculada**: el arte de
+Steam (carátulas/hero/logo) se reimporta solo una vez a la semana
+(`maybeRefreshArt()`, `stores/artRefresh.js` — ver "Carátulas por CDN público"
+más abajo y `docs/stores.md`). A diferencia de los dos de arriba, no usa la
+Web API — su condición no es `$steamAccount`, sino sencillamente que la app
+esté abierta.
+
+## Sincronizar carátulas y metadatos (Fase 9, `feature-imagenes.md`)
+
+En el Detalle, sección "Steam", debajo del botón de logros: "🖼 Sincronizar
+carátulas y metadatos". A diferencia del de logros, **no necesita cuenta
+vinculada** — el arte de Steam sale del CDN público por `appid`
+(`stores/games.js::steamCdnArt`), sin pasar por la Web API. Por eso la sección
+"Steam" del menú se muestra para cualquier juego de Steam
+(`canSyncSteamSection`), mientras que el botón de logros de adentro sigue
+condicionado a `canSyncAchievements` (cuenta vinculada).
+
+Al pulsarlo (`syncThisGameArt`, `GameDetail.svelte`):
+1. `refreshGameArt(game.id)` — sube el bust puntual de este juego y recarga
+   `list_games()` (ver `docs/stores.md`, "Refresco de carátulas").
+2. Si hay cuenta vinculada, además `syncGameMetadata()`
+   (`stores/steamAccount.js`) — una llamada a `GetOwnedGames` (no filtra por
+   `appid`, así que refresca el caché de TODA la biblioteca de paso, igual que
+   hace `syncNow()` para su parte de biblioteca) y actualiza los campos que ya
+   se mostraban en el Detalle: horas jugadas, horas de las últimas 2 semanas,
+   última vez jugado según Steam. **No** trae nada nuevo (descripción, género,
+   etc.) — deliberado, ver `docs/steam-metadata.md`.
+
+Sin `disabled` nativo mientras trabaja (`class:syncing`, guard propio
+`artSyncing` — no comparte el lock `steamSyncing` de logros/biblioteca, así el
+botón de arte sigue funcionando sin cuenta vinculada aunque el de logros no
+exista en ese momento).
+
 ## Opciones de sincronización
 
 Configuración → Cuentas → "Opciones de sincronización"
@@ -196,6 +234,11 @@ siempre); el logo es el único `<img>` real de la cadena, blindado con
    (`stores/artoverrides.js`) resuelve `override manual || game.coverPath`,
    esto de paso se vuelve el valor al que "Quitar" (`ArtEditor.svelte`)
    restaura un override personalizado, en vez de caer a un placeholder vacío.
+
+Estas URLs son fijas por `appid` — si Steam publica arte nuevo detrás de la
+misma URL, la WebView sigue sirviendo su copia cacheada indefinidamente. Ver
+"Sincronizar carátulas y metadatos" más abajo y `docs/stores.md` para cómo se
+invalida esa caché.
 
 ## Detalle de un juego: horas, logros
 
