@@ -1,6 +1,6 @@
 {
   "name": "gm",
-  "version": "0.1.2-beta.1",
+  "version": "0.1.3-beta.1",
   "description": "GM - launcher de sala tipo consola para PC (Tauri + Svelte)",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",

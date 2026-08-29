@@ -17,12 +17,41 @@
     setSteamLangPref,
   } from "../stores/steamAccount.js";
   import { STEAM_LANGUAGES, steamLanguageLabel } from "../i18n/steamLanguages.js";
+  import { griddbKeyLinked, setGriddbKeyValue, clearGriddbKeyValue } from "../stores/griddb.js";
+  import { openUrl } from "../ipc/index.js";
+  import { errorMessage } from "../i18n/errors.js";
   import { t, tr } from "../i18n/index.js";
   import Select from "./Select.svelte";
 
   let profileInput = "";
   let apiKey = "";
   let linking = false;
+
+  let griddbKeyInput = "";
+  let griddbLinking = false;
+  async function editGriddbKey() {
+    const v = await openKeyboard(griddbKeyInput, tr("griddb.account.keyPlaceholder"));
+    if (v !== null) griddbKeyInput = v;
+  }
+  async function doLinkGriddb() {
+    if (!griddbKeyInput.trim() || griddbLinking) return;
+    griddbLinking = true;
+    try {
+      await setGriddbKeyValue(griddbKeyInput);
+      griddbKeyInput = "";
+    } catch (e) {
+      showToast(errorMessage(e));
+    } finally {
+      griddbLinking = false;
+    }
+  }
+  async function doUnlinkGriddb() {
+    try {
+      await clearGriddbKeyValue();
+    } catch (e) {
+      reportError(e, "AccountsSection:unlinkGriddb");
+    }
+  }
 
   async function editProfileInput() {
     const v = await openKeyboard(profileInput, tr("keyboard.title.steamId"));
@@ -181,6 +210,41 @@
       {linking ? $t("accounts.linking") : $t("accounts.linkAccount")}
     </button>
   {/if}
+
+  <h2>{$t("griddb.account.title")}</h2>
+  <p class="dim">{$t("griddb.account.desc")}</p>
+
+  {#if $griddbKeyLinked}
+    <div class="row">
+      <span class="rlabel wide">{$t("griddb.account.linked")}</span>
+      <button class="btn danger" data-focusable tabindex="-1" on:click={doUnlinkGriddb}>
+        {$t("griddb.account.unlink")}
+      </button>
+    </div>
+  {:else}
+    <div class="rows">
+      <div class="row">
+        <span class="rlabel">{$t("griddb.account.title")}</span>
+        <button class="field" data-focusable tabindex="-1" on:click={editGriddbKey}>
+          {griddbKeyInput ? "•".repeat(Math.min(griddbKeyInput.length, 24)) : $t("common.edit")}
+        </button>
+      </div>
+    </div>
+    <!-- Sin `disabled` nativo mientras valida — mismo motivo que el botón de
+         sync de Steam más arriba: perdería el foco del DOM a mitad de la
+         validación y rompería la navegación por mando. -->
+    <button class="btn" class:syncing={griddbLinking} data-focusable tabindex="-1" on:click={doLinkGriddb}>
+      {griddbLinking ? $t("griddb.account.linking") : $t("griddb.account.linkAction")}
+    </button>
+  {/if}
+  <button
+    class="link"
+    data-focusable
+    tabindex="-1"
+    on:click={() => openUrl("https://www.steamgriddb.com/profile/preferences")}
+  >
+    {$t("griddb.account.getKey")} ↗
+  </button>
 </section>
 
 <style>
@@ -303,5 +367,16 @@
   }
   .account-info .name {
     font-weight: 700;
+  }
+  .link {
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--gm-accent-2);
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .link:focus {
+    box-shadow: var(--gm-focus-ring);
   }
 </style>

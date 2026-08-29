@@ -33,6 +33,7 @@
     steamSyncSummary,
     toggleSyncSummaryExpanded,
   } from "./lib/stores/steamAccount.js";
+  import { initGriddb } from "./lib/stores/griddb.js";
   import { inputSource } from "./lib/stores/inputSource.js";
   import { initCustomShortcuts } from "./lib/stores/customShortcuts.js";
   import { initHidden } from "./lib/stores/hidden.js";
@@ -70,6 +71,8 @@
     filtersModal,
     achievementsModal,
     closeAchievements,
+    griddbModal,
+    closeGriddbModal,
     setupModal,
     setupStep,
     setupBack,
@@ -110,6 +113,7 @@
   import * as nav from "./lib/input/navigation.js";
   import { initPlaytimes } from "./lib/stores/playtimes.js";
   import { initArtOverrides } from "./lib/stores/artoverrides.js";
+  import { initArtRefresh, maybeRefreshArt, startArtRefreshTimer } from "./lib/stores/artRefresh.js";
   import { initSoundtrack } from "./lib/stores/soundtrackOverrides.js";
   import { initSoundtrackPlayer } from "./lib/stores/soundtrackPlayer.js";
   import { initMusicPlayer, musicPlayer } from "./lib/stores/musicPlayer.js";
@@ -134,6 +138,7 @@
   import FiltersModal from "./lib/components/FiltersModal.svelte";
   import InitialSetupModal from "./lib/components/InitialSetupModal.svelte";
   import AchievementsModal from "./lib/components/AchievementsModal.svelte";
+  import GridDbPickerModal from "./lib/components/GridDbPickerModal.svelte";
   import ConfirmUnlinkSteam from "./lib/components/ConfirmUnlinkSteam.svelte";
   import Toast from "./lib/components/Toast.svelte";
   import SteamSyncIndicator from "./lib/components/SteamSyncIndicator.svelte";
@@ -165,6 +170,7 @@
     filtersEl,
     setupEl,
     achievementsEl,
+    griddbEl,
     confirmUnlinkSteamEl;
   let now = new Date();
 
@@ -257,6 +263,7 @@
     $setupModal ||
     $filtersModal ||
     $achievementsModal ||
+    $griddbModal ||
     $confirmUnlinkSteam;
 
   // ------- Interpretación de acciones de input según el contexto -------
@@ -305,6 +312,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -323,6 +331,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -343,6 +352,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -365,6 +375,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -388,6 +399,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -414,6 +426,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -437,6 +450,7 @@
           $setupModal ||
           $filtersModal ||
           $achievementsModal ||
+          $griddbModal ||
           $confirmUnlinkSteam ||
           $radialMenu
         )
@@ -495,6 +509,7 @@
       !$setupModal &&
       !$filtersModal &&
       !$achievementsModal &&
+      !$griddbModal &&
       !$confirmUnlinkSteam &&
       !$radialMenu
     );
@@ -525,6 +540,7 @@
       return a?.focus({ preventScroll: true });
     }
     if ($achievementsModal) return closeAchievements();
+    if ($griddbModal) return closeGriddbModal();
     if ($detailGame) {
       // Si el menú inferior está desplegado, B lo pliega primero; si no, cierra
       // y devuelve el foco a la tarjeta que abrió el detalle.
@@ -604,6 +620,7 @@
       $setupModal ||
       $filtersModal ||
       $achievementsModal ||
+      $griddbModal ||
       $confirmUnlinkSteam ||
       $radialMenu
     )
@@ -640,11 +657,13 @@
                       ? "ctx:" + ($contextMenu.sub || "main")
                       : $achievementsModal
                         ? "achievements"
-                        : $detailGame
-                          ? "detail"
-                          : $overlay
-                            ? "ov:" + $overlay
-                            : "view:" + $view;
+                        : $griddbModal
+                          ? "griddb"
+                          : $detailGame
+                            ? "detail"
+                            : $overlay
+                              ? "ov:" + $overlay
+                              : "view:" + $view;
 
   // El scope del detalle también depende de si el menú está desplegado y de qué
   // sección se ve: al desplegar, se acota a la sección activa para que la
@@ -665,6 +684,7 @@
     else if ($popover) nav.setScope(popoverEl);
     else if ($contextMenu) nav.setScope(contextEl);
     else if ($achievementsModal) nav.setScope(achievementsEl);
+    else if ($griddbModal) nav.setScope(griddbEl);
     else if ($detailGame) {
       if ($detailExpanded) nav.setScope(detailEl?.querySelector("[data-detail-top]") || detailEl);
       else nav.setScope(detailEl);
@@ -724,6 +744,7 @@
       initSounds(),
       initPlaytimes(),
       initArtOverrides(),
+      initArtRefresh(),
       initSoundtrack(),
       initPlaySession(),
       initSorting(),
@@ -733,6 +754,7 @@
       initRadialMenu(),
       initVkBindings(),
       initSteamAccount(),
+      initGriddb(),
       initUpdates(),
     ]);
     // Primer arranque (sin config previa): configuración inicial — una sola
@@ -746,6 +768,13 @@
     // Configuración → Actualizaciones). Sin `await` por lo mismo: no debe
     // demorar el primer pintado, y ya atrapa sus propios errores.
     maybeCheckOnStart();
+    // Revisión semanal de carátulas/metadatos de Steam (feature-imagenes.md,
+    // Fase 1): mismo criterio que maybeCheckOnStart de arriba — sin `await`,
+    // no debe demorar el primer pintado, y ya atrapa sus propios errores.
+    // startArtRefreshTimer() cubre además el caso de un PC de sala que nunca
+    // se reinicia (reintenta cada 6h mientras la app siga abierta).
+    maybeRefreshArt();
+    const stopArtRefreshTimer = startArtRefreshTimer();
     await applyStartup();
     playStartupSound();
     initSoundtrackPlayer();
@@ -761,6 +790,7 @@
 
     return () => {
       clearInterval(clockTimer);
+      stopArtRefreshTimer();
       window.removeEventListener("mousemove", showCursor);
       unlistenFs();
     };
@@ -889,6 +919,13 @@
   {#if $achievementsModal}
     <div bind:this={achievementsEl}>
       <AchievementsModal />
+    </div>
+  {/if}
+
+  <!-- Selector de arte de SteamGridDB (se abre desde ArtEditor, dentro del Detalle) -->
+  {#if $griddbModal}
+    <div bind:this={griddbEl}>
+      <GridDbPickerModal />
     </div>
   {/if}
 

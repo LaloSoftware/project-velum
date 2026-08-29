@@ -17,6 +17,29 @@ import { isTauri } from "../ipc/index.js";
 const READY = /^(https?:|data:|blob:)/i;
 const cache = new Map(); // path → data URI | null (o Promise en vuelo)
 
+// "Bust" de versión para forzar un repintado real (ver stores/artRefresh.js):
+// cambiar el bust cambia la cadena de la ruta, lo que invalida la entrada del
+// `cache` de abajo (la clave es la ruta completa) y fuerza a la WebView a
+// revalidar de verdad una URL remota (un simple #fragmento no lo lograría, el
+// navegador cachea ignorándolo). `data:`/`blob:` no se bustean (no tiene
+// sentido: no hay nada del otro lado que pueda haber cambiado).
+const BUST_MARK = "#gmv=";
+export function bustPath(path, bust) {
+  if (!path || !bust) return path;
+  if (/^(data:|blob:)/i.test(path)) return path;
+  if (/^https?:/i.test(path)) {
+    return `${path}${path.includes("?") ? "&" : "?"}gmv=${bust}`;
+  }
+  return `${path}${BUST_MARK}${bust}`;
+}
+
+// Recorta el sufijo de bust de una ruta LOCAL antes de pedírsela al backend
+// (read_image no debe recibir el "#gmv=…" como parte del path del fichero).
+function stripBust(path) {
+  const i = path.indexOf(BUST_MARK);
+  return i === -1 ? path : path.slice(0, i);
+}
+
 let _invoke = null;
 async function invoke(cmd, args) {
   if (!_invoke) {
@@ -61,7 +84,7 @@ export async function imageUrl(path) {
   if (!isTauri) return null;
   if (cache.has(path)) return cache.get(path);
 
-  const p = enqueueImageLoad(() => invoke("read_image", { path }))
+  const p = enqueueImageLoad(() => invoke("read_image", { path: stripBust(path) }))
     .then((uri) => {
       cache.set(path, uri);
       return uri;
