@@ -7,6 +7,23 @@
 
 use base64::{engine::general_purpose, Engine as _};
 
+/// MIME de una extensión de imagen soportada, o `None` si no se reconoce.
+/// Única fuente de verdad para "qué es una imagen válida" — la comparte
+/// `read_image` de abajo con `artstore::art_import` (Fase 2 de
+/// feature-imagenes.md), para que el almacén propio de arte nunca acepte algo
+/// que después este mismo comando no podría servir a la WebView.
+pub(crate) fn image_mime(ext: &str) -> Option<&'static str> {
+    Some(match ext {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "ico" => "image/x-icon",
+        "bmp" => "image/bmp",
+        _ => return None,
+    })
+}
+
 #[tauri::command]
 pub async fn read_image(path: String) -> Result<String, String> {
     let p = std::path::Path::new(&path);
@@ -15,15 +32,7 @@ pub async fn read_image(path: String) -> Result<String, String> {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
-    let mime = match ext.as_str() {
-        "jpg" | "jpeg" => "image/jpeg",
-        "png" => "image/png",
-        "webp" => "image/webp",
-        "gif" => "image/gif",
-        "ico" => "image/x-icon",
-        "bmp" => "image/bmp",
-        _ => return Err(format!("assets.unsupported_image_ext|{ext}")),
-    };
+    let mime = image_mime(&ext).ok_or_else(|| format!("assets.unsupported_image_ext|{ext}"))?;
     let bytes = std::fs::read(p).map_err(|e| e.to_string())?;
     let b64 = general_purpose::STANDARD.encode(&bytes);
     Ok(format!("data:{mime};base64,{b64}"))

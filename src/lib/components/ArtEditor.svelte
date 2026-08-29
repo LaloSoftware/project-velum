@@ -2,14 +2,17 @@
   import { onMount, onDestroy } from "svelte";
   import {
     overrides,
-    effectiveArt,
+    bustedArt,
     setOverride,
     clearOverride,
     setLogoPos,
   } from "../stores/artoverrides.js";
+  import { artBust } from "../stores/artRefresh.js";
   import { imageUrl } from "../util/asset.js";
   import { showToast } from "../stores/ui.js";
   import { isTauri } from "../ipc/index.js";
+  import { errorMessage } from "../i18n/errors.js";
+  import { openGriddbModal } from "../stores/ui.js";
   import { t, tr } from "../i18n/index.js";
 
   export let game;
@@ -38,7 +41,7 @@
     { code: "br", labelKey: "common.pos.br" },
   ];
 
-  $: art = effectiveArt(game, $overrides);
+  $: art = bustedArt(game, $overrides, $artBust);
   $: ov = (game && $overrides[game.id]) || {};
 
   // Vista previa de cada slot (data URI / URL). Se recarga si cambia la ruta.
@@ -61,26 +64,55 @@
 
   const slotEls = {};
 
+  // Ocupado mientras `setOverride()` copia la imagen al almacén propio
+  // (Fase 2, feature-imagenes.md) — puede tardar lo suyo con un archivo
+  // grande. Nunca `disabled` nativo: un botón enfocado que pasa a `disabled`
+  // pierde el foco del DOM y rompe la navegación por mando (misma regla que
+  // el botón de sync del Detalle, ver GameDetail.svelte).
+  let busy = {}; // { [kind]: true }
+
   async function pick(kind) {
     if (!isTauri) return showToast(tr("common.filesOnlyInApp"));
+    let path;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
-      const path = await open({
+      path = await open({
         multiple: false,
         filters: [{ name: tr("detail.sections.images"), extensions: IMG_EXT }],
       });
-      if (path) {
-        await setOverride(game.id, kind, path);
-        showToast(tr("art.toast.updated"));
-      }
     } catch {
-      showToast(tr("common.pickerError"));
+      // Falló el selector nativo en sí (raro) — mensaje genérico, no hay
+      // código de error del backend que traducir todavía.
+      return showToast(tr("common.pickerError"));
+    }
+    if (!path) return;
+    busy = { ...busy, [kind]: true };
+    try {
+      await setOverride(game.id, kind, path);
+      showToast(tr("art.toast.updated"));
+    } catch (e) {
+      // Acá sí hay un código de artstore.rs que traducir (extensión no
+      // soportada, archivo demasiado grande, error de copia…) — mostrarlo
+      // crudo como "pickerError" ocultaría la causa real.
+      showToast(errorMessage(e));
+    } finally {
+      busy = { ...busy, [kind]: false };
     }
   }
 
   async function clear(kind) {
     await clearOverride(game.id, kind);
     showToast(tr("art.toast.cleared"));
+  }
+
+  // Abre GridDbPickerModal.svelte (Fase 3) para este slot. Visible siempre —
+  // también sin override todavía, a diferencia de "Quitar" — y sin importar
+  // si hay API key guardada: el modal mismo avisa si falta (más descubrible
+  // que ocultar el botón). isTauri no hace falta acá porque solo abre un
+  // overlay; si se llega a intentar buscar en modo web, la propia llamada de
+  // red fallará con el error de siempre.
+  function pickFromGriddb(kind) {
+    openGriddbModal(game.id, kind);
   }
 
   // Arrastrar y soltar un archivo desde el explorador (Tauri): se asigna al slot
@@ -104,7 +136,11 @@
           if (!el) continue;
           const r = el.getBoundingClientRect();
           if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) {
-            setOverride(game.id, s.kind, paths[0]).then(() => showToast(tr("art.toast.updated")));
+            busy = { ...busy, [s.kind]: true };
+            setOverride(game.id, s.kind, paths[0])
+              .then(() => showToast(tr("art.toast.updated")))
+              .catch((e) => showToast(errorMessage(e)))
+              .finally(() => (busy = { ...busy, [s.kind]: false }));
             return;
           }
         }
@@ -131,14 +167,23 @@
         <div class="name">{$t(s.labelKey)}</div>
         <div class="dims">{$t(s.dimsKey)}</div>
         <div class="btns">
-          <button class="pick" data-focusable tabindex="-1" on:click={() => pick(s.kind)}>
-            {$t("common.choose")}
+          <button
+            class="pick"
+            class:busy={busy[s.kind]}
+            data-focusable
+            tabindex="-1"
+            on:click={() => pick(s.kind)}
+          >
+            {busy[s.kind] ? $t("art.importing") : $t("common.choose")}
           </button>
           {#if ov[s.kind]}
             <button class="rm" data-focusable tabindex="-1" on:click={() => clear(s.kind)}>
               {$t("common.remove")}
             </button>
           {/if}
+          <button class="griddb" data-focusable tabindex="-1" on:click={() => pickFromGriddb(s.kind)}>
+            {$t("art.pickGriddb")}
+          </button>
         </div>
       </div>
     {/each}
@@ -244,7 +289,8 @@
     margin-top: 2px;
   }
   .pick,
-  .rm {
+  .rm,
+  .griddb {
     cursor: pointer;
     padding: 6px 12px;
     border-radius: 999px;
@@ -256,8 +302,15 @@
   .rm {
     color: var(--gm-danger);
   }
+  /* Mientras copia (Fase 2, feature-imagenes.md): opacidad, nunca `disabled`
+     nativo — un focusable enfocado que pasa a disabled pierde el foco del
+     DOM y rompe la navegación por mando. */
+  .pick.busy {
+    opacity: 0.6;
+  }
   .pick:focus,
-  .rm:focus {
+  .rm:focus,
+  .griddb:focus {
     box-shadow: var(--gm-focus-ring);
     background: var(--gm-surface-2);
   }

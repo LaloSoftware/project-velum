@@ -17,7 +17,8 @@
     homeWallpaperPath,
   } from "../stores/uiprefs.js";
   import { imageUrl } from "../util/asset.js";
-  import { overrides, effectiveArt } from "../stores/artoverrides.js";
+  import { overrides, bustedArt } from "../stores/artoverrides.js";
+  import { artBust } from "../stores/artRefresh.js";
   import { t } from "../i18n/index.js";
   import GameCard from "./GameCard.svelte";
 
@@ -43,7 +44,9 @@
   // --gm-wallpaper de toda la app). Las tarjetas de la tira no se tocan.
   $: bgSrc =
     $homeWallpaperPath ||
-    (featured ? effectiveArt(featured, $overrides).hero || effectiveArt(featured, $overrides).cover : null);
+    (featured
+      ? bustedArt(featured, $overrides, $artBust).hero || bustedArt(featured, $overrides, $artBust).cover
+      : null);
   $: if (bgSrc !== bgFor) {
     bgFor = bgSrc;
     bgUrl = null;
@@ -60,7 +63,7 @@
     const i = $recentGames.findIndex((g) => g.id === featured.id);
     for (const g of [$recentGames[i - 1], $recentGames[i + 1]]) {
       if (!g) continue;
-      const src = effectiveArt(g, $overrides).hero || effectiveArt(g, $overrides).cover;
+      const src = bustedArt(g, $overrides, $artBust).hero || bustedArt(g, $overrides, $artBust).cover;
       if (src) imageUrl(src);
     }
   }

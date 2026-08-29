@@ -156,6 +156,13 @@ export function completeSetup() {
 // el badge fijo del Detalle): { appid, title } | null.
 export const achievementsModal = writable(null);
 
+// Selector de arte de SteamGridDB (Fase 3, feature-imagenes.md; capa modal,
+// se abre desde el tercer botón de cada slot en ArtEditor):
+// { gameId, slot } | null. `gameId` es el id LOCAL del juego (game.id, p. ej.
+// "steam:570"), no el id de SteamGridDB — la resolución a un juego de
+// SteamGridDB vive en stores/griddb.js.
+export const griddbModal = writable(null);
+
 // Confirmación de desvincular la cuenta de Steam (capa modal, desde Cuentas).
 export const confirmUnlinkSteam = writable(false);
 
@@ -267,6 +274,12 @@ export function openAchievements(appid, title) {
 }
 export function closeAchievements() {
   achievementsModal.set(null);
+}
+export function openGriddbModal(gameId, slot) {
+  griddbModal.set({ gameId, slot });
+}
+export function closeGriddbModal() {
+  griddbModal.set(null);
 }
 export function openConfirmUnlinkSteam() {
   confirmUnlinkSteam.set(true);
