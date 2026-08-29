@@ -299,6 +299,7 @@ export default {
   "griddb.filter.humor": "Humor / memes",
   "griddb.filter.epilepsy": "Epilepsy risk",
   "griddb.filter.animated": "Animated images",
+  "griddb.filter.toggle": "Filters",
   "griddb.filter.styles": "Style",
   "griddb.filter.dimensions": "Resolution",
   "griddb.filter.mimes": "Format",

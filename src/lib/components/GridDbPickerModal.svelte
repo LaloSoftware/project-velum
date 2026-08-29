@@ -44,6 +44,10 @@
   let searching = false;
   let searchErr = null;
 
+  // Colapsados por defecto: la barra completa de filtros no debe comerse el
+  // espacio de la grilla de resultados apenas se abre el modal.
+  let filtersExpanded = false;
+
   let resolvedFor = null; // gameId ya intentado, para no repetir al re-renderizar
   $: if ($griddbKeyLinked && game && game.id !== resolvedFor) {
     resolvedFor = game.id;
@@ -235,6 +239,20 @@
           </button>
         </div>
       {:else if sgdbGame && slotCfg}
+        <!-- Colapsados por defecto: la barra de filtros completa ocupaba
+             mucho alto fijo (header no scrollea) a costa del espacio real
+             de la grilla de resultados. -->
+        <button
+          class="filters-toggle"
+          data-focusable
+          tabindex="-1"
+          aria-expanded={filtersExpanded}
+          on:click={() => (filtersExpanded = !filtersExpanded)}
+        >
+          {filtersExpanded ? "▾" : "▸"} {$t("griddb.filter.toggle")}
+        </button>
+      {/if}
+      {#if $griddbKeyLinked && !searchMode && sgdbGame && slotCfg && filtersExpanded}
         <div class="filters">
           <div class="filter-row">
             <button
@@ -359,7 +377,14 @@
         {:else if results && !results.items.length}
           <p class="dim">{$t("griddb.images.empty")}</p>
         {:else if results}
-          <div class="grid" class:loading={loadingImages}>
+          <!-- Columnas anchas/angostas según la forma real del slot (menos
+               columnas en hero/wide, más en cover) — ver el porqué en
+               stores/griddb.js::GRIDDB_SLOTS. -->
+          <div
+            class="grid"
+            class:loading={loadingImages}
+            style="grid-template-columns: repeat(auto-fill, minmax({slotCfg.minCol}px, 1fr));"
+          >
             {#each results.items as img, i (img.id)}
               <button
                 class="thumb-btn"
@@ -369,7 +394,13 @@
                 tabindex="-1"
                 on:click={() => chooseImage(img)}
               >
-                <img class="thumb-img" src={img.thumb} alt="" loading="lazy" />
+                <img
+                  class="thumb-img"
+                  style="aspect-ratio: {slotCfg.aspect}; object-fit: {slotCfg.fit};"
+                  src={img.thumb}
+                  alt=""
+                  loading="lazy"
+                />
                 <div class="thumb-meta">
                   <span class="thumb-score">▲ {img.score}</span>
                   {#if img.author?.name}<span class="thumb-author dim">{img.author.name}</span>{/if}
@@ -537,6 +568,20 @@
   .chip.disabled {
     opacity: 0.4;
   }
+  .filters-toggle {
+    cursor: pointer;
+    align-self: flex-start;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--gm-text-dim);
+    font-weight: 700;
+    font-size: 0.78rem;
+  }
+  .filters-toggle:focus {
+    box-shadow: var(--gm-focus-ring);
+    color: var(--gm-text);
+  }
 
   .body {
     flex: 1 1 auto;
@@ -568,7 +613,8 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    /* grid-template-columns real viene inline por slot (GRIDDB_SLOTS.minCol
+       en stores/griddb.js) — cover angosto, hero/wide bien anchos. */
     gap: 14px;
   }
   .grid.loading {
@@ -591,8 +637,10 @@
   }
   .thumb-img {
     width: 100%;
-    aspect-ratio: 380 / 178;
-    object-fit: cover;
+    /* aspect-ratio y object-fit reales vienen inline por slot (GRIDDB_SLOTS
+       en stores/griddb.js) — el fondo es el "letterbox" cuando el thumb de
+       SteamGridDB (documentado como 380×178 para los 3 endpoints) no llena
+       la caja del todo con object-fit:contain. */
     background: var(--gm-surface-2);
   }
   .thumb-meta {

@@ -26,15 +26,49 @@ import {
  * válidas — ver el spec en feature-imagenes.md, verificado contra
  * https://www.steamgriddb.com/static/openapi.yml.
  */
+// `aspect`/`minCol` fijan cómo se pinta la grilla de resultados en
+// GridDbPickerModal.svelte: cada slot tiene una forma real bien distinta
+// (carátula vertical, expandida apaisada, hero panorámico, logo
+// transparente de proporción libre) — antes se mostraban todas en la misma
+// caja 380×178 (la del `thumb` de grids/heroes/logos, documentada igual
+// para los tres endpoints en el spec), recortando mal cualquiera que no
+// fuera apaisada. `minCol` es a propósito angosto en `cover` (columnas más
+// angostas, más altas) y ancho en `hero` (columnas bien anchas, pocas por
+// fila) — menos columnas pero cada imagen correcta pesa más que encajar más
+// por fila. `fit: "contain"` en todos (nunca "cover"): si el `thumb` real
+// resulta ser genuinamente del tamaño documentado (380×178) en vez del
+// tamaño real del slot, "contain" lo deja con letterboxing en vez de
+// recortarlo o deformarlo — siempre correcto, nunca peor que el bug
+// original, se pueda o no confirmar el tamaño real del thumb sin una key.
 export const GRIDDB_SLOTS = {
   cover: {
     kind: "grids",
     dims: ["600x900", "342x482", "660x930", "512x512", "1024x1024"],
     native: "600x900",
+    aspect: "600 / 900",
+    minCol: 150,
+    fit: "contain",
   },
-  wide: { kind: "grids", dims: ["460x215", "920x430"], native: "920x430" },
-  hero: { kind: "heroes", dims: ["1920x620", "3840x1240", "1600x650"], native: "1920x620" },
-  logo: { kind: "logos", dims: null, native: null }, // la API no acepta `dimensions` en logos
+  wide: {
+    kind: "grids",
+    dims: ["460x215", "920x430"],
+    native: "920x430",
+    aspect: "920 / 430",
+    minCol: 240,
+    fit: "contain",
+  },
+  hero: {
+    kind: "heroes",
+    dims: ["1920x620", "3840x1240", "1600x650"],
+    native: "1920x620",
+    aspect: "1920 / 620",
+    minCol: 320,
+    fit: "contain",
+  },
+  // La API no acepta `dimensions` en logos (dims: null) — proporción libre,
+  // se usa la misma caja 16:9 con padding que ya usa ArtEditor.svelte para
+  // su propio preview de logo, mismo criterio en toda la app.
+  logo: { kind: "logos", dims: null, native: null, aspect: "16 / 9", minCol: 220, fit: "contain" },
 };
 
 // Estilos y formatos por endpoint — listas distintas para grids/heroes/logos
